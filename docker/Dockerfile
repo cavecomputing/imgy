@@ -1,3 +1,5 @@
+# The build context is the repo root, not this folder, so COPY paths start there.
+# docker-compose.yml sets that up; to build by hand: docker build -f docker/Dockerfile .
 FROM python:3.11-slim
 
 # Pillow build libraries, gosu for dropping privileges, ffmpeg for video thumbnails
@@ -10,13 +12,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python deps first (cache-friendly layer)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python deps from uv.lock first (cache-friendly layer). uv is mounted for this
+# step only, so it isn't left in the image.
+COPY pyproject.toml uv.lock ./
+RUN --mount=from=ghcr.io/astral-sh/uv:0.12.21,source=/uv,target=/bin/uv \
+    uv sync --locked --no-dev --no-cache --compile-bytecode --no-python-downloads
+ENV PATH="/app/.venv/bin:$PATH"
 
 COPY app.py .
 COPY imgy/ imgy/
-COPY entrypoint.sh .
+COPY docker/entrypoint.sh .
 
 RUN mkdir -p /data
 

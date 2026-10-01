@@ -1,11 +1,16 @@
+name: imgy
+
+# Relative paths here start from this folder: the build context and ../data are the repo root's.
 services:
   imgy:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: imgy
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
-      - ./data:/data
+      - ../data:/data
     restart: unless-stopped
     environment:
       - DATA_DIR=/data

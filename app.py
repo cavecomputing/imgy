@@ -1,7 +1,7 @@
 """Imgy entry point.
 
-Development: python app.py  (or: flask run)
-Production:  gunicorn --bind 127.0.0.1:8000 --workers 4 --timeout 120 app:app
+Development: uv run app.py  (or: uv run flask run)
+Production:  uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --timeout 120 app:app
 
 Both listen on localhost only. There is no login, so read the README before exposing it.
 """

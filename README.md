@@ -18,26 +18,27 @@ A local-first image and video organizer. Tag, search, favorite, group, and renam
 ### Docker
 
 ```bash
+cd docker
 docker compose up --build -d
 ```
 
-Open http://localhost:8000. Media and the database live in `./data` on the host. The container runs as UID/GID 1000 by default; to match your host user:
+Open http://localhost:8000. Media and the database live in `data/` at the root of the repo. The container runs as UID/GID 1000 by default; to match your host user:
 
 ```bash
 PUID=$(id -u) PGID=$(id -g) docker compose up --build -d
 ```
 
-The compose file publishes on `127.0.0.1` only. To reach it another way, change `ports` in `docker-compose.yml` and set `ALLOWED_HOSTS` to the name or address you'll use.
+Run compose commands from `docker/`, or from the repo root with `-f docker/docker-compose.yml`. A `.env` file for these variables goes in `docker/` too.
+
+The compose file publishes on `127.0.0.1` only. To reach it another way, change `ports` in `docker/docker-compose.yml` and set `ALLOWED_HOSTS` to the name or address you'll use.
 
 ### Without Docker
 
-Requires Python 3.11+ and `ffmpeg` (for video thumbnails).
+Requires [uv](https://docs.astral.sh/uv/) and `ffmpeg` (for video thumbnails). On first run, uv sets up Python 3.11+ and the locked dependencies in `.venv`.
 
 ```bash
-python3 -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
-python app.py                                                     # development server
-gunicorn --bind 127.0.0.1:8000 --workers 4 --timeout 120 app:app   # production
+uv run app.py                                                             # development server
+uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --timeout 120 app:app   # production
 ```
 
 Both serve http://localhost:8000 and only accept connections from the same machine. Binding gunicorn to `0.0.0.0` exposes the app to your whole network, and you'll also need `ALLOWED_HOSTS`.
@@ -94,12 +95,14 @@ Imgy can suggest a filename and tags for an image using any OpenAI-compatible ch
 
 Once your library has tags, the model may only pick from existing tags. **Exclusive tag groups** limit it to one tag from a set (for example `day`, `night`).
 
-With Docker, `localhost` in the endpoint means the container, not your computer. To reach Ollama on the host, use `http://host.docker.internal:11434/v1/chat/completions`, start Ollama with `OLLAMA_HOST=0.0.0.0`, and on Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the service in `docker-compose.yml`.
+With Docker, `localhost` in the endpoint means the container, not your computer. To reach Ollama on the host, use `http://host.docker.internal:11434/v1/chat/completions`, start Ollama with `OLLAMA_HOST=0.0.0.0`, and on Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the service in `docker/docker-compose.yml`.
 
 ## Development
 
 ```
 app.py                # entry point (creates the Flask app)
+pyproject.toml        # dependencies, locked in uv.lock
+docker/               # Dockerfile, compose file, and entrypoint
 imgy/
 ├── __init__.py       # create_app()
 ├── config.py         # paths and limits
@@ -121,8 +124,10 @@ imgy/
 There is no test suite or build step. After a change, check syntax and then try the affected workflow in the browser:
 
 ```bash
-python -m compileall -q app.py imgy
+uv run python -m compileall -q app.py imgy
 for f in imgy/static/js/*.js; do node --input-type=module --check < "$f" || echo "$f"; done
 ```
 
-See [AGENTS.md](AGENTS.md) for the conventions that are easy to miss.
+Change dependencies with `uv add` or `uv remove` and commit the updated `uv.lock`; the Docker build installs from it.
+
+See [CLAUDE.md](CLAUDE.md) for the conventions that are easy to miss.

@@ -1,7 +1,7 @@
 .git/
 .gitignore
-.dockerignore
-Dockerfile
+docker/*
+!docker/entrypoint.sh
 .env
 .env.*
 .flaskenv

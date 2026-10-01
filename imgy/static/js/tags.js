@@ -1,5 +1,6 @@
 /** Parsing for the tag expression syntax shared by the search bar and the tag flyups. */
 import { State } from './state.js';
+import { esc, formatCount } from './utils.js';
 import { showToast } from './ui.js';
 
 export function splitTagTokens(str, separator = /[\s,]+/) {
@@ -132,4 +133,94 @@ export function getCommonTags(limit = 8, exclude = []) {
         .filter(t => !excluded.has(t))
         .sort((a, b) => (State.tagCounts[b] || 0) - (State.tagCounts[a] || 0) || a.localeCompare(b))
         .slice(0, limit);
+}
+
+const strong = (text) => `<strong>${esc(text)}</strong>`;
+
+/**
+ * What Enter would do with a tag editor expression, for the preview under the input.
+ * `ctx.files` holds the files the editor works on (one, or the bulk selection) and
+ * `ctx.llm` describes auto-tagging ({ model, verbs }). Returns { rows, adds, removes }:
+ * one row per token ({ code, cls: ''|'add'|'rm'|'warn', html, alert }), plus the tags the
+ * expression would add or remove so the current-tag chips can show the change.
+ */
+export function planTagExpression(raw, ctx) {
+    const bulk = !!ctx.bulk;
+    const files = ctx.files || [];
+    const n = files.length;
+    const tokens = splitTagTokens(raw, bulk ? /[\s,]+/ : /\s+/);
+    const rows = [];
+    const adds = new Set();
+    const removes = new Set();
+    const result = { rows, adds, removes };
+    if (!tokens.length || !n) return result;
+
+    const library = new Set(State.allTags);
+    const have = (tag) => files.filter(f => f.tags?.includes(tag)).length;
+    const union = [...new Set(files.flatMap(f => f.tags || []))];
+    const target = bulk ? `${n === 1 ? 'the file' : `the ${n} files`}` : 'this file';
+    const row = (code, cls, html, alert = false) => rows.push({ code, cls, html, alert });
+
+    const special = tokens.find(t => t === '?' || t === '=' || t === '++' || t === '--');
+    if (special && tokens.length > 1) {
+        row(special, 'warn', `${strong(special)} must be the only token.`, true);
+        return result;
+    }
+    if (special === '?') {
+        row('?', '', `Sends ${bulk ? `${strong(formatCount(n, 'file'))}` : 'this file'} to ${strong(ctx.llm?.model || 'the model')} to ${esc(ctx.llm?.verbs || 'tag it')}.`);
+        return result;
+    }
+    if (special === '--') {
+        if (!union.length) row('--', 'warn', `${bulk ? 'The selection has' : 'This file has'} no tags.`);
+        else {
+            row('--', 'rm', `Removes all ${strong(formatCount(union.length, 'tag'))} from ${target}.`);
+            union.forEach(t => removes.add(t));
+        }
+        return result;
+    }
+    if (special === '=') {
+        if (!bulk) row('=', 'warn', 'Only works on a selection.', true);
+        else if (!union.length) row('=', 'warn', 'The selection has no tags to share.');
+        else row('=', '', `Gives ${n === 1 ? 'the file' : `all ${strong(formatCount(n, 'file'))}`} every tag in the selection (${strong(formatCount(union.length, 'tag'))}).`);
+        return result;
+    }
+    if (special === '++') {
+        if (!bulk) row('++', 'warn', 'Only works on a selection.', true);
+        else if (n < 2) row('++', 'warn', 'Select at least 2 files to group them.', true);
+        else row('++', '', `Groups the ${strong(formatCount(n, 'file'))} so they stay together.`);
+        return result;
+    }
+
+    for (const token of tokens) {
+        if (token.includes('>')) {
+            const [oldName, newName] = token.split('>').map(s => s.trim().toLowerCase());
+            if (!oldName || !newName) { row(token, 'warn', `Rename needs ${strong('old>new')}.`, true); continue; }
+            const k = have(oldName);
+            if (!k) { row(token, 'warn', `${strong(oldName)} isn't on ${bulk ? 'any selected file' : 'this file'}.`, true); continue; }
+            const where = bulk ? (k === n ? (n === 1 ? 'the file' : `all ${n} files`) : `the ${formatCount(k, 'file')} that have it`) : 'this file';
+            row(token, '', `Renames ${strong(oldName)} to ${strong(newName)} on ${esc(where)}.`);
+            removes.add(oldName);
+            adds.add(newName);
+        } else if (token.startsWith('-') && token.length > 1) {
+            const tag = token.slice(1).toLowerCase();
+            const k = have(tag);
+            if (!k) { row(token, 'warn', `Not on ${bulk ? 'any selected file' : 'this file'}.`); continue; }
+            const where = bulk ? (k === n ? (n === 1 ? 'the file' : `all ${strong(formatCount(n, 'file'))}`) : `the ${strong(formatCount(k, 'file'))} that have it`) : 'this file';
+            row(token, 'rm', `Removes it from ${where}.`);
+            removes.add(tag);
+        } else if (token === '-' || token === '+') {
+            continue; // still typing
+        } else {
+            const create = token.startsWith('+');
+            const tag = (create ? token.slice(1) : token).toLowerCase();
+            const exists = library.has(tag);
+            if (!exists && !create) { row(token, 'warn', `No tag named ${strong(tag)} yet. ${strong('+' + tag)} creates it.`, true); continue; }
+            const missing = n - have(tag);
+            if (!missing) { row(token, 'warn', bulk && n > 1 ? `Already on all ${n} files.` : `Already on ${target}.`); continue; }
+            const where = bulk ? (missing === n ? (n === 1 ? 'the file' : `all ${strong(formatCount(n, 'file'))}`) : `the ${strong(formatCount(missing, 'file'))} without it`) : 'this file';
+            row(token, 'add', `${exists ? '' : 'New tag. '}Adds it to ${where}.`);
+            adds.add(tag);
+        }
+    }
+    return result;
 }

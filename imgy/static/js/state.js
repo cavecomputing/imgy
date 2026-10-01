@@ -14,6 +14,7 @@ export const State = {
     selectedImages: new Set(),
     currentQuickTagImage: null,
     settings: {},
+    trashCount: 0,
 
     // Search Suggestions State
     suggestionIndex: -1,

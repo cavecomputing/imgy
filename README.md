@@ -9,6 +9,7 @@ A local-first image and video organizer. Tag, search, favorite, group, and renam
 - Trash with restore, inline rename, drag-and-drop upload
 - Keyboard-driven: press `?` in the app for every shortcut
 - Optional LLM auto-tagger (Ollama, OpenRouter, or any OpenAI-compatible endpoint)
+- Gruvbox dark and light themes from the cavecomputing design system, with a phone layout that keeps the filter in reach of your thumb
 
 > **There is no authentication.** Anyone who can reach the server can view, change, and delete your files, and can read the LLM API key from the settings. Keep it on `localhost` or a trusted network, or put it behind an authenticating reverse proxy.
 
@@ -63,13 +64,13 @@ Set `ALLOWED_HOSTS` whenever you reach the app by anything other than `localhost
 
 Behind a reverse proxy, pass the browser's Host header through unchanged, including the port, and list that name. Caddy and Traefik do this by default; for nginx add `proxy_set_header Host $http_host;`. A proxy that replaces the Host header hides the name from the app, so the DNS rebinding check can't work, and over plain HTTP every change is refused as cross-site.
 
-Uploads are limited to 500 MB per request.
+Uploads are limited to 500 MB per request. If thumbnails ever look wrong, **Settings › Storage › Reset thumbnails** deletes them so they're made again from your files.
 
 ## Tag expressions
 
-Type expressions in the tag editor (`T` on an image), the bulk tag editor (`T` with files selected), or the search bar. Separate several with spaces.
+Type expressions in the tag editor (`T` on an image), the bulk tag editor (`T` with files selected), or the filter bar (`/`). Separate several with spaces.
 
-| Expression | Tag editor | Bulk tag editor | Search bar |
+| Expression | Tag editor | Bulk tag editor | Filter bar |
 |---|---|---|---|
 | `tag` | Add an existing tag | Add to every selected file | Show files with the tag |
 | `+tag` | Create and add | Create and add to every selected file | Create the tag |
@@ -81,15 +82,15 @@ Type expressions in the tag editor (`T` on an image), the bulk tag editor (`T` w
 | `++` | | Group the selected files | |
 | `?` | Auto-tag with the LLM | Auto-tag selected files with the LLM | |
 
-`Tab` completes the tag you are typing. Destructive search-bar actions ask for confirmation.
+The tag editors preview what each expression will do before you press `Enter`. `Tab` completes the tag you are typing, and `Enter` applies the expression, or the suggestion you highlighted with the arrow keys. Destructive filter-bar actions ask for confirmation.
 
 ## LLM auto-tagging
 
 Imgy can suggest a filename and tags for an image using any OpenAI-compatible chat completions API with vision support. Videos are not supported.
 
 1. Run a vision model, for example with [Ollama](https://ollama.com/): `ollama pull gemma3`.
-2. Open settings with `?`, choose the provider, endpoint, and model, and click **Test Connection**. OpenRouter needs an API key.
-3. Type `?` in a tag editor, or click the cloud button in the lightbox. Suggestions are applied right away; the **Rename** and **Tag** checkboxes control which.
+2. Open **Settings** (the sliders button in the top bar), go to **Auto-tagging**, choose the provider, endpoint, and model, and click **Test connection**. OpenRouter needs an API key.
+3. Type `?` in a tag editor, or click **Auto-tag** in the lightbox. Suggestions are applied right away; the **Rename the file** and **Add tags** checkboxes control which.
 
 Once your library has tags, the model may only pick from existing tags. **Exclusive tag groups** limit it to one tag from a set (for example `day`, `night`).
 
@@ -112,8 +113,9 @@ imgy/
 ├── api/              # one Flask blueprint per resource, mounted at /api
 ├── templates/        # index.html
 └── static/
-    ├── style.css
-    └── js/           # ES modules, entry point main.js
+    ├── cavecomputing.css  # cavecomputing design system components (cc-*), vendored
+    ├── style.css          # Imgy's layout and Gruvbox theme tokens
+    └── js/                # ES modules, entry point main.js
 ```
 
 There is no test suite or build step. After a change, check syntax and then try the affected workflow in the browser:

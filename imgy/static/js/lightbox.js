@@ -1,14 +1,17 @@
-/** Full-screen viewer with zoom, pan, pinch, and swipe navigation. */
+/** Full-screen viewer with a details panel, zoom, pan, pinch, and swipe navigation. */
 import { getCurrentLightboxImage, State } from './state.js';
 import { Elements } from './dom.js';
-import { esc, formatFileSize, getDisplayFilename, getImageBaseName, isVideo } from './utils.js';
+import { esc, formatCount, formatFileSize, formatShortDate, getDisplayFilename, getExtension, getImageBaseName, isVideo } from './utils.js';
 import { setToggleButtonState, showToast } from './ui.js';
 import { applyFilters } from './data.js';
 import { startHeaderInlineRename } from './rename.js';
-import { deleteImage, toggleFavorite, updateLocalState } from './actions.js';
-import { closeLightboxTagFlyup, openLightboxTagFlyup } from './flyup.js';
+import { deleteImage, removeTag, toggleFavorite, updateLocalState } from './actions.js';
+import { closeLightboxTagFlyup, openLightboxTagFlyup, toggleLightboxTagFlyup } from './flyup.js';
 import { toggleTagFilter } from './filters.js';
 import { llmQueueAdd, llmQueueSyncLightbox } from './llm.js';
+import { getLlmSettings } from './settings.js';
+
+const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'WebP', bmp: 'BMP' };
 
 export function openLightbox(idx) {
     State.lightboxScrollY = window.scrollY;
@@ -16,16 +19,14 @@ export function openLightbox(idx) {
     updateLightboxContent();
     Elements.lightbox.classList.add('active');
     document.body.style.overflow = 'hidden';
-    
-    Elements.lightboxTagBtn?.classList.remove('active');
 }
 
 export function closeLightbox() {
     const video = Elements.lightboxContent.querySelector('video.lightbox-video');
     if (video) { video.pause(); video.remove(); }
-    const exifEl = document.getElementById('lightboxExif');
-    if (exifEl) { exifEl.classList.add('hidden'); exifEl.innerHTML = ''; }
+    Elements.lightboxExif.textContent = '';
     closeLightboxTagFlyup();
+    setSheetExpanded(false);
     const restoreFilename = getCurrentLightboxImage()?.filename;
     Elements.lightbox.classList.remove('active');
     document.body.style.overflow = '';
@@ -41,6 +42,17 @@ export function closeLightbox() {
         window.scrollTo(0, State.lightboxScrollY);
         State.lightboxScrollY = null;
     }
+}
+
+export function setLightboxFavoriteState(isFavorite) {
+    setToggleButtonState(Elements.lightboxFavoriteBtn, isFavorite);
+    setToggleButtonState(Elements.lightboxFavoriteTab, isFavorite);
+}
+
+function setSheetExpanded(expanded) {
+    Elements.lightboxPanel.classList.toggle('expanded', expanded);
+    Elements.lightboxSheetGrab.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    Elements.lightboxSheetGrab.setAttribute('aria-label', expanded ? 'Hide details' : 'Show details');
 }
 
 export function updateLightboxContent() {
@@ -65,10 +77,11 @@ export function updateLightboxContent() {
         video.src = targetUrl;
         video.poster = img.thumbnail_url;
         video.onerror = () => showToast('This video format may not be supported by your browser');
-        Elements.lightboxContent.insertBefore(video, document.getElementById('lightboxOverlayTags'));
+        Elements.lightboxContent.insertBefore(video, Elements.prevImageBtn);
     } else {
         Elements.lightboxImage.style.display = '';
         Elements.resetZoomBtn.style.display = '';
+        Elements.lightboxImage.alt = getImageBaseName(img.filename);
 
         // Set dimensions immediately to prevent layout shift
         if (img.width && img.height) {
@@ -100,102 +113,133 @@ export function updateLightboxContent() {
         fullImg.src = targetUrl;
     }
 
-    const baseName = getImageBaseName(img.filename);
-    const headerFilename = document.getElementById('lightboxHeaderFilename');
-    if (headerFilename) {
-        headerFilename.textContent = baseName;
-    }
-    setToggleButtonState(Elements.lightboxFavoriteBtn, !!img.is_favorite);
+    Elements.lightboxHeaderFilename.textContent = getImageBaseName(img.filename);
+    Elements.lightboxHeaderExt.textContent = getExtension(img.filename);
+    Elements.lightboxPosition.innerHTML = `${State.currentImageIndex + 1} of ${State.filteredImages.length}<span class="lb-pos-hint"> · swipe to browse</span>`;
+    setLightboxFavoriteState(!!img.is_favorite);
 
-    if (Elements.lightboxDownloadBtn) {
-        Elements.lightboxDownloadBtn.href = img.url;
-        Elements.lightboxDownloadBtn.download = getDisplayFilename(img.filename);
+    for (const link of [Elements.lightboxDownloadBtn, Elements.lightboxDownloadTab]) {
+        link.href = img.url;
+        link.download = getDisplayFilename(img.filename);
     }
 
-    // Hide LLM button for videos
-    if (Elements.llmAnalyzeBtn) {
-        Elements.llmAnalyzeBtn.style.display = videoMode ? 'none' : '';
-    }
+    // The LLM only reads images
+    Elements.llmAnalyzeBtn.classList.toggle('hidden', videoMode);
+    Elements.lightboxLlmSection.classList.toggle('hidden', videoMode);
+    Elements.lightboxLlmTab.title = videoMode ? 'Videos can’t be auto-tagged' : 'Auto-tag with the vision LLM';
 
     renderLightboxTagBar(img.tags || [], img.filename);
+    renderLightboxLlmText();
     renderLightboxMeta(img);
     renderLightboxExif(img.filename);
     resetZoom();
     llmQueueSyncLightbox();
 }
 
+function renderLightboxLlmText() {
+    const s = getLlmSettings();
+    const model = `<code>${esc(s.model)}</code>`;
+    let text;
+    if (s.doTags && s.doRename) text = `Asks ${model} for a file name and tags and applies them right away.`;
+    else if (s.doTags) text = `Asks ${model} for tags and adds them right away.`;
+    else if (s.doRename) text = `Asks ${model} for a file name and renames the file right away.`;
+    else text = `Renaming and tagging are both off in Settings, so ${model}’s answer won’t change anything.`;
+    if (s.doTags) text += ' Once the library has tags, it only picks from those.';
+    Elements.lightboxLlmText.innerHTML = text;
+}
+
+function describeType(filename) {
+    const ext = getExtension(filename).slice(1).toLowerCase();
+    if (isVideo(filename)) return `${ext.toUpperCase()} video`;
+    return FILE_TYPES[ext] || ext.toUpperCase() || 'Unknown';
+}
+
+function formatLongDate(seconds) {
+    const d = new Date(seconds * 1000);
+    return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function groupSize(filename) {
+    const gid = State.filenameToGroup[filename];
+    if (!gid) return 0;
+    return State.images.filter(i => State.filenameToGroup[i.filename] === gid).length;
+}
+
 export function renderLightboxMeta(img) {
-    const el = document.getElementById('lightboxMeta');
-    if (!el) return;
-    const parts = [];
-    const ext = img.filename.split('.').pop().toUpperCase();
-    if (ext) parts.push(ext);
+    const rows = [
+        ['Type', esc(describeType(img.filename))],
+        ['Size', esc(formatFileSize(img.size) || '—')],
+        ['Dimensions', img.width && img.height ? `${img.width} × ${img.height}` : '—'],
+        ['Added', esc(img.modified ? formatLongDate(img.modified) : '—')],
+        ['Group', groupSize(img.filename) > 1 ? esc(formatCount(groupSize(img.filename), 'file')) : '—'],
+        ['Path', `<code>${esc(img.filename)}</code>`]
+    ];
+    Elements.lightboxMeta.innerHTML = rows.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join('');
+
+    // The one-line summary the phone sheet shows while collapsed
+    const parts = [describeType(img.filename)];
     if (img.width && img.height) parts.push(`${img.width} × ${img.height}`);
     if (img.size) parts.push(formatFileSize(img.size));
-    if (img.modified) {
-        const d = new Date(img.modified * 1000);
-        parts.push(d.toLocaleDateString());
-    }
-    el.innerHTML = parts.map(p => `<span class="lightbox-meta-item">${esc(p)}</span>`).join('');
+    if (img.modified) parts.push(formatShortDate(img.modified));
+    Elements.lightboxMetaLine.textContent = parts.join(' · ');
 }
 
 async function renderLightboxExif(filename) {
-    const el = document.getElementById('lightboxExif');
-    if (!el) return;
-    el.classList.add('hidden');
-    el.innerHTML = '';
+    const el = Elements.lightboxExif;
+    el.textContent = '';
+    Elements.lightboxMeta.querySelectorAll('tr.exif').forEach(tr => tr.remove());
     if (isVideo(filename)) return;
-    // Responses can arrive after the user has moved to another image or closed the lightbox
+    // Responses can arrive after the user has moved to another file or closed the lightbox
     const isStale = () => getCurrentLightboxImage()?.filename !== filename || !Elements.lightbox.classList.contains('active');
     try {
         const res = await fetch(`/api/exif/${encodeURIComponent(filename)}`);
         if (!res.ok || isStale()) return;
         const data = await res.json();
         if (isStale()) return;
-        const fields = [];
+        const rows = [];
         if (data.date) {
             // EXIF date format: "YYYY:MM:DD HH:MM:SS"
             const parts = data.date.split(' ');
             const datePart = parts[0]?.replace(/:/g, '-');
             const d = new Date(datePart + (parts[1] ? 'T' + parts[1] : ''));
-            if (!isNaN(d)) fields.push(d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }));
+            if (!isNaN(d)) rows.push(['Taken', d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })]);
         }
-        if (data.camera) fields.push(data.camera);
-        if (data.focal_length) fields.push(data.focal_length);
-        if (data.aperture) fields.push(data.aperture);
-        if (data.shutter) fields.push(data.shutter);
-        if (data.iso) fields.push(data.iso);
-        if (fields.length === 0) return;
-        el.innerHTML = `
-            <span class="lightbox-exif-icon">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-            </span>
-            ${fields.map(f => `<span class="lightbox-exif-item">${esc(f)}</span>`).join('')}
-        `;
-        el.classList.remove('hidden');
+        if (data.camera) rows.push(['Camera', data.camera]);
+        const exposure = [data.aperture, data.shutter, data.iso].filter(Boolean).join(' · ');
+        if (exposure) rows.push(['Exposure', exposure]);
+        if (data.focal_length) rows.push(['Focal length', data.focal_length]);
+        if (!rows.length) {
+            el.textContent = 'No camera data (EXIF) in this file.';
+            return;
+        }
+        Elements.lightboxMeta.insertAdjacentHTML('beforeend', rows.map(([label, value]) => `<tr class="exif"><td>${esc(label)}</td><td>${esc(value)}</td></tr>`).join(''));
     } catch (e) {
         // EXIF unavailable — silently skip
     }
 }
 
 export function renderLightboxTagBar(tags, filename) {
-    const container = document.getElementById('lightboxTagBarTags');
-    if (!container) return;
+    const container = Elements.lightboxTagBarTags;
     container.innerHTML = '';
-    if (!tags.length) {
-        container.innerHTML = '<span class="lightbox-tag-bar-empty">No tags</span>';
-        return;
-    }
+    if (!tags.length) container.insertAdjacentHTML('beforeend', '<span class="lb-empty">No tags yet.</span>');
     tags.forEach(t => {
-        const el = document.createElement('span');
-        el.className = 'lightbox-tag-bar-tag';
-        el.textContent = t;
-        el.onclick = () => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.innerHTML = `<button class="chip-label" type="button" title="Show files tagged ${esc(t)}">${esc(t)}</button><button class="chip-x" type="button" title="Remove" aria-label="Remove tag ${esc(t)}"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>`;
+        chip.querySelector('.chip-label').addEventListener('click', () => {
             toggleTagFilter(t);
             closeLightbox();
-        };
-        container.appendChild(el);
+        });
+        chip.querySelector('.chip-x').addEventListener('click', () => removeTag(filename, t));
+        container.appendChild(chip);
     });
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'chip chip-add';
+    add.title = 'Edit tags (T)';
+    add.innerHTML = '+ Add<kbd class="kbd kbd-sm">T</kbd>';
+    add.addEventListener('click', openLightboxTagFlyup);
+    container.appendChild(add);
 }
 
 function updateCachedDimensions() {
@@ -297,33 +341,43 @@ export function navigateImage(dir) {
 }
 
 export function initLightbox() {
-    setToggleButtonState(Elements.lightboxFavoriteBtn, false);
+    setLightboxFavoriteState(false);
 
     Elements.closeLightboxBtn.addEventListener('click', closeLightbox);
+    Elements.lightboxBackBtn.addEventListener('click', closeLightbox);
     Elements.prevImageBtn.addEventListener('click', () => navigateImage(-1));
     Elements.nextImageBtn.addEventListener('click', () => navigateImage(1));
     Elements.resetZoomBtn.addEventListener('click', resetZoom);
 
-    document.getElementById('lightboxTagBar')?.addEventListener('click', (e) => {
-        const span = e.target.closest('.editable-header-filename');
-        if (!span) return;
+    const startRename = () => {
         const img = getCurrentLightboxImage();
-        if (img) startHeaderInlineRename(img, span);
-    });
-    Elements.llmAnalyzeBtn?.addEventListener('click', () => {
+        if (img) startHeaderInlineRename(img, Elements.lightboxHeaderFilename);
+    };
+    Elements.lightboxHeaderFilename.addEventListener('click', startRename);
+    Elements.lightboxRenameBtn.addEventListener('click', startRename);
+
+    const autoTag = () => {
         const img = getCurrentLightboxImage();
         if (img) llmQueueAdd(img.filename);
-    });
-    Elements.lightboxHeaderDeleteBtn?.addEventListener('click', () => deleteImage(State.currentImageIndex));
-    Elements.lightboxTagBtn?.addEventListener('click', () => {
-        openLightboxTagFlyup();
-    });
-    Elements.lightboxFavoriteBtn?.addEventListener('click', async () => {
+    };
+    const trash = () => deleteImage(State.currentImageIndex);
+    const favorite = async () => {
         const img = getCurrentLightboxImage();
-        if (img) {
-            const isFav = await toggleFavorite(img.filename);
-            updateLocalState(img.filename, { is_favorite: isFav });
-        }
+        if (!img) return;
+        const isFav = await toggleFavorite(img.filename);
+        updateLocalState(img.filename, { is_favorite: isFav });
+    };
+    Elements.llmAnalyzeBtn.addEventListener('click', autoTag);
+    Elements.llmPanelBtn.addEventListener('click', autoTag);
+    Elements.lightboxLlmTab.addEventListener('click', autoTag);
+    Elements.lightboxHeaderDeleteBtn.addEventListener('click', trash);
+    Elements.lightboxDeleteTab.addEventListener('click', trash);
+    Elements.lightboxTagBtn.addEventListener('click', toggleLightboxTagFlyup);
+    Elements.lightboxTagTab.addEventListener('click', toggleLightboxTagFlyup);
+    Elements.lightboxFavoriteBtn.addEventListener('click', favorite);
+    Elements.lightboxFavoriteTab.addEventListener('click', favorite);
+    Elements.lightboxSheetGrab.addEventListener('click', () => {
+        setSheetExpanded(!Elements.lightboxPanel.classList.contains('expanded'));
     });
 
     Elements.lightboxContent.addEventListener('wheel', (e) => {

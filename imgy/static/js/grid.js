@@ -1,7 +1,7 @@
-/** Gallery grid: image cards, groups, and the masonry layout. */
+/** Gallery grid: image cards, groups, the masonry layout, and the library count above it. */
 import { State } from './state.js';
 import { Elements } from './dom.js';
-import { esc, getDisplayFilename, getImageBaseName, isVideo } from './utils.js';
+import { esc, formatCount, getDisplayFilename, getExtension, getImageBaseName, isVideo } from './utils.js';
 import { showToast } from './ui.js';
 import { api } from './api.js';
 import { reloadDataPreservingScroll } from './data.js';
@@ -13,6 +13,8 @@ import { openGalleryTagFlyup } from './flyup.js';
 import { openLightbox } from './lightbox.js';
 import { llmQueueUpdateUI } from './llm.js';
 
+const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+
 function createCardTagPreview(tags = []) {
     if (!tags.length) return '';
     const visible = tags.slice(0, 3);
@@ -20,59 +22,56 @@ function createCardTagPreview(tags = []) {
     return `
         <div class="card-tag-preview" aria-hidden="true">
             ${visible.map(t => `<span>${esc(t)}</span>`).join('')}
-            ${overflow > 0 ? `<span class="card-tag-overflow">+${overflow}</span>` : ''}
+            ${overflow > 0 ? `<span>+${overflow}</span>` : ''}
         </div>
     `;
+}
+
+function createCardFootMeta(tags = []) {
+    if (!tags.length) return '<span class="cc-badge cc-badge--warn">Untagged</span>';
+    const title = `${formatCount(tags.length, 'tag')}: ${tags.join(', ')}`;
+    return `<span class="card-tag-count" title="${esc(title)}">${icon('tag', 'i i-xs')}${tags.length}<span class="sr-only"> ${tags.length === 1 ? 'tag' : 'tags'}</span></span>`;
 }
 
 function createImageCard(img, idx) {
     const card = document.createElement('div');
     const isSelected = State.selectedImages.has(img.filename);
-    card.className = `image-card ${img.is_favorite ? 'is-fav' : ''} ${isSelected ? 'selected' : ''}`;
+    card.className = `image-card${img.is_favorite ? ' is-fav' : ''}${isSelected ? ' selected' : ''}`;
     card.dataset.filename = img.filename;
+    card.dataset.idx = idx;
 
     const baseName = getImageBaseName(img.filename);
+    const ext = getExtension(img.filename);
+    const video = isVideo(img.filename);
+    // Width and height let the browser reserve the thumbnail's shape before it loads,
+    // so the masonry spans are right on the first pass
+    const size = img.width && img.height ? ` width="${img.width}" height="${img.height}"` : '';
 
     card.innerHTML = `
-        <div class="card-fav-indicator">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
+        <div class="card-media">
+            <img src="${esc(img.thumbnail_url)}"${size} alt="${esc(baseName)}" loading="lazy">
+            ${video ? `<span class="card-play">${icon('play', 'i')}${esc(ext.slice(1).toUpperCase())}</span>` : ''}
+            <span class="card-check" aria-hidden="true">${icon('check', 'i')}</span>
+            <div class="card-actions">
+                <button class="card-action-btn star-btn" type="button" title="Favorite (F)" aria-label="Favorite" aria-pressed="${img.is_favorite ? 'true' : 'false'}">${icon('star')}</button>
+                <button class="card-action-btn tag-btn" type="button" title="Edit tags (T)" aria-label="Edit tags">${icon('tag')}</button>
+                <a class="card-action-btn" href="${esc(img.url)}" download="${esc(getDisplayFilename(img.filename))}" title="Download" aria-label="Download">${icon('download')}</a>
+                <button class="card-action-btn delete-btn" type="button" title="Move to trash (D)" aria-label="Move to trash">${icon('trash')}</button>
+            </div>
+            ${createCardTagPreview(img.tags || [])}
         </div>
-        ${(img.tags && img.tags.length) ? `<div class="card-tag-count">${img.tags.length}</div>` : '<div class="card-no-tags"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/><line x1="2" y1="22" x2="22" y2="2"/></svg></div>'}
-        ${createCardTagPreview(img.tags || [])}
-        <img src="${esc(img.thumbnail_url)}" alt="${esc(baseName)}" loading="lazy">
-        ${isVideo(img.filename) ? '<div class="card-video-indicator"><svg width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="8 5 19 12 8 19"></polygon></svg></div>' : ''}
-        <div class="card-actions">
-            <button class="card-action-btn delete-btn" title="Move to trash" aria-label="Move to trash">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-            <a href="${esc(img.url)}" download="${esc(getDisplayFilename(img.filename))}" class="card-action-btn" title="Download" aria-label="Download">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-            </a>
-            <button class="card-action-btn star-btn" title="Toggle favorite" aria-label="Toggle favorite">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-            </button>
-            <span class="card-action-btn btn-add-tag" title="Edit tags" aria-label="Edit tags">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                </svg>
-            </span>
-        </div>
-        <div class="image-filename">
-            <div class="card-title"><span class="card-title-text">${esc(baseName)}</span></div>
+        <div class="card-foot">
+            <span class="card-title"><span class="card-title-text" title="Rename (R)">${esc(baseName)}</span><span class="card-ext">${esc(ext)}</span></span>
+            <svg class="card-star" role="img" aria-label="Favorite"><use href="#i-star"/></svg>
+            ${createCardFootMeta(img.tags || [])}
         </div>
     `;
 
-    card.querySelector('img').addEventListener('load', () => resizeMasonryItem(card));
-    card.dataset.idx = idx;
+    card.querySelector('img').addEventListener('load', () => {
+        const group = card.closest('.image-group');
+        if (group) resizeGroupItem(group);
+        else resizeMasonryItem(card);
+    });
     card.addEventListener('click', (e) => handleCardClick(e, img, idx, card));
     return card;
 }
@@ -85,20 +84,12 @@ function createGroupContainer(groupId, members, filteredIndex) {
     const header = document.createElement('div');
     header.className = 'image-group-header';
     header.innerHTML = `
-        <span class="image-group-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-            </svg>
-            ${members.length}
-        </span>
-        <button class="image-group-ungroup" title="Ungroup">Ungroup</button>
+        <span class="image-group-badge">${icon('grid')}<span class="image-group-label">Group</span><strong>${formatCount(members.length, 'file')}</strong></span>
+        <button class="link-btn image-group-ungroup" type="button" title="Keep the files, drop the group">Ungroup</button>
     `;
     header.querySelector('.image-group-ungroup').addEventListener('click', async (e) => {
         e.stopPropagation();
-        await api.delete(`/api/groups/${groupId}`);
+        await api.delete(`/api/groups/${encodeURIComponent(groupId)}`);
         showToast('Group removed');
         await reloadDataPreservingScroll();
     });
@@ -106,27 +97,100 @@ function createGroupContainer(groupId, members, filteredIndex) {
 
     const innerGrid = document.createElement('div');
     innerGrid.className = 'image-group-grid';
-
     members.forEach(img => {
         const idx = filteredIndex ? (filteredIndex.get(img.filename) ?? -1) : State.filteredImages.indexOf(img);
-        const card = createImageCard(img, idx);
-        innerGrid.appendChild(card);
+        innerGrid.appendChild(createImageCard(img, idx));
     });
-
     groupEl.appendChild(innerGrid);
     return groupEl;
 }
 
+/**
+ * Masonry: each top-level card or group spans as many 4px grid rows as its height plus its
+ * bottom margin needs. All sizes are read before any span is written, so a full re-flow
+ * costs one layout instead of one per card.
+ */
+function setRowSpans(items) {
+    if (!items.length) return;
+    const rowHeight = parseFloat(window.getComputedStyle(Elements.imageGrid).getPropertyValue('grid-auto-rows')) || 4;
+    const sizes = items.map(item => ({
+        height: item.getBoundingClientRect().height,
+        margin: parseFloat(window.getComputedStyle(item).getPropertyValue('margin-bottom')) || 0
+    }));
+    items.forEach((item, i) => {
+        const { height, margin } = sizes[i];
+        if (height > 0) item.style.gridRowEnd = `span ${Math.ceil((height + margin) / rowHeight)}`;
+    });
+}
+
+function resizeMasonryItem(item) {
+    if (item) setRowSpans([item]);
+}
+
 function resizeGroupItem(groupEl) {
-    if (!groupEl) return;
-    const grid = Elements.imageGrid;
-    const style = window.getComputedStyle(grid);
-    const rowHeight = parseInt(style.getPropertyValue('grid-auto-rows')) || 10;
-    const rect = groupEl.getBoundingClientRect();
-    if (rect.height === 0) return;
-    const margin = parseInt(window.getComputedStyle(groupEl).getPropertyValue('margin-bottom')) || 0;
-    const rowSpan = Math.ceil((rect.height + margin) / rowHeight);
-    groupEl.style.gridRowEnd = `span ${rowSpan}`;
+    if (groupEl) setRowSpans([groupEl]);
+}
+
+export function resizeAllMasonryItems() {
+    setRowSpans([...Elements.imageGrid.querySelectorAll(':scope > .image-card, :scope > .image-group')]);
+}
+
+function hasActiveFilters() {
+    return State.activeTags.size > 0 || State.excludeTags.size > 0 || State.showFavoritesOnly || State.showUntaggedOnly;
+}
+
+/** The line above the grid: library totals, how many files the filters leave, or the selection. */
+export function renderLibraryCount() {
+    const el = Elements.libraryCount;
+    if (!el) return;
+    const total = State.images.length;
+    const shown = State.filteredImages.length;
+    // Phones hide the .lib-count-* parts to fit next to the toggles
+    if (State.selectionMode) {
+        el.innerHTML = `<strong>${State.selectedImages.size}</strong><span class="lib-count-total"> of ${shown}</span> selected`;
+    } else if (hasActiveFilters()) {
+        el.innerHTML = `<strong>${shown}</strong> of ${total}<span class="lib-count-unit"> ${total === 1 ? 'file' : 'files'}</span>`;
+    } else {
+        const untagged = State.images.filter(img => !img.tags?.length).length;
+        const favorites = State.images.filter(img => img.is_favorite).length;
+        const extra = [];
+        if (untagged) extra.push(`${untagged} untagged`);
+        if (favorites) extra.push(formatCount(favorites, 'favorite'));
+        el.innerHTML = `<strong>${total}</strong> ${total === 1 ? 'file' : 'files'}`
+            + (extra.length ? `<span class="lib-count-extra"> · ${extra.join(' · ')}</span>` : '');
+    }
+}
+
+function renderEmptyState() {
+    let title = 'No files yet';
+    let detail = 'Upload images or videos, or copy them into the library folder, to start organizing.';
+    const showUploadCta = State.images.length === 0 && !hasActiveFilters();
+    if (State.activeTags.size > 0 || State.excludeTags.size > 0) {
+        const parts = [];
+        if (State.activeTags.size > 0) parts.push([...State.activeTags].map(t => `“${esc(t)}”`).join(' and '));
+        if (State.excludeTags.size > 0) parts.push([...State.excludeTags].map(t => `not “${esc(t)}”`).join(', '));
+        title = `No files match ${parts.join(', ')}`;
+        detail = 'Remove a filter or try a different tag.';
+    } else if (State.showFavoritesOnly) {
+        title = 'No favorites yet';
+        detail = 'Star a file to collect it here.';
+    } else if (State.showUntaggedOnly) {
+        title = 'Every file has tags';
+        detail = 'Files show up here again when one has no tags.';
+    } else if (State.images.length > 0) {
+        title = 'No files to show';
+        detail = 'Turn off the filters above to see your library.';
+    }
+    Elements.imageGrid.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-panel">
+                <p>${title}</p>
+                <span>${detail}</span>
+                ${showUploadCta ? `<button type="button" class="cc-btn cc-btn--primary" id="emptyUploadBtn">${icon('upload')}Upload files</button>` : ''}
+            </div>
+        </div>
+    `;
+    document.getElementById('emptyUploadBtn')?.addEventListener('click', () => Elements.imageInput.click());
 }
 
 export function renderImageGrid() {
@@ -137,35 +201,9 @@ export function renderImageGrid() {
     State.keepFocusPosition = false;
     State.focusedCardIndex = -1;
     Elements.imageGrid.innerHTML = '';
+    renderLibraryCount();
     if (!State.filteredImages.length) {
-        let title = 'No files found';
-        let detail = 'Upload images or videos to start organizing your library.';
-        const showUploadCta = State.images.length === 0 && State.activeTags.size === 0 && State.excludeTags.size === 0 && !State.showFavoritesOnly && !State.showUntaggedOnly;
-        if (State.activeTags.size > 0 || State.excludeTags.size > 0) {
-            const parts = [];
-            if (State.activeTags.size > 0) parts.push([...State.activeTags].map(t => `"${esc(t)}"`).join(' + '));
-            if (State.excludeTags.size > 0) parts.push([...State.excludeTags].map(t => `&minus;"${esc(t)}"`).join(' '));
-            title = `No files matching ${parts.join(' ')}`;
-            detail = 'Remove a filter or try a different tag expression.';
-        }
-        else if (State.showFavoritesOnly) {
-            title = 'No favorites yet';
-            detail = 'Favorite files with the star action to collect them here.';
-        }
-        else if (State.showUntaggedOnly) {
-            title = 'All files are tagged';
-            detail = 'The untagged filter will show files again when one has no tags.';
-        }
-        Elements.imageGrid.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-panel">
-                    <p>${title}</p>
-                    <span>${detail}</span>
-                    ${showUploadCta ? '<button type="button" class="btn btn-primary btn-small" id="emptyUploadBtn">Upload files</button>' : ''}
-                </div>
-            </div>
-        `;
-        document.getElementById('emptyUploadBtn')?.addEventListener('click', () => Elements.imageInput.click());
+        renderEmptyState();
         if (prevFocus) clearCardFocus();
         return;
     }
@@ -174,56 +212,36 @@ export function renderImageGrid() {
 
     // applyFilters keeps each group's visible members next to each other, so a run of
     // two or more cards from the same group becomes one group block
-    const renderList = [];
+    const fragment = document.createDocumentFragment();
     for (let i = 0; i < State.filteredImages.length;) {
         const img = State.filteredImages[i];
         const gid = State.filenameToGroup[img.filename];
         let end = i + 1;
         while (gid && end < State.filteredImages.length && State.filenameToGroup[State.filteredImages[end].filename] === gid) end++;
         if (end - i >= 2) {
-            renderList.push({ type: 'group', groupId: gid, members: State.filteredImages.slice(i, end) });
+            fragment.appendChild(createGroupContainer(gid, State.filteredImages.slice(i, end), filteredIndex));
         } else {
-            renderList.push({ type: 'image', img });
+            fragment.appendChild(createImageCard(img, filteredIndex.get(img.filename) ?? -1));
         }
         i = end;
     }
+    Elements.imageGrid.appendChild(fragment);
+    resizeAllMasonryItems();
 
-    renderList.forEach(item => {
-        if (item.type === 'image') {
-            const idx = filteredIndex.get(item.img.filename) ?? -1;
-            const card = createImageCard(item.img, idx);
-            Elements.imageGrid.appendChild(card);
-            resizeMasonryItem(card);
-        } else {
-            const groupEl = createGroupContainer(item.groupId, item.members, filteredIndex);
-            Elements.imageGrid.appendChild(groupEl);
-            // Defer resize to after images load
-            const imgs = groupEl.querySelectorAll('img[loading="lazy"]');
-            let loaded = 0;
-            const onLoad = () => {
-                loaded++;
-                if (loaded >= imgs.length) resizeGroupItem(groupEl);
-            };
-            imgs.forEach(i => {
-                if (i.complete) { loaded++; } else { i.addEventListener('load', onLoad, { once: true }); }
-            });
-            if (loaded >= imgs.length) resizeGroupItem(groupEl);
-        }
-    });
     if (prevFocus) restoreCardFocus(prevFocus.filename, prevFocus.index);
     llmQueueUpdateUI();
 }
 
 async function handleCardClick(e, img, idx, card) {
+    if (e.target.closest('.inline-rename-input')) return;
     if (State.selectionMode) {
-        // Only toggle the selection; keep the hidden download link from firing
+        // Only toggle the selection; keep the download link from firing
         e.preventDefault();
         toggleImageSelection(img.filename, card);
         return;
     }
 
-    const star = e.target.closest('.star-btn');
-    if (star) {
+    if (e.target.closest('.star-btn')) {
         const isFav = await toggleFavorite(img.filename);
         updateLocalState(img.filename, { is_favorite: isFav });
         return;
@@ -235,33 +253,9 @@ async function handleCardClick(e, img, idx, card) {
         return;
     }
 
-    const addTagBtn = e.target.closest('.btn-add-tag');
-    if (addTagBtn) { openGalleryTagFlyup(img); return; }
-
+    if (e.target.closest('.tag-btn')) { openGalleryTagFlyup(img); return; }
     if (e.target.closest('.delete-btn')) { deleteImage(idx); return; }
     if (!e.target.closest('.card-action-btn')) openLightbox(idx);
-}
-
-function resizeMasonryItem(item) {
-    if (!item) return;
-    const grid = Elements.imageGrid;
-    const style = window.getComputedStyle(grid);
-    const rowHeight = parseInt(style.getPropertyValue('grid-auto-rows')) || 10;
-    const img = item.querySelector('img');
-    
-    if (img.getBoundingClientRect().height === 0) return;
-
-    const contentHeight = img.getBoundingClientRect().height;
-    const itemStyle = window.getComputedStyle(item);
-    const margin = parseInt(itemStyle.getPropertyValue('margin-bottom')) || 0;
-
-    const rowSpan = Math.ceil((contentHeight + margin) / rowHeight);
-    item.style.gridRowEnd = `span ${rowSpan}`;
-}
-
-export function resizeAllMasonryItems() {
-    document.querySelectorAll('.image-grid > .image-card').forEach(item => resizeMasonryItem(item));
-    document.querySelectorAll('.image-group').forEach(item => resizeGroupItem(item));
 }
 
 export function initGrid() {

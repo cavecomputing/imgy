@@ -28,6 +28,29 @@ export function getDisplayFilename(filename) {
     return filename.split('/').pop();
 }
 
+/** The extension with its dot ('.jpg'), or '' when the name has none. */
+export function getExtension(filename) {
+    const name = getDisplayFilename(filename);
+    const dot = name.lastIndexOf('.');
+    return dot > 0 ? name.slice(dot) : '';
+}
+
+/** Escape text for HTML and wrap the first case-insensitive match of `term` in <mark>. */
+export function highlightMatch(text, term) {
+    const i = term ? text.toLowerCase().indexOf(term.toLowerCase()) : -1;
+    if (i < 0) return esc(text);
+    return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + term.length)) + '</mark>' + esc(text.slice(i + term.length));
+}
+
+/** "Oct 1", or "Oct 1, 2025" for another year. */
+export function formatShortDate(seconds) {
+    const d = new Date(seconds * 1000);
+    if (isNaN(d)) return '';
+    const opts = { month: 'short', day: 'numeric' };
+    if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+    return d.toLocaleDateString(undefined, opts);
+}
+
 export function esc(str) {
     return String(str)
         .replace(/&/g, '&amp;')

@@ -1,11 +1,13 @@
 /** Single-file actions: favorite, tag, untag, and move to trash. */
 import { decrementTagCount, getCurrentLightboxImage, incrementTagCount, LlmQueue, State } from './state.js';
 import { Elements } from './dom.js';
-import { getDisplayFilename, getImageBaseName } from './utils.js';
-import { setToggleButtonState, showToast, withLoading } from './ui.js';
+import { getDisplayFilename, getExtension, getImageBaseName } from './utils.js';
+import { showToast, withLoading } from './ui.js';
 import { api } from './api.js';
 import { applyFilters } from './data.js';
-import { closeLightbox, renderLightboxMeta, renderLightboxTagBar, updateLightboxContent } from './lightbox.js';
+import { renderLibraryCount } from './grid.js';
+import { closeLightbox, renderLightboxMeta, renderLightboxTagBar, setLightboxFavoriteState, updateLightboxContent } from './lightbox.js';
+import { setTrashCount } from './trash.js';
 
 /**
  * Point everything on the client that holds a file's name at its new name after the server
@@ -40,6 +42,10 @@ export function applyRenameLocally(oldFilename, data) {
         card.dataset.filename = newFilename;
         const title = card.querySelector('.card-title-text');
         if (title) title.textContent = newBaseName;
+        const ext = card.querySelector('.card-ext');
+        if (ext) ext.textContent = getExtension(newFilename);
+        const img = card.querySelector('.card-media img');
+        if (img) img.alt = newBaseName;
         const link = card.querySelector('a[download]');
         if (link) {
             link.href = data.url;
@@ -47,13 +53,17 @@ export function applyRenameLocally(oldFilename, data) {
         }
     }
 
+    if (State.currentQuickTagImage?.filename === newFilename && !State.bulkTagFlyupMode) {
+        Elements.galleryTagTitle.textContent = getDisplayFilename(newFilename);
+    }
+
     const current = getCurrentLightboxImage();
     if (Elements.lightbox.classList.contains('active') && current?.filename === newFilename) {
-        const headerFilename = document.getElementById('lightboxHeaderFilename');
-        if (headerFilename) headerFilename.textContent = newBaseName;
-        if (Elements.lightboxDownloadBtn) {
-            Elements.lightboxDownloadBtn.href = data.url;
-            Elements.lightboxDownloadBtn.download = getDisplayFilename(newFilename);
+        Elements.lightboxHeaderFilename.textContent = newBaseName;
+        Elements.lightboxHeaderExt.textContent = getExtension(newFilename);
+        for (const link of [Elements.lightboxDownloadBtn, Elements.lightboxDownloadTab]) {
+            link.href = data.url;
+            link.download = getDisplayFilename(newFilename);
         }
         renderLightboxMeta(current);
     }
@@ -69,18 +79,20 @@ export function updateLocalState(filename, updates) {
     if (img) Object.assign(img, updates);
     
     const card = document.querySelector(`.image-card[data-filename="${CSS.escape(filename)}"]`);
-    if (card && updates.is_favorite !== undefined) card.classList.toggle('is-fav', updates.is_favorite);
+    if (card && updates.is_favorite !== undefined) {
+        card.classList.toggle('is-fav', updates.is_favorite);
+        card.querySelector('.star-btn')?.setAttribute('aria-pressed', updates.is_favorite ? 'true' : 'false');
+    }
 
-    if (updates.is_favorite !== undefined && State.showFavoritesOnly) applyFilters();
+    if (updates.is_favorite !== undefined) {
+        if (State.showFavoritesOnly) applyFilters();
+        else renderLibraryCount();
+    }
 
     const current = getCurrentLightboxImage();
     if (Elements.lightbox.classList.contains('active') && current?.filename === filename) {
-        if (updates.is_favorite !== undefined) {
-            setToggleButtonState(Elements.lightboxFavoriteBtn, updates.is_favorite);
-        }
-        if (updates.tags) {
-            renderLightboxTagBar(updates.tags, filename);
-        }
+        if (updates.is_favorite !== undefined) setLightboxFavoriteState(updates.is_favorite);
+        if (updates.tags) renderLightboxTagBar(updates.tags, filename);
     }
 }
 
@@ -125,6 +137,7 @@ export async function deleteImage(idx) {
     const displayName = getDisplayFilename(img.filename);
     await withLoading(async () => {
         await api.delete(`/api/images/${encodeURIComponent(img.filename)}`);
+        setTrashCount(State.trashCount + 1);
         State.imagesByFilename.delete(img.filename);
         (img.tags || []).forEach(t => { decrementTagCount(t); });
         State.images = State.images.filter(i => i.filename !== img.filename);

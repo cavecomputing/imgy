@@ -1,6 +1,6 @@
 /** Uploads from the file picker or drag-and-drop, with a progress bar. */
 import { Elements } from './dom.js';
-import { isUploadableFile } from './utils.js';
+import { formatCount, isUploadableFile } from './utils.js';
 import { showError, showToast } from './ui.js';
 import { loadData } from './data.js';
 
@@ -51,7 +51,7 @@ async function uploadFiles(files) {
     const skippedServer = [];
 
     Elements.uploadProgressBar.style.width = '0%';
-    Elements.uploadProgressText.textContent = `Uploading 1 of ${files.length}...`;
+    Elements.uploadProgressText.textContent = `Uploading 1 of ${files.length}…`;
     Elements.uploadProgress.classList.remove('hidden');
 
     for (let i = 0; i < files.length; i++) {
@@ -59,7 +59,7 @@ async function uploadFiles(files) {
         currentFileLoaded = 0;
         Elements.uploadProgressText.textContent = files.length === 1
             ? `Uploading ${file.name}`
-            : `Uploading ${i + 1} of ${files.length}...`;
+            : `Uploading ${i + 1} of ${files.length}…`;
         try {
             const result = await uploadFileXHR(file, (loaded, _total) => {
                 currentFileLoaded = loaded;
@@ -81,15 +81,15 @@ async function uploadFiles(files) {
 
     Elements.uploadProgressBar.style.width = '100%';
     const skippedCount = skippedClient.length + skippedServer.length;
-    const resultParts = [`Uploaded ${successCount}`];
+    const resultParts = [`Uploaded ${formatCount(successCount, 'file')}`];
     if (skippedCount) resultParts.push(`${skippedCount} skipped`);
     if (failCount) resultParts.push(`${failCount} failed`);
     Elements.uploadProgressText.textContent = resultParts.join(', ');
 
-    if (failCount > 0) showError(`Uploaded ${successCount} file(s). ${failCount} failed.`);
+    if (failCount > 0) showError(`Uploaded ${formatCount(successCount, 'file')}, ${failCount} failed`);
     else if (skippedCount > 0) {
         const first = skippedClient[0] || skippedServer[0];
-        showToast(first ? `Skipped ${first.filename}: ${first.reason}` : `${skippedCount} file(s) skipped`);
+        showToast(first ? `Skipped ${first.filename}: ${first.reason}` : `Skipped ${formatCount(skippedCount, 'file')}`);
     }
     await loadData();
 

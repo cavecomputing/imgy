@@ -22,7 +22,7 @@ export function initShortcuts() {
         if ((e.ctrlKey || e.metaKey || e.altKey) && !e.getModifierState('AltGraph')) return;
 
         // ? and x always work regardless of modal state
-        if (e.key === '?') { e.preventDefault(); toggleShortcutsModal(); return; }
+        if (e.key === '?') { e.preventDefault(); toggleShortcutsModal('shortcuts'); return; }
         if (e.key === 'x') { e.preventDefault(); Elements.trashBtn.click(); return; }
 
         // Check if a modal is open — if so only Escape works
@@ -161,8 +161,16 @@ export function initShortcuts() {
                 const img = getFocusedImage();
                 const card = getFocusedCard();
                 const titleText = card?.querySelector('.card-title-text');
-                if (img && titleText && card) {
+                if (!img || !card) return;
+                if (titleText?.getClientRects().length) {
                     startInlineRename(img, titleText, card);
+                } else {
+                    // Grouped files show no name in the gallery, so rename them in the lightbox
+                    const fi = getFocusedFilteredIndex();
+                    if (fi >= 0) {
+                        openLightbox(fi);
+                        Elements.lightboxHeaderFilename.click();
+                    }
                 }
                 return;
             }

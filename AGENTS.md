@@ -36,8 +36,8 @@ There is no test suite and no build step. After a change, run the syntax checks 
 - Shared state lives on `State` (`state.js`), cached DOM lookups on `Elements` (`dom.js`), and timing constants in `CONFIG` (`config.js`). `ActiveFlyup` points at whichever tag editor (gallery or lightbox) is open.
 - Call the server through `api.get/post/delete` in `api.js`, which throws on errors and shows them in the error banner.
 - Modules that bind event listeners export an `initX()`; `main.js` calls them in order, then loads settings and data. Imported bindings are read-only, so keep reassigned module state (timers, controllers) inside the module that owns it.
-- The tag expression syntax is shared by the search bar, the tag editor, and the bulk tag editor, but each interprets tokens differently. Check the table in `README.md` before changing `tags.js`, `filters.js`, `flyup.js`, or `selection.js`.
-- Colors come from CSS custom properties on `:root` and `[data-theme="dark"]` in `style.css`; don't hardcode them.
+- The tag expression syntax is shared by the filter bar, the tag editor, and the bulk tag editor, but each interprets tokens differently. Check the table in `README.md` before changing `tags.js`, `filters.js`, `flyup.js`, or `selection.js`.
+- Colors come from CSS custom properties on `:root` and `[data-theme="dark"]` in `style.css`; don't hardcode them. The look follows the cavecomputing design system: its components (`cc-btn`, `cc-badge`, `cc-callout`, `cc-table`, ...) are vendored in `cavecomputing.css`, so reuse them before adding new ones, and keep each accent to one meaning (yellow focus and selection, green brand and done, blue links and paths, orange destructive).
 
 ## Deployment
 

@@ -59,12 +59,12 @@ async function llmProcessOne(img) {
     } catch (err) {
         clearTimeout(timeout);
         console.error('LLM analyze failed:', err);
-        return { success: false };
+        return { success: false, error: err.name === 'AbortError' ? 'the LLM took too long to answer' : err.message };
     }
 }
 
 export function llmQueueAdd(filename) {
-    if (isVideo(filename)) { showToast('LLM auto-tagger does not support video files'); return; }
+    if (isVideo(filename)) { showToast('Auto-tagging doesn’t work on videos'); return; }
     if (LlmQueue.items.some(i => i.filename === filename && (i.status === 'queued' || i.status === 'processing'))) return;
     LlmQueue.items.push({ filename, status: 'queued' });
     llmQueueUpdateUI();
@@ -75,7 +75,7 @@ export function llmQueueAdd(filename) {
 async function llmQueueProcess() {
     if (LlmQueue.processing) return;
     LlmQueue.processing = true;
-    let okCount = 0, errCount = 0;
+    let okCount = 0, errCount = 0, lastError = '';
 
     while (true) {
         const item = LlmQueue.items.find(i => i.status === 'queued');
@@ -89,6 +89,7 @@ async function llmQueueProcess() {
         if (!img) {
             item.status = 'error';
             errCount++;
+            lastError = 'the file is gone';
             llmQueueUpdateUI();
             llmQueueSyncLightbox();
             continue;
@@ -101,6 +102,7 @@ async function llmQueueProcess() {
         } else {
             item.status = 'error';
             errCount++;
+            lastError = result.error;
         }
 
         llmQueueUpdateUI();
@@ -118,14 +120,16 @@ async function llmQueueProcess() {
     llmQueueSyncLightbox();
     applyFilters();
 
-    if (okCount || errCount) {
-        const parts = [`LLM analyzed ${formatCount(okCount, 'image')}`];
-        if (errCount) parts.push(`${errCount} failed`);
-        showToast(parts.join(', '));
+    if (okCount && !errCount) {
+        showToast(`Auto-tagged ${formatCount(okCount, 'file')}`);
+    } else if (okCount) {
+        showToast(`Auto-tagged ${formatCount(okCount, 'file')}, ${errCount} failed: ${lastError}`);
+    } else if (errCount) {
+        showToast(errCount > 1 ? `Auto-tag failed on ${formatCount(errCount, 'file')}: ${lastError}` : `Auto-tag failed: ${lastError}`);
     }
 }
 
-const _llmCloudSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
+const OVERLAY_ICON = '<svg class="i" aria-hidden="true"><use href="#i-eye"/></svg>';
 
 export function llmQueueUpdateUI() {
     for (const item of LlmQueue.items) {
@@ -136,9 +140,11 @@ export function llmQueueUpdateUI() {
             if (!overlay) {
                 overlay = document.createElement('div');
                 overlay.className = 'llm-card-overlay';
-                overlay.innerHTML = _llmCloudSvg;
-                card.appendChild(overlay);
+                overlay.title = 'Waiting for the vision LLM';
+                overlay.innerHTML = OVERLAY_ICON;
+                (card.querySelector('.card-media') || card).appendChild(overlay);
             }
+            overlay.title = item.status === 'processing' ? 'Auto-tagging' : 'Waiting for the vision LLM';
             overlay.classList.toggle('llm-processing', item.status === 'processing');
             overlay.classList.remove('llm-done', 'llm-error');
         } else if (overlay) {
@@ -149,17 +155,13 @@ export function llmQueueUpdateUI() {
     }
 }
 
+/** Show the lightbox's auto-tag buttons as busy while the current file is queued. */
 export function llmQueueSyncLightbox() {
-    const btn = Elements.llmAnalyzeBtn;
-    if (!btn) return;
     const img = getCurrentLightboxImage();
-    if (!img) { btn.classList.remove('loading'); btn.disabled = false; return; }
-    const item = LlmQueue.items.find(i => i.filename === img.filename && (i.status === 'queued' || i.status === 'processing'));
-    if (item) {
-        btn.classList.add('loading');
-        btn.disabled = true;
-    } else {
-        btn.classList.remove('loading');
-        btn.disabled = false;
+    const busy = !!img && LlmQueue.items.some(i => i.filename === img.filename && (i.status === 'queued' || i.status === 'processing'));
+    const unsupported = !!img && isVideo(img.filename);
+    for (const btn of [Elements.llmAnalyzeBtn, Elements.llmPanelBtn, Elements.lightboxLlmTab]) {
+        btn.classList.toggle('loading', busy);
+        btn.disabled = busy || unsupported;
     }
 }

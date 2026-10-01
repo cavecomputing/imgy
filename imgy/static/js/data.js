@@ -7,6 +7,7 @@ import { api } from './api.js';
 import { renderImageGrid } from './grid.js';
 import { updateSelectionBar } from './selection.js';
 import { renderFilterBarTags } from './filters.js';
+import { setTrashCount } from './trash.js';
 
 export async function reloadDataPreservingScroll() {
     const scrollY = window.scrollY;
@@ -38,6 +39,7 @@ export async function loadData() {
         if (controller.signal.aborted) return;
         const images = imagesResp.images || imagesResp;
         const groups = imagesResp.groups || {};
+        if (typeof imagesResp.trash_count === 'number') setTrashCount(imagesResp.trash_count);
         State.filenameToGroup = {};
         for (const [gid, members] of Object.entries(groups)) {
             for (const fn of members) State.filenameToGroup[fn] = gid;

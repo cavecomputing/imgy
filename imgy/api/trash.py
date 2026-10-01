@@ -25,7 +25,11 @@ def list_trash():
     items = []
     for f in _visible_files(TRASH_FOLDER):
         original_name, trash_date = parse_trash_name(f.name)
-        items.append({'trash_name': f.name, 'original_name': original_name, 'trash_date': trash_date})
+        try:
+            size = f.stat().st_size
+        except OSError:
+            size = None
+        items.append({'trash_name': f.name, 'original_name': original_name, 'trash_date': trash_date, 'size': size})
     items.sort(key=lambda item: item['trash_date'] or 0, reverse=True)
     return items
 

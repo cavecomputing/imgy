@@ -6,13 +6,12 @@ import { initFlyups } from './flyup.js';
 import { initFilters } from './filters.js';
 import { initLightbox } from './lightbox.js';
 import { initLlmSettings, initSettingsModal, loadSettings } from './settings.js';
-import { initColorPicker, initGallerySlider, initTheme } from './appearance.js';
+import { initGallerySlider, initTheme } from './appearance.js';
 import { initTrash } from './trash.js';
 import { initUpload } from './upload.js';
 import { initShortcuts } from './shortcuts.js';
 
 async function start() {
-    initColorPicker();
     initGallerySlider();
     initTrash();
     initTheme();

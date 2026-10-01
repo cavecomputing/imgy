@@ -7,14 +7,15 @@ import { api } from './api.js';
 import { applyFilters, reloadDataPreservingScroll } from './data.js';
 import { updateLocalState } from './actions.js';
 import { collectTagMutations, splitTagTokens } from './tags.js';
-import { closeGalleryTagFlyup, openBulkTagFlyup } from './flyup.js';
+import { closeGalleryTagFlyup, isGalleryTagFlyupOpen, openBulkTagFlyup } from './flyup.js';
 import { renderFilterBarTags } from './filters.js';
+import { renderLibraryCount } from './grid.js';
 import { llmQueueAdd } from './llm.js';
 
 async function groupSelectedImages({ closeFlyup = false } = {}) {
     const filenames = getSelectedFilenames();
     if (filenames.length < 2) {
-        showToast('Select at least 2 images to group');
+        showToast('Select at least 2 files to group');
         return false;
     }
     const res = await api.post('/api/groups', { filenames });
@@ -51,31 +52,27 @@ export function toggleImageSelection(filename, cardEl) {
 
 export function updateSelectionBar() {
     const count = State.selectedImages.size;
-    Elements.selectedCountEl.textContent = `${count} selected`;
+    Elements.selectedCountEl.textContent = count;
     const actionTooltips = [
-        [Elements.bulkFavoriteBtn, count === 0, 'Toggle favorite'],
-        [Elements.bulkTagBtn, count === 0, 'Edit tags (t)'],
-        [Elements.groupSelectedBtn, count < 2, 'Group images', 'Select at least 2 files to group'],
-        [Elements.downloadSelectedBtn, count === 0, 'Download as ZIP'],
+        [Elements.bulkFavoriteBtn, count === 0, 'Favorite or unfavorite the selected files'],
+        [Elements.bulkTagBtn, count === 0, 'Edit tags (T)'],
+        [Elements.groupSelectedBtn, count < 2, 'Group the selected files', 'Select at least 2 files to group'],
+        [Elements.downloadSelectedBtn, count === 0, 'Download as a ZIP file'],
         [Elements.deleteSelectedBtn, count === 0, 'Move to trash']
     ];
-    actionTooltips.forEach(([btn, disabled, enabledText, disabledText = 'Select files to enable']) => {
+    actionTooltips.forEach(([btn, disabled, enabledText, disabledText = 'Select files first']) => {
         if (!btn) return;
         btn.disabled = disabled;
-        btn.classList.toggle('disabled', disabled);
-        const tooltip = disabled ? disabledText : enabledText;
-        btn.dataset.tooltip = tooltip;
-        btn.title = tooltip;
+        btn.title = disabled ? disabledText : enabledText;
     });
-    if (Elements.clearSelectionBtn) {
-        Elements.clearSelectionBtn.dataset.tooltip = count > 0 ? 'Cancel selection (Esc)' : 'Exit selection mode (Esc)';
-    }
+    Elements.clearSelectionBtn.title = count > 0 ? 'Clear the selection (Esc)' : 'Leave selection mode (Esc)';
 
     if (count > 0) {
         Elements.selectionBar.classList.remove('hidden');
     } else if (!State.selectionMode) {
         Elements.selectionBar.classList.add('hidden');
     }
+    renderLibraryCount();
 }
 
 export function clearSelection() {
@@ -129,7 +126,7 @@ export async function processBulkTagsFromInput(tagsStr) {
             applyFilters();
             renderFilterBarTags();
             updateSelectionBar();
-            showToast(`Equalized tags across ${formatCount(filenames.length, 'image')}`);
+            showToast(`Shared ${formatCount(unionTags.length, 'tag')} across ${formatCount(filenames.length, 'file')}`);
         });
         return;
     }
@@ -151,7 +148,7 @@ export async function processBulkTagsFromInput(tagsStr) {
             applyFilters();
             renderFilterBarTags();
             updateSelectionBar();
-            showToast(`Cleared all tags from ${formatCount(filenames.length, 'image')}`);
+            showToast(`Removed every tag from ${formatCount(filenames.length, 'file')}`);
         });
         return;
     }
@@ -161,9 +158,9 @@ export async function processBulkTagsFromInput(tagsStr) {
     const { toAdd, toRemove, toRename } = collectTagMutations(tokens, {
         availableTags: State.allTags,
         existingTags: unionTags,
-        unavailablePlainMessage: tag => `"${tag}" doesn't exist — use +${tag} to create`,
-        removeMissingMessage: tag => `"${tag}" not on any selected image`,
-        renameMissingMessage: tag => `"${tag}" not on any selected image`
+        unavailablePlainMessage: tag => `No tag named "${tag}". Use +${tag} to create it`,
+        removeMissingMessage: tag => `"${tag}" is not on any selected file`,
+        renameMissingMessage: tag => `"${tag}" is not on any selected file`
     });
 
     const uniqueAdds = [...new Set(toAdd)];
@@ -250,7 +247,7 @@ export async function processBulkTagsFromInput(tagsStr) {
         if (uniqueRemoves.length > 0) parts.push(`-${uniqueRemoves.join(', -')} (${removedCount})`);
         if (toRename.length > 0) parts.push(`${toRename.map(r => r.oldName + '>' + r.newName).join(', ')} (${renamedCount})`);
         const totalChanged = addedCount + removedCount + renamedCount;
-        showToast(`${parts.join(', ')} — ${formatCount(totalChanged, 'change')}`);
+        showToast(`${parts.join(', ')}: ${formatCount(totalChanged, 'change')}`);
     });
 }
 
@@ -294,7 +291,8 @@ export async function bulkToggleFavorites() {
     for (const [filename, isFav] of Object.entries(res.results || {})) {
         updateLocalState(filename, { is_favorite: isFav });
     }
-    showToast(`Updated favorites for ${formatCount(filenames.length, 'file')}`);
+    const favorited = Object.values(res.results || {}).filter(Boolean).length;
+    showToast(favorited ? `Favorited ${formatCount(favorited, 'file')}` : `Unfavorited ${formatCount(filenames.length, 'file')}`);
 }
 
 export function initSelection() {
@@ -309,6 +307,9 @@ export function initSelection() {
     Elements.groupSelectedBtn.addEventListener('click', async () => {
         await groupSelectedImages();
     });
-    Elements.bulkTagBtn.addEventListener('click', () => openBulkTagFlyup());
+    Elements.bulkTagBtn.addEventListener('click', () => {
+        if (isGalleryTagFlyupOpen() && State.bulkTagFlyupMode) closeGalleryTagFlyup();
+        else openBulkTagFlyup();
+    });
     Elements.bulkFavoriteBtn.addEventListener('click', () => bulkToggleFavorites());
 }

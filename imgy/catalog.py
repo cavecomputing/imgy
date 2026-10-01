@@ -11,7 +11,7 @@ import threading
 import time
 from urllib.parse import quote
 
-from .config import DATA_DIR
+from .config import DATA_DIR, TRASH_FOLDER
 from .db import NOT_TRASHED, STANDALONE_TAG_FILENAME, get_db
 from .media import is_video, read_dimensions, walk_active_files
 
@@ -45,7 +45,7 @@ def _cached(generation):
 
 
 def images_json():
-    """The listing as a JSON string: {"images": [...newest first], "groups": {id: [files]}}."""
+    """The listing as a JSON string: {"images": [...newest first], "groups": {id: [files]}, "trash_count": n}."""
     generation = _generation()
     if _cached(generation):
         return _cache['data']
@@ -112,7 +112,14 @@ def _build_listing():
             conn.commit()
 
     images.sort(key=lambda img: img['modified'], reverse=True)
-    return json.dumps({'images': images, 'groups': groups})
+    return json.dumps({'images': images, 'groups': groups, 'trash_count': _count_trash()})
+
+
+def _count_trash():
+    try:
+        return sum(1 for f in TRASH_FOLDER.iterdir() if f.is_file() and not f.name.startswith('.'))
+    except OSError:
+        return 0
 
 
 def _load_tags(conn):

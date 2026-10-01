@@ -1,368 +1,451 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Imgy</title>
     <meta name="description" content="A fast, local-first image and video organizer">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#282828">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <script>
+        // Apply the last theme before the first paint so the page doesn't flash the other one.
+        // The server-stored setting still wins once it loads.
+        try {
+            const saved = localStorage.getItem('theme');
+            const theme = saved === 'light' || saved === 'dark' ? saved
+                : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            document.documentElement.setAttribute('data-theme', theme);
+        } catch { /* storage blocked: keep the default */ }
+    </script>
+    <link rel="stylesheet" href="/static/cavecomputing.css">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <header class="header">
-        <div class="header-filter">
-            <div class="search-container">
-                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="tagSearch" placeholder="Filter tags, -exclude, +create..." class="search-input" autocomplete="off">
-                <div id="tagSuggestions" class="tag-suggestions hidden"></div>
+    <svg class="sprite" aria-hidden="true" focusable="false">
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16" y2="16"/></symbol>
+        <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+        <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+        <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+        <symbol id="i-tag-off" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="2" y1="22" x2="22" y2="2"/></symbol>
+        <symbol id="i-check-square" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></symbol>
+        <symbol id="i-square" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+        <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+        <symbol id="i-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+        <symbol id="i-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+        <symbol id="i-restore" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></symbol>
+        <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
+        <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6.01" y2="10"/><line x1="10" y1="10" x2="10.01" y2="10"/><line x1="14" y1="10" x2="14.01" y2="10"/><line x1="18" y1="10" x2="18.01" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></symbol>
+        <symbol id="i-drive" viewBox="0 0 24 24"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></symbol>
+        <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></symbol>
+    </svg>
+
+    <header class="topbar">
+        <div class="brand"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>imgy</div>
+        <div class="topbar-filter">
+            <div class="cmd" id="filterBar" role="search">
+                <svg class="i i-sm cmd-icon" aria-hidden="true"><use href="#i-search"/></svg>
+                <div id="activeTags" class="cmd-chips"></div>
+                <input type="text" id="tagSearch" class="cmd-input" placeholder="Filter by tag   -exclude   +create   old>new" aria-label="Filter by tag" autocomplete="off" autocapitalize="none" spellcheck="false">
+                <kbd class="kbd cmd-kbd" title="Focus the filter">/</kbd>
+                <div id="tagSuggestions" class="pop filter-pop hidden">
+                    <div id="tagSuggestionList" class="filter-pop-list"></div>
+                    <div class="pop-foot">
+                        <div class="keys"><span><code>-tag</code> hide</span><span><code>+tag</code> create</span><span><code>old&gt;new</code> rename</span><span><code>--tag</code> delete everywhere</span></div>
+                        <div class="keys keys-hw"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>Tab</kbd> complete</span><span><kbd>Enter</kbd> apply</span><span><kbd>&#9003;</kbd> drop last filter</span></div>
+                    </div>
+                </div>
             </div>
-            <div id="activeTags" class="active-tags"></div>
-        </div>
-        <span class="header-sep"></span>
-        <div class="header-actions">
-            <button id="themeToggleBtn" class="btn btn-secondary" title="Toggle dark mode" aria-label="Toggle dark mode">
-                <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                </svg>
-            </button>
-            <button id="uploadBtn" class="btn btn-secondary" title="Upload files" aria-label="Upload files">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-            </button>
-            <button id="favoriteFilterBtn" class="btn btn-secondary" title="Filter favorites" aria-label="Filter favorites">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-            </button>
-            <button id="selectModeBtn" class="btn btn-secondary" title="Toggle selection mode" aria-label="Toggle selection mode">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 11 12 14 22 4"></polyline>
-                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                </svg>
-            </button>
-            <button id="untaggedFilterBtn" class="btn btn-secondary" title="Filter untagged" aria-label="Filter untagged">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                    <line x1="2" y1="22" x2="22" y2="2"></line>
-                </svg>
-            </button>
-            <button id="trashBtn" class="btn btn-secondary" title="Open trash" aria-label="Open trash">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
-            <button id="shortcutsBtn" class="btn btn-secondary" title="Settings and shortcuts" aria-label="Settings and shortcuts">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
+            <button id="uploadBtn" class="cc-btn cc-btn--primary upload-btn" type="button" title="Upload files" aria-label="Upload files">
+                <svg class="i i-sm" aria-hidden="true"><use href="#i-upload"/></svg><span>Upload</span>
             </button>
         </div>
+        <button id="themeToggleBtn" class="icon-btn theme-btn" type="button" title="Switch to light theme" aria-label="Switch to light theme">
+            <svg class="i" aria-hidden="true"><use id="themeIcon" href="#i-sun"/></svg>
+        </button>
+        <button id="trashBtn" class="icon-btn icon-btn--warn" type="button" title="Trash (X)" aria-label="Open trash">
+            <svg class="i" aria-hidden="true"><use href="#i-trash"/></svg><span id="trashCount" class="dot-count hidden"></span>
+        </button>
+        <button id="shortcutsBtn" class="icon-btn" type="button" title="Settings and shortcuts (?)" aria-label="Settings and shortcuts">
+            <svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg>
+        </button>
     </header>
 
-    <dialog id="trashModal" class="trash-modal">
-        <div class="trash-modal-header">
-            <div class="trash-modal-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-                <h2>Trash</h2>
-            </div>
-            <div class="trash-header-actions">
-                <button id="cleanupOrphansBtn" class="btn btn-secondary btn-small">Clean Up</button>
-                <button id="emptyTrashBtn" class="btn btn-danger btn-small">Empty Trash</button>
-                <button id="closeTrashModal" class="close-btn" aria-label="Close trash">&times;</button>
-            </div>
-        </div>
-        <div id="trashList" class="trash-list"></div>
-    </dialog>
+    <div class="subbar">
+        <span id="libraryCount" class="lib-count"></span>
+        <div class="spacer"></div>
+        <button id="favoriteFilterBtn" class="toggle" type="button" title="Show favorites only (F)" aria-pressed="false">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-star"/></svg><span>Favorites</span><kbd class="kbd kbd-sm">F</kbd>
+        </button>
+        <button id="untaggedFilterBtn" class="toggle" type="button" title="Show untagged files only (U)" aria-pressed="false">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-tag-off"/></svg><span>Untagged</span><kbd class="kbd kbd-sm">U</kbd>
+        </button>
+        <button id="selectModeBtn" class="toggle" type="button" title="Select files (S)" aria-pressed="false">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-check-square"/></svg><span>Select</span><kbd class="kbd kbd-sm">S</kbd>
+        </button>
+        <label class="size-ctl" title="Thumbnail size">
+            <svg class="i i-xs" aria-hidden="true"><use href="#i-square"/></svg>
+            <input type="range" id="gallerySizeSlider" min="120" max="400" step="10" aria-label="Thumbnail size">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-grid"/></svg>
+        </label>
+    </div>
 
-    <main>
+    <main class="gallery">
         <div id="imageGrid" class="image-grid"></div>
     </main>
 
-    <div id="lightbox" class="lightbox">
-        <div class="lightbox-toolbar">
-            <button id="lightboxHeaderDeleteBtn" class="lightbox-toolbar-btn" title="Move to trash" aria-label="Delete image">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
-            <a id="lightboxDownloadBtn" class="lightbox-toolbar-btn" download title="Download" aria-label="Download image">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-            </a>
-            <button id="lightboxFavoriteBtn" class="lightbox-toolbar-btn" title="Toggle favorite" aria-label="Toggle favorite">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-            </button>
-            <button id="lightboxTagBtn" class="lightbox-toolbar-btn" title="Edit tags" aria-label="Edit tags">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                </svg>
-            </button>
-            <button id="closeLightbox" class="lightbox-toolbar-btn lightbox-toolbar-close" title="Close lightbox" aria-label="Close lightbox">&times;</button>
-        </div>
-        
-        <div class="lightbox-content" id="lightboxContent">
-            <button id="prevImage" class="lightbox-nav prev" aria-label="Previous image">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <img id="lightboxImage" src="" alt="" draggable="false">
-            <button id="nextImage" class="lightbox-nav next" aria-label="Next image">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 6 15 12 9 18"></polyline>
-                </svg>
-            </button>
-            <div id="lightboxOverlayTags" class="lightbox-overlay-tags"></div>
-            <button id="resetZoom" class="zoom-reset" aria-label="Reset zoom">Reset Zoom</button>
-        </div>
+    <div id="selectionBar" class="selection-bar hidden" role="toolbar" aria-label="Selected files">
+        <span class="selection-count"><span id="selectedCount" class="cc-badge cc-badge--count">0</span><span class="selection-count-label">selected</span></span>
+        <div class="bar-div"></div>
+        <button class="bar-btn" id="bulkFavoriteBtn" type="button" title="Toggle favorite">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-star"/></svg><span>Favorite</span>
+        </button>
+        <button class="bar-btn" id="bulkTagBtn" type="button" title="Edit tags (T)">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-tag"/></svg><span>Tags</span><kbd class="kbd kbd-sm">T</kbd>
+        </button>
+        <button class="bar-btn" id="groupSelectedBtn" type="button" title="Group files">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-grid"/></svg><span>Group</span>
+        </button>
+        <button class="bar-btn" id="downloadSelectedBtn" type="button" title="Download as ZIP">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-download"/></svg><span>Download .zip</span>
+        </button>
+        <button class="bar-btn bar-btn--warn" id="deleteSelectedBtn" type="button" title="Move to trash">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-trash"/></svg><span>Trash</span>
+        </button>
+        <div class="bar-div"></div>
+        <button class="bar-btn" id="clearSelectionBtn" type="button" title="Exit selection mode (Esc)" aria-label="Exit selection mode">
+            <svg class="i i-sm" aria-hidden="true"><use href="#i-x"/></svg><kbd class="kbd kbd-sm">Esc</kbd>
+        </button>
+    </div>
 
-        <div id="lightboxTagFlyup" class="tag-flyup tag-flyup-lightbox hidden">
-            <input type="text" id="lightboxTagInput" placeholder="Tags: foo bar -remove +add" class="search-input" autocomplete="off">
-            <div id="lightboxTagHint" class="quick-tag-mode-hint"></div>
-            <div id="lightboxTagSuggestions" class="quick-tag-suggestions"></div>
+    <div id="galleryTagFlyup" class="tag-flyup tag-flyup-gallery hidden" role="dialog" aria-labelledby="galleryTagEyebrow">
+        <div class="flyup-head">
+            <img id="galleryTagThumb" class="flyup-thumb" src="" alt="">
+            <h2 id="galleryTagEyebrow" class="flyup-eyebrow">Tags</h2>
+            <span id="galleryTagTitle" class="flyup-title"></span>
+            <span class="spacer"></span>
+            <kbd class="kbd kbd-sm">Esc</kbd>
         </div>
+        <div class="flyup-body">
+            <label class="flyup-input">
+                <svg class="i i-sm" aria-hidden="true"><use href="#i-tag"/></svg>
+                <input type="text" id="galleryTagInput" placeholder="tag  +new  -remove  old>new" aria-label="Tag expression" autocomplete="off" autocapitalize="none" spellcheck="false">
+            </label>
+            <div id="galleryTagHint" class="flyup-plan"></div>
+            <div id="galleryTagCurrent" class="flyup-current"></div>
+            <div id="galleryTagSuggestions" class="flyup-suggestions"></div>
+        </div>
+        <div class="flyup-foot keys keys-hw"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>Tab</kbd> complete</span><span><kbd>Enter</kbd> apply</span><span><kbd>Esc</kbd> close</span></div>
+    </div>
 
-        <div id="lightboxTagBar" class="lightbox-tag-bar">
-            <div class="lightbox-tag-bar-top">
-                <div id="lightboxTagBarTags" class="lightbox-tag-bar-tags"></div>
+    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-labelledby="lightboxTitle">
+        <header class="lb-top">
+            <button id="lightboxBackBtn" class="icon-btn lb-back" type="button" aria-label="Back to the gallery">
+                <svg class="i" aria-hidden="true"><use href="#i-chevron-left"/></svg>
+            </button>
+            <div class="lb-heading">
+                <h1 id="lightboxTitle" class="lb-title"><span id="lightboxHeaderFilename" class="editable-header-filename" title="Rename (R)"></span><span id="lightboxHeaderExt" class="lb-ext"></span></h1>
+                <span id="lightboxPosition" class="lb-pos"></span>
             </div>
-            <div class="lightbox-meta-sep"></div>
-            <div class="lightbox-meta-row">
-                <span id="lightboxHeaderFilename" class="editable-header-filename lightbox-filename-label"></span>
-                <div id="lightboxMeta" class="lightbox-meta"></div>
-                <button id="llmAnalyzeBtn" class="llm-analyze-btn" title="LLM auto-tag" aria-label="LLM auto-tag">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+            <button id="lightboxRenameBtn" class="icon-btn icon-btn--sm" type="button" title="Rename (R)" aria-label="Rename file">
+                <svg class="i i-sm" aria-hidden="true"><use href="#i-pencil"/></svg>
+            </button>
+            <div class="spacer"></div>
+            <div class="lb-actions">
+                <button id="lightboxFavoriteBtn" class="bar-btn" type="button" title="Favorite (F)" aria-pressed="false">
+                    <svg class="i i-sm" aria-hidden="true"><use href="#i-star"/></svg><span>Favorite</span><kbd class="kbd kbd-sm">F</kbd>
+                </button>
+                <button id="lightboxTagBtn" class="bar-btn" type="button" title="Edit tags (T)">
+                    <svg class="i i-sm" aria-hidden="true"><use href="#i-tag"/></svg><span>Tags</span><kbd class="kbd kbd-sm">T</kbd>
+                </button>
+                <button id="llmAnalyzeBtn" class="bar-btn llm-analyze-btn" type="button" title="Auto-tag with the vision LLM">
+                    <svg class="i i-sm" aria-hidden="true"><use href="#i-eye"/></svg><span>Auto-tag</span>
+                </button>
+                <div class="bar-div"></div>
+                <a id="lightboxDownloadBtn" class="icon-btn" download title="Download" aria-label="Download">
+                    <svg class="i" aria-hidden="true"><use href="#i-download"/></svg>
+                </a>
+                <button id="lightboxHeaderDeleteBtn" class="icon-btn icon-btn--warn" type="button" title="Move to trash (D)" aria-label="Move to trash">
+                    <svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>
                 </button>
             </div>
-            <div id="lightboxExif" class="lightbox-exif hidden"></div>
-        </div>
+            <button id="closeLightbox" class="icon-btn lb-close" type="button" title="Close (Esc)" aria-label="Close">
+                <svg class="i" aria-hidden="true"><use href="#i-x"/></svg>
+            </button>
+        </header>
 
+        <div class="lb-body">
+            <div class="lightbox-content" id="lightboxContent">
+                <img id="lightboxImage" src="" alt="" draggable="false">
+                <button id="prevImage" class="lightbox-nav prev" type="button" aria-label="Previous file">
+                    <svg class="i" aria-hidden="true"><use href="#i-chevron-left"/></svg>
+                </button>
+                <button id="nextImage" class="lightbox-nav next" type="button" aria-label="Next file">
+                    <svg class="i" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                </button>
+                <div class="keys keys-hw lb-keys"><span><kbd>&larr;</kbd><kbd>&rarr;</kbd> browse</span><span>scroll or pinch to zoom</span><span><kbd>0</kbd> reset zoom</span></div>
+                <button id="resetZoom" class="zoom-reset" type="button">Reset zoom</button>
+            </div>
+
+            <aside id="lightboxPanel" class="lb-panel" aria-label="File details">
+                <button id="lightboxSheetGrab" class="lb-grab" type="button" aria-label="Show details" aria-expanded="false"><span></span></button>
+                <section class="lb-sec lb-sec-tags">
+                    <h2 class="cc-eyebrow">Tags</h2>
+                    <div id="lightboxTagBarTags" class="chips"></div>
+                    <div id="lightboxTagFlyup" class="tag-flyup tag-flyup-lightbox hidden">
+                        <label class="flyup-input">
+                            <svg class="i i-sm" aria-hidden="true"><use href="#i-tag"/></svg>
+                            <input type="text" id="lightboxTagInput" placeholder="tag  +new  -remove  old>new" aria-label="Tag expression" autocomplete="off" autocapitalize="none" spellcheck="false">
+                        </label>
+                        <div id="lightboxTagHint" class="flyup-plan"></div>
+                        <div id="lightboxTagSuggestions" class="flyup-suggestions"></div>
+                    </div>
+                </section>
+                <p id="lightboxMetaLine" class="lb-meta-line"></p>
+                <section class="lb-sec lb-sec-llm" id="lightboxLlmSection">
+                    <h2 class="cc-eyebrow">Auto-tag</h2>
+                    <p id="lightboxLlmText" class="lb-text"></p>
+                    <div class="lb-llm-row">
+                        <button id="llmPanelBtn" class="cc-btn cc-btn--ghost llm-analyze-btn" type="button"><svg class="i i-sm" aria-hidden="true"><use href="#i-eye"/></svg>Auto-tag this file</button>
+                        <span class="lb-hint">or type <kbd class="kbd kbd-sm">?</kbd> in tags</span>
+                    </div>
+                </section>
+                <section class="lb-sec lb-sec-details">
+                    <h2 class="cc-eyebrow">Details</h2>
+                    <table class="cc-table lb-details"><tbody id="lightboxMeta"></tbody></table>
+                    <p id="lightboxExif" class="lb-help"></p>
+                </section>
+                <div class="lb-tabs" role="toolbar" aria-label="File actions">
+                    <button id="lightboxFavoriteTab" class="lb-tab" type="button" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg>Favorite</button>
+                    <button id="lightboxTagTab" class="lb-tab" type="button"><svg class="i" aria-hidden="true"><use href="#i-tag"/></svg>Tags</button>
+                    <button id="lightboxLlmTab" class="lb-tab llm-analyze-btn" type="button"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg>Auto-tag</button>
+                    <a id="lightboxDownloadTab" class="lb-tab" download><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Save</a>
+                    <button id="lightboxDeleteTab" class="lb-tab lb-tab--warn" type="button"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Trash</button>
+                </div>
+            </aside>
+        </div>
     </div>
 
-    <div id="selectionBar" class="selection-bar hidden">
-        <div class="selection-info">
-            <span id="selectedCount">0</span>
-        </div>
-        <div class="selection-actions">
-            <button class="selection-action-btn star-btn" id="bulkFavoriteBtn" title="Toggle favorite" aria-label="Toggle favorite" data-tooltip="Toggle favorite">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-            </button>
-            <button class="selection-action-btn btn-add-tag" id="bulkTagBtn" title="Edit tags (t)" aria-label="Edit tags" data-tooltip="Edit tags (t)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                </svg>
-            </button>
-            <button class="selection-action-btn" id="groupSelectedBtn" title="Group images" aria-label="Group selected images" data-tooltip="Group images">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                </svg>
-            </button>
-            <button class="selection-action-btn" id="downloadSelectedBtn" title="Download as ZIP" aria-label="Download selected as ZIP" data-tooltip="Download as ZIP">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-            </button>
-            <button class="selection-action-btn delete-btn" id="deleteSelectedBtn" title="Delete" aria-label="Delete selected" data-tooltip="Move to trash">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-            <div class="selection-divider"></div>
-            <button class="selection-action-btn cancel-btn" id="clearSelectionBtn" title="Cancel (Esc)" aria-label="Cancel selection" data-tooltip="Cancel selection (Esc)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <div id="loading" class="loading hidden">Loading...</div>
-    <div id="uploadProgress" class="upload-progress hidden">
-        <div class="upload-progress-label"><span id="uploadProgressText">Uploading...</span></div>
+    <div id="loading" class="loading hidden" role="status">Loading</div>
+    <div id="uploadProgress" class="upload-progress hidden" role="status">
+        <div class="upload-progress-label"><span id="uploadProgressText">Uploading</span></div>
         <div class="upload-progress-track"><div id="uploadProgressBar" class="upload-progress-bar"></div></div>
     </div>
-    <div id="error" class="error hidden"></div>
+    <div id="error" class="error hidden" role="alert"></div>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-
-    <div id="galleryTagFlyup" class="tag-flyup tag-flyup-gallery hidden">
-        <img id="galleryTagThumb" class="tag-flyup-float-img" src="" alt="">
-        <div class="tag-flyup-panel">
-            <div id="galleryTagCurrent" class="quick-tag-current"></div>
-            <input type="text" id="galleryTagInput" placeholder="Tags: foo bar -remove +add" class="search-input" autocomplete="off">
-            <div id="galleryTagHint" class="quick-tag-mode-hint"></div>
-            <div id="galleryTagSuggestions" class="quick-tag-suggestions"></div>
-        </div>
-    </div>
 
     <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.mp4,.webm,.mov,.mkv,.avi,.m4v" multiple hidden>
 
-    <dialog id="shortcutsModal" class="shortcuts-modal">
-        <div class="shortcuts-content">
-            <div class="shortcuts-header">
-                <h3>About Imgy</h3>
-                <button id="closeShortcutsModal" class="close-btn" aria-label="Close settings">&times;</button>
-            </div>
+    <dialog id="trashModal" class="dlg trash-dlg" aria-labelledby="trashTitle">
+        <div class="dlg-head">
+            <h2 id="trashTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trash"/></svg>Trash<small id="trashSummary">empty</small></h2>
+            <button id="closeTrashModal" class="icon-btn" type="button" title="Close (Esc)" aria-label="Close trash"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="dlg-body">
+            <div class="cc-callout"><span class="cc-callout__label">Note</span><span>Trashed files keep their tags and favorites but leave their group. Restore puts a file back where it was.</span></div>
+            <div id="trashList" class="trash-list"></div>
+        </div>
+        <div class="dlg-foot">
+            <button id="cleanupOrphansBtn" class="cc-btn cc-btn--ghost" type="button">Clean up</button>
+            <span class="dlg-foot-note">Drops tags, favorites and thumbnails left behind by files deleted outside Imgy.</span>
+            <button id="emptyTrashBtn" class="cc-btn btn-warn" type="button"><svg class="i i-sm" aria-hidden="true"><use href="#i-trash"/></svg>Empty trash</button>
+        </div>
+    </dialog>
 
-            <div class="about-section">
-                <p class="about-description">A fast, local-first image and video organizer. Tag, search, favorite, and manage your media library right from the browser &mdash; no cloud required.</p>
-                <div id="storageStats" class="storage-stats"></div>
-            </div>
+    <dialog id="shortcutsModal" class="dlg settings-dlg" aria-label="Settings">
+        <div class="settings-shell">
+            <nav class="settings-nav" aria-label="Settings sections">
+                <div class="brand settings-brand"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>imgy</div>
+                <button type="button" class="settings-tab" data-section="about"><svg class="i i-sm" aria-hidden="true"><use href="#i-terminal"/></svg>About</button>
+                <button type="button" class="settings-tab" data-section="appearance"><svg class="i i-sm" aria-hidden="true"><use href="#i-sun"/></svg>Appearance</button>
+                <button type="button" class="settings-tab" data-section="llm"><svg class="i i-sm" aria-hidden="true"><use href="#i-eye"/></svg>Auto-tagging</button>
+                <button type="button" class="settings-tab" data-section="shortcuts"><svg class="i i-sm" aria-hidden="true"><use href="#i-keyboard"/></svg>Shortcuts</button>
+                <button type="button" class="settings-tab" data-section="storage"><svg class="i i-sm" aria-hidden="true"><use href="#i-drive"/></svg>Storage</button>
+                <div class="spacer"></div>
+                <a class="settings-tab settings-link" href="https://github.com/cavecomputing/imgy" target="_blank" rel="noopener"><svg class="i i-sm i-fill" aria-hidden="true"><use href="#i-github"/></svg>GitHub</a>
+                <div class="settings-credit">a <span class="cc-wordmark">cave<b>computing</b></span> project</div>
+            </nav>
+            <div class="settings-main">
+                <button id="closeShortcutsModal" class="icon-btn settings-close" type="button" title="Close (Esc)" aria-label="Close settings"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
 
-            <div class="modal-card">
-                <h4>Appearance</h4>
-                <div class="setting-row">
-                    <label for="gallerySizeSlider">Thumbnail Size</label>
-                    <div class="gallery-slider-bar">
-                        <input type="range" id="gallerySizeSlider" min="120" max="400" step="10">
-                        <button id="gallerySizeReset" class="btn btn-secondary btn-small">Reset</button>
+                <section class="settings-section" data-section="about" aria-labelledby="setAboutTitle">
+                    <div class="settings-scroll">
+                        <h2 id="setAboutTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-terminal"/></svg>About<small>Imgy</small></h2>
+                        <p class="settings-lede">A fast, local-first image and video organizer. Tag, search, favorite, group and rename your media from the browser. Nothing leaves this machine unless you turn on auto-tagging with a remote model.</p>
+                        <ul class="cc-check settings-facts">
+                            <li>Your folder is the source of truth: files copied into the library show up on the next refresh.</li>
+                            <li>The database only holds tags, favorites, groups and settings.</li>
+                            <li class="keys-hw">Press <kbd class="kbd kbd-sm">?</kbd> anywhere to see every keyboard shortcut.</li>
+                        </ul>
+                        <div class="cc-callout cc-callout--warn"><span class="cc-callout__label">Heads up</span><span>Imgy has no login. Anyone who can reach this server can view, change and delete your files. Keep it on localhost or a trusted network.</span></div>
                     </div>
-                </div>
-                <div class="setting-row setting-row-vertical">
-                    <label>Accent Color</label>
-                    <div id="colorSwatches" class="color-swatches"></div>
-                    <div class="color-picker-row">
-                        <input type="text" id="customColorInput" placeholder="#hex" maxlength="7">
-                        <button id="colorReset" class="btn btn-secondary btn-small">Reset</button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-card">
-                <h4>LLM Integration</h4>
-                <p class="settings-note">Video files are not supported.</p>
-                <div class="llm-settings-group">
-                    <div class="llm-field-group">
-                        <label for="llmProvider">Provider</label>
-                        <select id="llmProvider">
-                            <option value="custom">Custom OpenAI Endpoint</option>
-                            <option value="openrouter">OpenRouter</option>
-                        </select>
-                    </div>
-                    <div class="llm-field-group" id="llmApiUrlGroup">
-                        <label for="llmApiUrl">API Endpoint</label>
-                        <input type="text" id="llmApiUrl" placeholder="http://localhost:11434/v1/chat/completions">
-                    </div>
-                    <div class="llm-field-group">
-                        <label for="llmModel">Model</label>
-                        <input type="text" id="llmModel" placeholder="gemma3">
-                    </div>
-                    <div class="llm-field-group">
-                        <label for="llmApiSecret">API Secret</label>
-                        <input type="password" id="llmApiSecret" placeholder="API key or Bearer token">
-                    </div>
-                    <div class="llm-mode-row">
-                        <label>Actions</label>
-                        <div class="llm-mode-toggles">
-                            <label class="llm-toggle"><input type="checkbox" id="llmDoRename" checked><span>Rename</span></label>
-                            <label class="llm-toggle"><input type="checkbox" id="llmDoTags" checked><span>Tag</span></label>
+                </section>
+
+                <section class="settings-section" data-section="appearance" aria-labelledby="setAppearanceTitle" hidden>
+                    <div class="settings-scroll">
+                        <h2 id="setAppearanceTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sun"/></svg>Appearance</h2>
+                        <div class="field">
+                            <span class="field-label" id="themeLabel">Theme</span>
+                            <div>
+                                <div class="seg" role="radiogroup" aria-labelledby="themeLabel">
+                                    <label><input type="radio" name="themeChoice" value="dark"><span>Dark</span></label>
+                                    <label><input type="radio" name="themeChoice" value="light"><span>Light</span></label>
+                                </div>
+                                <p class="field-help">Gruvbox dark or light. The sun and moon button in the top bar switches too.</p>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="gallerySizeSetting">Thumbnail size</label>
+                            <div>
+                                <div class="field-row">
+                                    <input type="range" id="gallerySizeSetting" min="120" max="400" step="10">
+                                    <span id="gallerySizeValue" class="field-value"></span>
+                                    <button id="gallerySizeReset" class="cc-btn cc-btn--ghost btn-sm" type="button">Reset</button>
+                                </div>
+                                <p class="field-help">The width of a gallery column. The slider next to Select changes it too.</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="llm-field-group">
-                        <label>Exclusive Tag Groups <button id="addTagGroupBtn" class="btn btn-secondary btn-tiny">+ Add</button></label>
-                        <div id="tagGroupsEditor" class="tag-groups-editor"></div>
+                </section>
+
+                <section class="settings-section settings-section--foot" data-section="llm" aria-labelledby="setLlmTitle" hidden>
+                    <div class="settings-scroll">
+                        <h2 id="setLlmTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg>Auto-tagging<small>vision LLM</small></h2>
+                        <p class="settings-lede">Imgy sends one image at a time to the model and applies the file name and tags it suggests. Videos are not supported.</p>
+                        <div class="field">
+                            <span class="field-label" id="llmProviderLabel">Provider</span>
+                            <div>
+                                <div class="seg" role="radiogroup" aria-labelledby="llmProviderLabel">
+                                    <label><input type="radio" name="llmProvider" value="custom"><span>Custom endpoint</span></label>
+                                    <label><input type="radio" name="llmProvider" value="openrouter"><span>OpenRouter</span></label>
+                                </div>
+                                <p class="field-help" id="llmProviderHelp">Any OpenAI-compatible chat completions API with vision, such as Ollama.</p>
+                            </div>
+                        </div>
+                        <div class="field" id="llmApiUrlGroup">
+                            <label class="field-label" for="llmApiUrl">Endpoint</label>
+                            <div><input type="text" id="llmApiUrl" class="text-input text-input--addr" placeholder="http://localhost:11434/v1/chat/completions" spellcheck="false" autocomplete="off"></div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="llmModel">Model</label>
+                            <div><input type="text" id="llmModel" class="text-input text-input--short" placeholder="gemma3" spellcheck="false" autocomplete="off"></div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="llmApiSecret">API key</label>
+                            <div>
+                                <input type="password" id="llmApiSecret" class="text-input text-input--mid" placeholder="API key or Bearer token" autocomplete="off">
+                                <div class="cc-callout cc-callout--warn field-callout"><span class="cc-callout__label">Heads up</span><span>Imgy has no login. Anyone who can reach this server can read the key from settings.</span></div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <span class="field-label">Apply</span>
+                            <div class="field-checks">
+                                <label class="check"><input type="checkbox" id="llmDoRename" checked><span>Rename the file</span></label>
+                                <label class="check"><input type="checkbox" id="llmDoTags" checked><span>Add tags</span></label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <span class="field-label">Exclusive tag groups</span>
+                            <div>
+                                <div id="tagGroupsEditor" class="tag-groups-editor"></div>
+                                <button id="addTagGroupBtn" class="link-btn" type="button">+ Add group</button>
+                                <p class="field-help">The model picks at most one tag from each group. Once the library has tags, it only picks from those.</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="llm-settings-actions">
-                        <button id="llmTestBtn" class="btn btn-secondary btn-small">Test Connection</button>
-                        <button id="llmSettingsReset" class="btn btn-secondary btn-small">Reset to Defaults</button>
-                        <span id="llmTestStatus" class="llm-test-status"></span>
+                    <div class="settings-foot">
+                        <button id="llmTestBtn" class="cc-btn cc-btn--primary" type="button">Test connection</button>
+                        <span id="llmTestStatus" class="llm-test-status" role="status"></span>
+                        <span class="spacer"></span>
+                        <button id="llmSettingsReset" class="cc-btn cc-btn--ghost" type="button">Reset to defaults</button>
                     </div>
-                </div>
-            </div>
+                </section>
 
-            <div class="modal-card">
-                <h4>Keyboard Shortcuts</h4>
-                <div class="shortcuts-columns">
-                    <div class="shortcuts-col">
-                        <h5>General</h5>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>/</kbd></div><span>Focus tag search</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>?</kbd></div><span>Show this page</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>S</kbd></div><span>Toggle selection mode</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>F</kbd></div><span>Toggle favorites filter</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>U</kbd></div><span>Toggle untagged filter</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>X</kbd></div><span>Open trash</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Backspace</kbd></div><span>Remove last tag filter</span></div>
+                <section class="settings-section" data-section="shortcuts" aria-labelledby="setShortcutsTitle" hidden>
+                    <div class="settings-scroll">
+                        <h2 id="setShortcutsTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-keyboard"/></svg>Shortcuts<small>press ? anywhere</small></h2>
+                        <div class="shortcuts-columns">
+                            <div class="shortcuts-col">
+                                <h3 class="cc-eyebrow">General</h3>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>/</kbd></span><span>Focus the filter</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>?</kbd></span><span>Show this page</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>S</kbd></span><span>Selection mode</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>F</kbd></span><span>Favorites filter</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>U</kbd></span><span>Untagged filter</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>X</kbd></span><span>Open the trash</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>&#9003;</kbd></span><span>Drop the last tag filter</span></div>
 
-                        <h5>Gallery</h5>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd></div><span>Navigate images</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Enter</kbd></div><span>Open in lightbox</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Space</kbd></div><span>Toggle selection</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>F</kbd></div><span>Toggle favorite</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>T</kbd></div><span>Edit tags (fly-up)</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>R</kbd></div><span>Rename image</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>D</kbd><kbd>Delete</kbd></div><span>Move to trash</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Esc</kbd></div><span>Clear focus</span></div>
+                                <h3 class="cc-eyebrow">Gallery</h3>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd></span><span>Move between files</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Enter</kbd></span><span>Open in the lightbox</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Space</kbd></span><span>Select or unselect</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>F</kbd></span><span>Favorite</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>T</kbd></span><span>Edit tags</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>R</kbd></span><span>Rename</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>D</kbd><kbd>Del</kbd></span><span>Move to trash</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Esc</kbd></span><span>Clear focus</span></div>
 
-                        <h5>Lightbox</h5>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd></div><span>Navigate images</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>F</kbd></div><span>Toggle favorite</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>T</kbd></div><span>Edit tags (fly-up)</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>R</kbd></div><span>Rename image</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>D</kbd><kbd>Delete</kbd></div><span>Move to trash</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>0</kbd></div><span>Reset zoom</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Esc</kbd></div><span>Close lightbox</span></div>
+                                <h3 class="cc-eyebrow">Lightbox</h3>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd></span><span>Previous or next file</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>F</kbd></span><span>Favorite</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>T</kbd></span><span>Edit tags</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>R</kbd></span><span>Rename</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>D</kbd><kbd>Del</kbd></span><span>Move to trash</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>0</kbd></span><span>Reset zoom</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Esc</kbd></span><span>Close</span></div>
+                            </div>
+                            <div class="shortcuts-col">
+                                <h3 class="cc-eyebrow">Tag expressions</h3>
+                                <p class="shortcuts-hint">Work in the tag editor, the bulk tag editor and the filter.</p>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>tag</code></span><span>Add a tag, or filter by it</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>+tag</code></span><span>Create a tag and add it</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>-tag</code></span><span>Remove a tag, or hide files with it</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>old&gt;new</code></span><span>Rename a tag</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>a b c</code></span><span>Several expressions at once</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>--</code></span><span>Remove all tags</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>=</code></span><span>Give every selected file all their tags</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>++</code></span><span>Group the selected files</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>?</code></span><span>Auto-tag with the vision LLM</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Tab</kbd></span><span>Complete the tag you are typing</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Enter</kbd></span><span>Apply the expression, or the highlighted suggestion</span></div>
+
+                                <h3 class="cc-eyebrow">Filter</h3>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>tag</code></span><span>Show files with the tag</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>-tag</code></span><span>Hide files with the tag</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>--tag</code></span><span>Delete the tag everywhere</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>&uarr;</kbd><kbd>&darr;</kbd></span><span>Move through suggestions</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>PgUp</kbd><kbd>PgDn</kbd></span><span>Page through suggestions</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Home</kbd><kbd>End</kbd></span><span>First or last suggestion</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>Del</kbd></span><span>Delete the highlighted tag everywhere</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><kbd>&#9003;</kbd></span><span>Drop the last filter</span></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="shortcuts-col">
-                        <h5>Tag Expressions</h5>
-                        <p class="shortcuts-hint">Works in tag editor, selection bar, and filter search.</p>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>tag</kbd></div><span>Add tag / toggle filter</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>+tag</kbd></div><span>Create &amp; add new tag</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>-tag</kbd></div><span>Remove tag</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>old&gt;new</kbd></div><span>Rename tag</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>a b c</kbd></div><span>Multiple expressions</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>--</kbd></div><span>Remove all tags</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>=</kbd></div><span>Equalize tags (selection)</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&uarr;</kbd><kbd>&darr;</kbd></div><span>Navigate suggestions</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Tab</kbd></div><span>Complete the tag you are typing</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Enter</kbd></div><span>Apply the expression as typed</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Esc</kbd></div><span>Close editor</span></div>
+                </section>
 
-                        <h5>Filter Search</h5>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>tag</kbd></div><span>Include filter (show images with tag)</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>-tag</kbd></div><span>Exclude filter (hide images with tag)</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>--tag</kbd></div><span>Globally delete tag from all images</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&uarr;</kbd> / <kbd>&darr;</kbd></div><span>Navigate suggestions</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>PgUp</kbd> / <kbd>PgDn</kbd></div><span>Page through suggestions</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Home</kbd> / <kbd>End</kbd></div><span>Jump to first / last suggestion</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Tab</kbd></div><span>Complete the tag you are typing</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Enter</kbd></div><span>Apply the expression as typed</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Delete</kbd></div><span>Delete highlighted tag globally</span></div>
-                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Backspace</kbd></div><span>Remove last active filter</span></div>
+                <section class="settings-section" data-section="storage" aria-labelledby="setStorageTitle" hidden>
+                    <div class="settings-scroll">
+                        <h2 id="setStorageTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-drive"/></svg>Storage</h2>
+                        <table class="cc-table storage-table"><tbody id="storageStats"></tbody></table>
+                        <div class="field">
+                            <span class="field-label">Thumbnails</span>
+                            <div>
+                                <button id="resetThumbnailsBtn" class="cc-btn cc-btn--ghost" type="button">Reset thumbnails</button>
+                                <p class="field-help">Deletes every thumbnail so Imgy makes them again from the files. Use it if thumbnails look wrong or after updating from an older version.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="modal-card modal-card-links">
-                <a href="https://github.com/cavecomputing/imgy" target="_blank" rel="noopener" class="about-link">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-                    </svg>
-                    View on GitHub
-                </a>
+                </section>
             </div>
         </div>
     </dialog>

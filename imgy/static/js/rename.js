@@ -11,7 +11,7 @@ async function doInlineRename(img, opts) {
         if (finished) return;
         finished = true;
         clearTimeout(blurTimer);
-        sizer.remove();
+        sizer?.remove();
         const newName = input.value.trim();
         if (doSave && newName && newName !== originalName) {
             try {
@@ -39,21 +39,17 @@ async function doInlineRename(img, opts) {
 }
 
 export async function startInlineRename(img, titleEl, card) {
+    if (titleEl.style.display === 'none') return; // already renaming
+    if (!titleEl.getClientRects().length) return; // hidden (a grouped card): the input couldn't take focus
     const originalName = titleEl.textContent;
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'inline-rename-input';
     input.value = originalName;
-    input.style.width = titleEl.offsetWidth + 'px';
+    input.setAttribute('aria-label', 'File name');
+    input.spellcheck = false;
 
-    const sizer = document.createElement('span');
-    sizer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;pointer-events:none;font-size:0.75rem;font-weight:500;font-family:inherit';
-    document.body.appendChild(sizer);
-    input.addEventListener('input', () => {
-        sizer.textContent = input.value || ' ';
-        input.style.width = Math.min(sizer.offsetWidth, card.offsetWidth - 40) + 'px';
-    });
-
+    // The input fills the space the name used; the extension stays visible after it
     card.classList.add('renaming');
     titleEl.style.display = 'none';
     titleEl.parentNode.insertBefore(input, titleEl);
@@ -61,7 +57,7 @@ export async function startInlineRename(img, titleEl, card) {
     input.select();
 
     await doInlineRename(img, {
-        input, sizer, originalName, blurSaves: false,
+        input, sizer: null, originalName, blurSaves: false,
         onCleanup() {
             input.remove();
             titleEl.style.display = '';
@@ -80,18 +76,24 @@ export async function startHeaderInlineRename(img, titleEl) {
     input.value = originalName;
     input.style.width = titleEl.offsetWidth + 'px';
 
+    // Grow the input with the name, measured in the title's own font
     const sizer = document.createElement('span');
-    sizer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;pointer-events:none;font-size:0.85rem;font-weight:500;font-family:inherit';
+    sizer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;pointer-events:none';
+    sizer.style.font = window.getComputedStyle(titleEl).font;
     document.body.appendChild(sizer);
-    input.addEventListener('input', () => {
+    const fit = () => {
         sizer.textContent = input.value || ' ';
-        input.style.width = sizer.offsetWidth + 'px';
-    });
+        input.style.width = (sizer.offsetWidth + 8) + 'px';
+    };
+    input.addEventListener('input', fit);
+    input.setAttribute('aria-label', 'File name');
+    input.spellcheck = false;
 
     // Hide the label rather than replacing it, so updateLightboxContent and applyRenameLocally
     // keep it showing the current image's name while the rename is in flight
     titleEl.style.display = 'none';
     titleEl.parentNode.insertBefore(input, titleEl);
+    fit();
     input.focus();
     input.select();
 

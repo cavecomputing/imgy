@@ -1,15 +1,29 @@
-/** Server-stored settings, the LLM settings form, and the About/settings dialog. */
+/** Server-stored settings, the auto-tagging form, and the settings dialog with its sections. */
 import { CONFIG } from './config.js';
 import { State } from './state.js';
 import { Elements } from './dom.js';
-import { esc, formatFileSize } from './utils.js';
-import { closeOnBackdropClick, showToast } from './ui.js';
+import { esc, formatCount, formatFileSize } from './utils.js';
+import { closeOnBackdropClick, showToast, withLoading } from './ui.js';
 import { api } from './api.js';
 import { applyTheme } from './appearance.js';
+import { loadData } from './data.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const OPENROUTER_DEFAULT_MODEL = 'openrouter/auto';
+
+const PROVIDER_HELP = {
+    custom: 'Any OpenAI-compatible chat completions API with vision, such as Ollama.',
+    openrouter: 'Sends each image to openrouter.ai, which needs an API key from openrouter.ai/keys.'
+};
+
+function getProviderControl() {
+    return document.querySelector('input[name="llmProvider"]:checked')?.value || LLM_DEFAULTS.llmProvider;
+}
+
+function setProviderControl(value) {
+    document.querySelectorAll('input[name="llmProvider"]').forEach(radio => { radio.checked = radio.value === value; });
+}
 
 const LLM_DEFAULTS = {
     llmProvider: 'custom',
@@ -76,7 +90,7 @@ export function getLlmSettings() {
 }
 
 function getLlmSettingsFromControls() {
-    const provider = document.getElementById('llmProvider')?.value || LLM_DEFAULTS.llmProvider;
+    const provider = getProviderControl();
     const apiUrlInput = document.getElementById('llmApiUrl');
     const modelInput = document.getElementById('llmModel');
     const secretInput = document.getElementById('llmApiSecret');
@@ -101,22 +115,22 @@ async function initTagGroupsEditor() {
 
     function render() {
         if (!groups.length) {
-            container.innerHTML = '<div class="tag-groups-empty">Exclusive groups keep LLM tagging to one tag from a set. Add a group with at least two existing tags.</div>';
+            container.innerHTML = '<div class="tag-groups-empty">No groups yet. A group needs at least two existing tags, for example day and night.</div>';
         } else {
             container.innerHTML = groups.map((g, gi) => `
                 <div class="tag-group-row" data-idx="${gi}">
                     <div class="tag-group-header">
-                        <input type="text" class="tag-group-name" value="${esc(g.name)}" placeholder="Group name">
-                        <button class="tag-group-delete" title="Delete group">&times;</button>
+                        <input type="text" class="tag-group-name" value="${esc(g.name)}" placeholder="Group name" aria-label="Group name">
+                        <button class="tag-group-delete" type="button" title="Delete group" aria-label="Delete group">&times;</button>
                     </div>
                     <div class="tag-group-tags">
-                        ${g.tags.map(t => `<span class="tag-group-pill">${esc(t)}<button class="tag-group-pill-x" data-tag="${esc(t)}">&times;</button></span>`).join('')}
+                        ${g.tags.map(t => `<span class="tag-group-pill">${esc(t)}<button class="tag-group-pill-x" type="button" data-tag="${esc(t)}" aria-label="Remove ${esc(t)} from the group">&times;</button></span>`).join('')}
                         <div class="tag-group-add-wrap">
                             <input type="text" class="tag-group-add-input" placeholder="add existing tag" autocomplete="off">
                             <div class="tag-group-suggestions"></div>
                         </div>
                     </div>
-                    ${g.tags.length < 2 ? '<div class="tag-group-validation">Add at least two existing tags to enable this exclusive group.</div>' : ''}
+                    ${g.tags.length < 2 ? '<div class="tag-group-validation">Add at least two existing tags to turn this group on.</div>' : ''}
                 </div>
             `).join('');
         }
@@ -231,7 +245,8 @@ async function initTagGroupsEditor() {
 
 export function initLlmSettings() {
     const s = getLlmSettings();
-    const providerSelect = document.getElementById('llmProvider');
+    const providerRadios = document.querySelectorAll('input[name="llmProvider"]');
+    const providerHelp = document.getElementById('llmProviderHelp');
     const urlGroup = document.getElementById('llmApiUrlGroup');
     const urlInput = document.getElementById('llmApiUrl');
     const modelInput = document.getElementById('llmModel');
@@ -244,6 +259,7 @@ export function initLlmSettings() {
     if (!urlInput) return;
 
     function updateProviderVisibility(provider) {
+        providerHelp.textContent = PROVIDER_HELP[provider] || PROVIDER_HELP.custom;
         if (provider === 'openrouter') {
             urlGroup.classList.add('hidden-provider');
             urlInput.value = OPENROUTER_URL;
@@ -258,7 +274,7 @@ export function initLlmSettings() {
         }
     }
 
-    providerSelect.value = s.provider;
+    setProviderControl(s.provider);
     updateProviderVisibility(s.provider);
     urlInput.value = s.api_url;
     modelInput.value = s.model;
@@ -266,11 +282,15 @@ export function initLlmSettings() {
     renameCheck.checked = s.doRename;
     tagsCheck.checked = s.doTags;
 
-    providerSelect.onchange = () => {
-        saveSetting('llmProvider', providerSelect.value);
-        updateProviderVisibility(providerSelect.value);
-        if (providerSelect.value === 'openrouter') saveSetting('llmModel', modelInput.value.trim());
-    };
+    providerRadios.forEach(radio => {
+        radio.onchange = () => {
+            if (!radio.checked) return;
+            saveSetting('llmProvider', radio.value);
+            updateProviderVisibility(radio.value);
+            if (radio.value === 'openrouter') saveSetting('llmModel', modelInput.value.trim());
+            clearTestStatus();
+        };
+    });
     urlInput.onchange = () => saveSetting('llmApiUrl', urlInput.value.trim());
     modelInput.onchange = () => saveSetting('llmModel', modelInput.value.trim());
     if (secretInput) secretInput.onchange = () => saveSetting('llmApiSecret', secretInput.value);
@@ -280,28 +300,39 @@ export function initLlmSettings() {
         State.settings = {...LLM_DEFAULTS};
         putSettings(LLM_DEFAULTS);
         const defaults = getLlmSettings();
-        providerSelect.value = defaults.provider;
+        setProviderControl(defaults.provider);
         updateProviderVisibility(defaults.provider);
         urlInput.value = defaults.api_url;
         modelInput.value = defaults.model;
         if (secretInput) secretInput.value = '';
         renameCheck.checked = defaults.doRename;
         tagsCheck.checked = defaults.doTags;
+        clearTestStatus();
+        showToast('Auto-tagging settings reset to defaults');
+    };
+
+    function clearTestStatus() {
         testStatus.textContent = '';
         testStatus.className = 'llm-test-status';
-        showToast('LLM settings reset to defaults');
-    };
+    }
+    function showTestError(message) {
+        testStatus.textContent = message;
+        testStatus.className = 'llm-test-status is-error';
+    }
+    function showTestSuccess(model) {
+        testStatus.innerHTML = `<span class="cc-badge cc-badge--done">Connected</span><span>${esc(model)}</span>`;
+        testStatus.className = 'llm-test-status';
+    }
+
     testBtn.onclick = async () => {
         testBtn.disabled = true;
-        testBtn.textContent = 'Testing...';
-        testStatus.textContent = '';
-        testStatus.className = 'llm-test-status';
+        testBtn.textContent = 'Testing…';
+        clearTestStatus();
         const testSettings = getLlmSettingsFromControls();
         if (testSettings.provider === 'openrouter' && !testSettings.api_secret) {
-            testStatus.textContent = 'OpenRouter requires an API key';
-            testStatus.className = 'llm-test-status error';
+            showTestError('OpenRouter needs an API key');
             testBtn.disabled = false;
-            testBtn.textContent = 'Test Connection';
+            testBtn.textContent = 'Test connection';
             return;
         }
         const controller = new AbortController();
@@ -319,20 +350,14 @@ export function initLlmSettings() {
             });
             clearTimeout(timeout);
             const data = await resp.json();
-            if (resp.ok) {
-                testStatus.textContent = `Connected — ${data.model}`;
-                testStatus.className = 'llm-test-status success';
-            } else {
-                testStatus.textContent = data.error || 'Connection failed';
-                testStatus.className = 'llm-test-status error';
-            }
+            if (resp.ok) showTestSuccess(data.model || testSettings.model);
+            else showTestError(data.error || 'Connection failed');
         } catch (err) {
             clearTimeout(timeout);
-            testStatus.textContent = err.name === 'AbortError' ? 'Timed out (20s)' : err.message;
-            testStatus.className = 'llm-test-status error';
+            showTestError(err.name === 'AbortError' ? `No answer after ${CONFIG.LLM_TEST_TIMEOUT_MS / 1000} seconds` : err.message);
         } finally {
             testBtn.disabled = false;
-            testBtn.textContent = 'Test Connection';
+            testBtn.textContent = 'Test connection';
         }
     };
 
@@ -350,20 +375,53 @@ async function loadStorageStats() {
             { label: 'Trash', value: stats.trash },
             { label: 'Database', value: stats.database },
             { label: 'Total', value: stats.total, total: true }
-        ].map(s => `<span class="storage-stat ${s.total ? 'storage-stat-total' : ''}"><span class="storage-stat-value">${formatFileSize(s.value) || '0 B'}</span> ${s.label}</span>`).join('');
+        ].map(s => `<tr${s.total ? ' class="total"' : ''}><td>${s.label}</td><td>${formatFileSize(s.value) || '0 B'}</td></tr>`).join('');
     } catch (e) {
-        el.textContent = '';
+        el.innerHTML = '';
     }
 }
 
-export function toggleShortcutsModal() {
+async function resetThumbnails() {
+    if (!confirm('Delete every thumbnail? Imgy makes them again from your files as you browse.')) return;
+    const btn = document.getElementById('resetThumbnailsBtn');
+    btn.disabled = true;
+    try {
+        await withLoading(async () => {
+            const res = await api.post('/api/maintenance/reset-thumbnails');
+            await loadData();
+            await loadStorageStats();
+            showToast(`Deleted ${formatCount(res.thumbnails_purged || 0, 'thumbnail')}`);
+        });
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+let currentSection = 'about';
+
+function showSettingsSection(section) {
+    const sections = Elements.shortcutsModal.querySelectorAll('.settings-section');
+    if (![...sections].some(s => s.dataset.section === section)) section = 'about';
+    currentSection = section;
+    sections.forEach(s => { s.hidden = s.dataset.section !== section; });
+    Elements.shortcutsModal.querySelectorAll('.settings-tab[data-section]').forEach(tab => {
+        const active = tab.dataset.section === section;
+        tab.classList.toggle('active', active);
+        if (active) tab.setAttribute('aria-current', 'page');
+        else tab.removeAttribute('aria-current');
+    });
+    if (section === 'storage') loadStorageStats();
+}
+
+/** Open the settings dialog at a section (the last one shown by default), or close it. */
+export function toggleShortcutsModal(section) {
     if (Elements.shortcutsModal.open) {
         closeShortcutsModal();
-    } else {
-        Elements.shortcutsModal.showModal();
-        loadStorageStats();
-        reloadTagGroups();
+        return;
     }
+    showSettingsSection(typeof section === 'string' ? section : currentSection);
+    Elements.shortcutsModal.showModal();
+    reloadTagGroups();
 }
 
 export function closeShortcutsModal() {
@@ -372,6 +430,11 @@ export function closeShortcutsModal() {
 
 export function initSettingsModal() {
     closeOnBackdropClick(Elements.shortcutsModal);
-    Elements.shortcutsBtn.addEventListener('click', toggleShortcutsModal);
+    Elements.shortcutsBtn.addEventListener('click', () => toggleShortcutsModal());
     Elements.closeShortcutsModalBtn.addEventListener('click', closeShortcutsModal);
+    Elements.shortcutsModal.querySelectorAll('.settings-tab[data-section]').forEach(tab => {
+        tab.addEventListener('click', () => showSettingsSection(tab.dataset.section));
+    });
+    document.getElementById('resetThumbnailsBtn').addEventListener('click', resetThumbnails);
+    showSettingsSection(currentSection);
 }

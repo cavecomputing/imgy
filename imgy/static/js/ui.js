@@ -36,6 +36,7 @@ export function setPressed(el, pressed) {
     el.setAttribute('aria-pressed', pressed ? 'true' : 'false');
 }
 
+/** Mark a toggle on or off. Labeled toggles keep their title; icon-only ones can pass a new one. */
 export function setToggleButtonState(el, active, title) {
     if (!el) return;
     el.classList.toggle('active', active);
@@ -44,6 +45,11 @@ export function setToggleButtonState(el, active, title) {
         el.title = title;
         el.setAttribute('aria-label', title);
     }
+}
+
+/** True when the phone layout (filter at the bottom, no hover) is in effect. */
+export function isPhoneLayout() {
+    return window.matchMedia('(max-width: 768px)').matches;
 }
 
 export async function withLoading(work) {

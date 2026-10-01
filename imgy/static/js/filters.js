@@ -1,28 +1,40 @@
-/** Search bar: include/exclude tag filters, suggestions, and library-wide tag rename/delete. */
+/** Filter bar: include/exclude tag filters, suggestions, and library-wide tag rename/delete. */
 import { CONFIG } from './config.js';
 import { State } from './state.js';
 import { Elements } from './dom.js';
-import { esc, formatCount } from './utils.js';
-import { setToggleButtonState, showToast } from './ui.js';
+import { esc, formatCount, highlightMatch } from './utils.js';
+import { isPhoneLayout, setToggleButtonState, showToast } from './ui.js';
 import { api } from './api.js';
 import { applyFilters, loadData } from './data.js';
 import { parseFilterExpressionTokens, splitTagTokens, tryTabCompletion } from './tags.js';
 import { getLlmActionSummary } from './llm.js';
 
+const DESKTOP_PLACEHOLDER = 'Filter by tag   -exclude   +create   old>new';
+const ROW_HEIGHT = 34;
+
 function getFilterModeInfo(rawTerm) {
     const token = rawTerm.trimStart().split(/\s+/).pop() || '';
-    if (token.includes('>')) return { mode: 'rename', detail: 'old>new renames a tag everywhere' };
-    if (token.startsWith('--')) return { mode: 'delete', detail: token.length > 2 ? 'remove this tag from all files' : 'remove unused tags' };
-    if (token.startsWith('-')) return { mode: 'exclude', detail: 'hide files with this tag' };
-    if (token.startsWith('+')) return { mode: 'create', detail: 'create a tag without filtering' };
-    return { mode: 'include', detail: 'show files that have this tag' };
+    if (token.includes('>')) return { mode: 'rename', label: 'Rename', detail: 'old>new renames a tag on every file' };
+    if (token.startsWith('--')) return { mode: 'delete', label: 'Delete', detail: token.length > 2 ? 'removes this tag from every file' : 'deletes tags that no file uses' };
+    if (token.startsWith('-')) return { mode: 'exclude', label: 'Exclude', detail: 'hide files that have this tag' };
+    if (token.startsWith('+')) return { mode: 'create', label: 'Create', detail: 'make a new tag without filtering' };
+    return { mode: 'include', label: 'Include', detail: 'show files that have this tag' };
 }
 
 function appendSuggestionHeader(container, info) {
     const header = document.createElement('div');
-    header.className = `suggestions-mode-header ${info.mode}`;
-    header.innerHTML = `<span>${esc(info.mode)}</span><small>${esc(info.detail)}</small>`;
+    header.className = 'mode-head';
+    header.innerHTML = `<span class="mode-label ${info.mode}">${esc(info.label)}</span><small>${esc(info.detail)}</small>`;
     container.appendChild(header);
+}
+
+function showSuggestions() {
+    Elements.tagSuggestions.classList.remove('hidden');
+}
+
+function hideSuggestions() {
+    Elements.tagSuggestions.classList.add('hidden');
+    State.suggestionIndex = -1;
 }
 
 function resetTagSearch({ focus = false, render = true, clearOrphanedOnly = false } = {}) {
@@ -37,57 +49,64 @@ function releaseTagSearchConfirmSoon() {
     setTimeout(() => { State.confirmInProgress = false; }, CONFIG.CONFIRM_RESET_MS);
 }
 
+function updateFilterPlaceholder() {
+    const hasChips = State.activeTags.size > 0 || State.excludeTags.size > 0;
+    let placeholder = DESKTOP_PLACEHOLDER;
+    if (hasChips) placeholder = '';
+    else if (isPhoneLayout()) placeholder = State.images.length ? `Filter ${formatCount(State.images.length, 'file')} by tag` : 'Filter by tag';
+    Elements.tagSearch.placeholder = placeholder;
+}
+
+function createFilterChip(tag, exclude) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.title = 'Remove this filter';
+    chip.setAttribute('aria-label', `Remove filter ${exclude ? 'not ' : ''}${tag}`);
+    chip.innerHTML = `<span>${exclude ? '<b>not</b> ' : ''}${esc(tag)}</span><span class="chip-x" aria-hidden="true"><svg class="i"><use href="#i-x"/></svg></span>`;
+    chip.addEventListener('click', () => (exclude ? toggleExcludeTag(tag) : toggleTagFilter(tag)));
+    return chip;
+}
+
 export function renderFilterBarTags() {
-    Elements.activeTagsContainer.innerHTML = '';
-    const hasFilters = State.activeTags.size > 0 || State.excludeTags.size > 0;
-    State.activeTags.forEach(t => {
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = 'tag active filter-chip';
-        el.title = `Remove include filter "${t}"`;
-        el.innerHTML = `<span>${esc(t)}</span><span class="remove-tag" aria-hidden="true">&times;</span>`;
-        el.onclick = () => toggleTagFilter(t);
-        Elements.activeTagsContainer.appendChild(el);
-    });
-    State.excludeTags.forEach(t => {
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = 'tag exclude filter-chip';
-        el.title = `Remove exclude filter "${t}"`;
-        el.innerHTML = `<span>not ${esc(t)}</span><span class="remove-tag" aria-hidden="true">&times;</span>`;
-        el.onclick = () => toggleExcludeTag(t);
-        Elements.activeTagsContainer.appendChild(el);
-    });
-    if (hasFilters) {
+    const container = Elements.activeTagsContainer;
+    container.innerHTML = '';
+    State.activeTags.forEach(t => container.appendChild(createFilterChip(t, false)));
+    State.excludeTags.forEach(t => container.appendChild(createFilterChip(t, true)));
+    if (State.activeTags.size + State.excludeTags.size >= 2) {
         const clear = document.createElement('button');
         clear.type = 'button';
-        clear.className = 'tag clear-filter-chip';
-        clear.innerHTML = 'clear filters <span class="remove-tag" aria-hidden="true">&times;</span>';
-        clear.onclick = () => {
+        clear.className = 'chip chip-clear';
+        clear.textContent = 'Clear';
+        clear.title = 'Remove every tag filter';
+        clear.addEventListener('click', () => {
             State.activeTags.clear();
             State.excludeTags.clear();
             applyFilters();
             renderFilterBarTags();
             Elements.tagSearch.focus();
-        };
-        Elements.activeTagsContainer.appendChild(clear);
+        });
+        container.appendChild(clear);
     }
+    // Keep the newest chip in view when the bar is too narrow for all of them
+    container.scrollLeft = container.scrollWidth;
+    updateFilterPlaceholder();
+}
+
+function leaveUntaggedFilter() {
+    if (!State.showUntaggedOnly) return;
+    State.showUntaggedOnly = false;
+    setToggleButtonState(Elements.untaggedFilterBtn, false);
 }
 
 export function toggleTagFilter(t) {
-    if (State.showUntaggedOnly) {
-        State.showUntaggedOnly = false;
-        setToggleButtonState(Elements.untaggedFilterBtn, false, 'Filter untagged');
-    }
+    leaveUntaggedFilter();
     State.activeTags.has(t) ? State.activeTags.delete(t) : State.activeTags.add(t);
     applyFilters(); renderFilterBarTags();
 }
 
 export function toggleExcludeTag(t) {
-    if (State.showUntaggedOnly) {
-        State.showUntaggedOnly = false;
-        setToggleButtonState(Elements.untaggedFilterBtn, false, 'Filter untagged');
-    }
+    leaveUntaggedFilter();
     State.excludeTags.has(t) ? State.excludeTags.delete(t) : State.excludeTags.add(t);
     applyFilters(); renderFilterBarTags();
 }
@@ -106,7 +125,7 @@ function renameTagInFilters(oldName, newName) {
 
 async function renameTagGlobally(tag) {
     State.confirmInProgress = true;
-    const newName = prompt(`Rename "${tag}" to:`, tag);
+    const newName = prompt(`Rename "${tag}" on every file to:`, tag);
     if (!newName || newName.trim().toLowerCase() === tag) {
         resetTagSearch({ focus: true, render: true });
         releaseTagSearchConfirmSoon();
@@ -118,7 +137,7 @@ async function renameTagGlobally(tag) {
         renameTagInFilters(tag, newName.trim().toLowerCase());
         resetTagSearch({ render: false });
         await loadData();
-        showToast(`Renamed "${tag}" → "${newName.trim().toLowerCase()}"`);
+        showToast(`Renamed "${tag}" to "${newName.trim().toLowerCase()}"`);
     } finally {
         resetTagSearch({ focus: true, render: true });
         releaseTagSearchConfirmSoon();
@@ -127,7 +146,7 @@ async function renameTagGlobally(tag) {
 
 async function deleteTagGlobally(tag) {
     State.confirmInProgress = true;
-    const confirmed = confirm(`Remove "${tag}" from all images? This cannot be undone.`);
+    const confirmed = confirm(`Remove "${tag}" from every file? This cannot be undone.`);
     if (!confirmed) {
         resetTagSearch({ focus: true, render: true });
         releaseTagSearchConfirmSoon();
@@ -140,181 +159,329 @@ async function deleteTagGlobally(tag) {
         State.excludeTags.delete(tag);
         resetTagSearch({ render: false });
         await loadData();
+        showToast(`Deleted "${tag}"`);
     } finally {
         resetTagSearch({ focus: true, render: true });
         releaseTagSearchConfirmSoon();
     }
 }
 
-function renderSuggestions() {
-    const rawTerm = Elements.tagSearch.value;
-    const modeInfo = getFilterModeInfo(rawTerm);
-    // For multi-token expressions, look at the last token for suggestions
+/** Tags that start with the term come first, then tags that only contain it; each part by use. */
+function orderCandidates(tags, term) {
+    const byUse = (a, b) => (State.tagCounts[b] || 0) - (State.tagCounts[a] || 0) || a.localeCompare(b);
+    if (!term) return { ordered: [...tags].sort(byUse), dividerAt: -1 };
+    const prefix = [];
+    const rest = [];
+    for (const t of tags) (t.toLowerCase().startsWith(term) ? prefix : rest).push(t);
+    prefix.sort(byUse);
+    rest.sort(byUse);
+    return { ordered: [...prefix, ...rest], dividerAt: prefix.length && rest.length ? prefix.length : -1 };
+}
+
+function parseLastToken(rawTerm) {
     const lastToken = rawTerm.trimStart().split(/\s+/).pop() || '';
     const isGlobalDelete = lastToken.startsWith('--');
     const isExcludeMode = !isGlobalDelete && lastToken.startsWith('-');
     const isCreateMode = lastToken.startsWith('+');
-    const term = (isGlobalDelete ? lastToken.slice(2) : isExcludeMode ? lastToken.slice(1) : isCreateMode ? lastToken.slice(1) : lastToken).toLowerCase().trim();
+    const prefix = isGlobalDelete ? '--' : isExcludeMode ? '-' : isCreateMode ? '+' : '';
+    return { lastToken, prefix, isGlobalDelete, isExcludeMode, isCreateMode, term: lastToken.slice(prefix.length).toLowerCase().trim() };
+}
+
+function noteRow(html, warn = false) {
+    const note = document.createElement('div');
+    note.className = `suggestion-note${warn ? ' warn' : ''}`;
+    note.innerHTML = html;
+    return note;
+}
+
+function renderSuggestions() {
+    const list = Elements.tagSuggestionList;
+    const rawTerm = Elements.tagSearch.value;
+    const modeInfo = getFilterModeInfo(rawTerm);
+    const { term, isGlobalDelete, isExcludeMode, isCreateMode } = parseLastToken(rawTerm);
 
     const isOrphaned = t => !(State.tagCounts[t] > 0);
     const orphanedTags = State.allTags.filter(isOrphaned);
+    list.innerHTML = '';
 
-    // Show hint for '?' LLM analyze
+    // '?' auto-tags files, which the filter can't do
     if (rawTerm.trim() === '?') {
-        Elements.tagSuggestions.innerHTML = '';
-        appendSuggestionHeader(Elements.tagSuggestions, modeInfo);
-        const hint = document.createElement('div');
-        hint.className = 'quick-tag-suggestion clear-all-hint';
+        appendSuggestionHeader(list, { mode: 'llm', label: 'Auto-tag', detail: 'works on files, not on the filter' });
         const llm = getLlmActionSummary();
-        hint.innerHTML = `<span>LLM ${esc(llm.action)} — select images first, then use ? in the tag flyup</span><span class="tag-count-badge">${esc(llm.model)}</span>`;
-        hint.onmousedown = (e) => e.preventDefault();
-        Elements.tagSuggestions.appendChild(hint);
-        Elements.tagSuggestions.classList.remove('hidden');
+        list.appendChild(noteRow(`<span>Select files, then type <code>?</code> in the tag editor to ${esc(llm.action)} them.</span><span class="tag-count-badge">${esc(llm.model)}</span>`));
         State.suggestionMatches = [];
+        showSuggestions();
         return;
     }
 
-    // Show warning hint for '--' remove unused tags
+    // '--' deletes every tag that no file uses
     if (rawTerm.trim() === '--') {
-        Elements.tagSuggestions.innerHTML = '';
-        appendSuggestionHeader(Elements.tagSuggestions, modeInfo);
-        const hint = document.createElement('div');
-        hint.className = 'quick-tag-suggestion delete-mode clear-all-hint';
-        hint.innerHTML = `<span>Remove ${formatCount(orphanedTags.length, 'unused tag')} from the database</span>`;
-        hint.onmousedown = (e) => e.preventDefault();
-        Elements.tagSuggestions.appendChild(hint);
-        for (const t of orphanedTags) {
-            const item = document.createElement('div');
-            item.className = 'suggestion-item delete-mode';
-            item.innerHTML = `<span class="suggestion-label">${esc(t)}</span>`;
-            item.onmousedown = (e) => e.preventDefault();
-            Elements.tagSuggestions.appendChild(item);
+        appendSuggestionHeader(list, modeInfo);
+        if (!orphanedTags.length) {
+            list.appendChild(noteRow('<span>No unused tags. Every tag is on at least one file.</span>'));
+        } else {
+            list.appendChild(noteRow(`<span>Enter deletes ${formatCount(orphanedTags.length, 'unused tag')} from the database.</span>`, true));
+            for (const t of orphanedTags) {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item delete-mode';
+                item.innerHTML = `<span class="suggestion-label">${esc(t)}</span><span class="tag-count-badge orphaned">0</span>`;
+                list.appendChild(item);
+            }
         }
-        Elements.tagSuggestions.classList.remove('hidden');
         State.suggestionMatches = [];
+        showSuggestions();
         return;
     }
 
     let candidates = State.allTags.filter(t => (!term || t.toLowerCase().includes(term)) && !State.activeTags.has(t) && !State.excludeTags.has(t));
     if (State.showOrphanedOnly) candidates = candidates.filter(isOrphaned);
+    const { ordered, dividerAt } = orderCandidates(candidates, term);
 
-    State.suggestionMatches = candidates;
-    if (State.suggestionIndex >= candidates.length) State.suggestionIndex = candidates.length - 1;
+    State.suggestionMatches = ordered;
+    if (State.suggestionIndex >= ordered.length) State.suggestionIndex = ordered.length - 1;
 
-    Elements.tagSuggestions.innerHTML = '';
-    if (candidates.length || orphanedTags.length || (isCreateMode && term)) {
-        appendSuggestionHeader(Elements.tagSuggestions, modeInfo);
-        // Header: orphaned tags count / toggle (rendered first so it appears at top)
-        if (orphanedTags.length > 0) {
-            const footer = document.createElement('div');
-            footer.className = 'suggestions-footer';
-            if (State.showOrphanedOnly) {
-                footer.innerHTML = `<span>${formatCount(orphanedTags.length, 'unused tag')}</span><button>Show all</button>`;
-            } else {
-                footer.innerHTML = `<span>${formatCount(orphanedTags.length, 'unused tag')}</span><button>Show only</button>`;
-            }
-            const btn = footer.querySelector('button');
-            // mousedown prevention keeps the search input focused
-            btn.addEventListener('mousedown', (e) => e.preventDefault());
-            btn.addEventListener('click', () => {
-                State.showOrphanedOnly = !State.showOrphanedOnly;
-                renderSuggestions();
-            });
-            Elements.tagSuggestions.appendChild(footer);
-        }
-
-        candidates.forEach((t, idx) => {
-            const item = document.createElement('div');
-            const modeClass = isGlobalDelete ? 'delete-mode' : isExcludeMode ? 'exclude-mode' : '';
-            item.className = `suggestion-item ${idx === State.suggestionIndex ? 'active' : ''} ${modeClass}`;
-            const count = State.tagCounts[t] || 0;
-            const badgeClass = count === 0 ? 'tag-count-badge orphaned' : 'tag-count-badge';
-            item.innerHTML = `<span class="suggestion-label">${esc(t)}</span><button class="suggestion-rename">✎</button><button class="suggestion-delete">&times;</button><span class="${badgeClass}">${count}</span>`;
-            item.addEventListener('click', (e) => {
-                if (e.target.closest('.suggestion-delete') || e.target.closest('.suggestion-rename')) return;
-                if (isGlobalDelete) {
-                    deleteTagGlobally(t);
-                } else if (isExcludeMode) {
-                    toggleExcludeTag(t);
-                } else {
-                    toggleTagFilter(t);
-                }
-                resetTagSearch({ clearOrphanedOnly: true });
-            });
-            item.querySelector('.suggestion-rename').addEventListener('click', (e) => {
-                e.stopPropagation();
-                renameTagGlobally(t);
-            });
-            item.querySelector('.suggestion-delete').addEventListener('click', (e) => {
-                e.stopPropagation();
-                deleteTagGlobally(t);
-            });
-            Elements.tagSuggestions.appendChild(item);
-        });
-
-        if (isCreateMode && term && !State.allTags.find(t => t.toLowerCase() === term)) {
-            const createItem = document.createElement('div');
-            createItem.className = 'suggestion-item create-mode';
-            createItem.innerHTML = `<span class="suggestion-label">Create "${esc(term)}"</span><span class="tag-count-badge">new</span>`;
-            createItem.addEventListener('click', async () => {
-                await api.post('/api/tags/create', { tag: term });
-                showToast(`Created tag "${term}"`);
-                resetTagSearch({ render: false });
-                await loadData();
-                resetTagSearch({ focus: true });
-            });
-            Elements.tagSuggestions.appendChild(createItem);
-        }
-
-        // Scroll active item into view within the container
-        if (State.suggestionIndex > -1) {
-            const activeItem = Elements.tagSuggestions.querySelector('.suggestion-item.active');
-            if (activeItem) {
-                const c = Elements.tagSuggestions;
-                const itemTop = activeItem.offsetTop;
-                const itemBottom = itemTop + activeItem.offsetHeight;
-                if (itemBottom > c.scrollTop + c.clientHeight) {
-                    c.scrollTop = itemBottom - c.clientHeight;
-                } else if (itemTop < c.scrollTop) {
-                    c.scrollTop = itemTop;
-                }
-            }
-        }
-
-        Elements.tagSuggestions.classList.remove('hidden');
-    } else {
-        Elements.tagSuggestions.classList.toggle('hidden', !term && !State.showOrphanedOnly);
-        if (term) {
-            appendSuggestionHeader(Elements.tagSuggestions, modeInfo);
-            Elements.tagSuggestions.insertAdjacentHTML('beforeend', '<div class="no-results">No results</div>');
-        }
+    const canCreate = isCreateMode && term && !State.allTags.some(t => t.toLowerCase() === term);
+    if (!ordered.length && !orphanedTags.length && !canCreate) {
         State.suggestionIndex = -1;
+        if (!term && !State.showOrphanedOnly) { hideSuggestions(); return; }
+        appendSuggestionHeader(list, modeInfo);
+        const hint = !isCreateMode && !isGlobalDelete && term ? ` Type <code>+${esc(term)}</code> to create it.` : '';
+        list.insertAdjacentHTML('beforeend', `<div class="no-results">No tag matches “${esc(term)}”.${hint}</div>`);
+        showSuggestions();
+        return;
+    }
+
+    appendSuggestionHeader(list, modeInfo);
+    if (orphanedTags.length > 0) {
+        const footer = document.createElement('div');
+        footer.className = 'suggestions-footer';
+        footer.innerHTML = `<span>${formatCount(orphanedTags.length, 'unused tag')}</span><button type="button">${State.showOrphanedOnly ? 'Show all' : 'Show only those'}</button>`;
+        footer.querySelector('button').addEventListener('click', () => {
+            State.showOrphanedOnly = !State.showOrphanedOnly;
+            State.suggestionIndex = -1;
+            renderSuggestions();
+        });
+        list.appendChild(footer);
+    }
+
+    const modeClass = isGlobalDelete ? ' delete-mode' : isExcludeMode ? ' exclude-mode' : '';
+    ordered.forEach((t, idx) => {
+        if (idx === dividerAt) {
+            const divider = document.createElement('div');
+            divider.className = 'suggestion-divider';
+            list.appendChild(divider);
+        }
+        const item = document.createElement('div');
+        item.className = `suggestion-item${idx === State.suggestionIndex ? ' active' : ''}${modeClass}`;
+        item.setAttribute('role', 'option');
+        const count = State.tagCounts[t] || 0;
+        item.innerHTML = `
+            <span class="suggestion-label">${highlightMatch(t, term)}</span>
+            <span class="suggestion-tools">
+                <button class="suggestion-rename" type="button" title="Rename everywhere" aria-label="Rename tag ${esc(t)} everywhere"><svg class="i i-xs" aria-hidden="true"><use href="#i-pencil"/></svg></button>
+                <button class="suggestion-delete" type="button" title="Delete everywhere (Del)" aria-label="Delete tag ${esc(t)} everywhere"><svg class="i i-xs" aria-hidden="true"><use href="#i-x"/></svg></button>
+            </span>
+            <span class="tag-count-badge${count === 0 ? ' orphaned' : ''}" title="${formatCount(count, 'file')}">${count}</span>
+        `;
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.suggestion-tools')) return;
+            if (isGlobalDelete) {
+                deleteTagGlobally(t);
+                return;
+            }
+            if (isExcludeMode) toggleExcludeTag(t);
+            else toggleTagFilter(t);
+            resetTagSearch({ clearOrphanedOnly: true });
+        });
+        item.querySelector('.suggestion-rename').addEventListener('click', () => renameTagGlobally(t));
+        item.querySelector('.suggestion-delete').addEventListener('click', () => deleteTagGlobally(t));
+        list.appendChild(item);
+    });
+
+    if (canCreate) {
+        const createItem = document.createElement('div');
+        createItem.className = 'suggestion-item create-mode';
+        createItem.innerHTML = `<span class="suggestion-label">Create “${esc(term)}”</span><span class="tag-count-badge">new</span>`;
+        createItem.addEventListener('click', async () => {
+            await api.post('/api/tags/create', { tag: term });
+            showToast(`Created tag "${term}"`);
+            resetTagSearch({ render: false });
+            await loadData();
+            resetTagSearch({ focus: true });
+        });
+        list.appendChild(createItem);
+    }
+
+    // Keep the highlighted row in view inside the list (the list is its offsetParent)
+    const activeItem = list.querySelector('.suggestion-item.active');
+    if (activeItem) {
+        const itemTop = activeItem.offsetTop;
+        const itemBottom = itemTop + activeItem.offsetHeight;
+        if (itemBottom > list.scrollTop + list.clientHeight) list.scrollTop = itemBottom - list.clientHeight;
+        else if (itemTop < list.scrollTop) list.scrollTop = itemTop;
+    } else if (State.suggestionIndex < 0) {
+        list.scrollTop = 0;
+    }
+
+    showSuggestions();
+}
+
+/** Put a suggestion in place of the token being typed, keeping its - / -- / + prefix. */
+function replaceLastToken(tag, { trailingSpace = false } = {}) {
+    const toks = Elements.tagSearch.value.trimStart().split(/\s+/);
+    toks[toks.length - 1] = parseLastToken(Elements.tagSearch.value).prefix + tag;
+    Elements.tagSearch.value = toks.join(' ') + (trailingSpace ? ' ' : '');
+}
+
+async function applyFilterExpression() {
+    const rawTerm = Elements.tagSearch.value;
+
+    if (rawTerm.trim() === '?') { showToast('Select files, then type ? in the tag editor to auto-tag them'); resetTagSearch(); return; }
+
+    if (rawTerm.trim() === '--') {
+        const orphaned = State.allTags.filter(t => !(State.tagCounts[t] > 0));
+        if (orphaned.length === 0) { showToast('No unused tags to delete'); resetTagSearch(); return; }
+        State.confirmInProgress = true;
+        const confirmed = confirm(`Delete ${formatCount(orphaned.length, 'unused tag')} from the database? This cannot be undone.`);
+        if (confirmed) {
+            for (const tag of orphaned) {
+                await api.delete(`/api/tags/remove-all?tag=${encodeURIComponent(tag)}`);
+                State.activeTags.delete(tag);
+            }
+            resetTagSearch({ render: false });
+            await loadData();
+            showToast(`Deleted ${formatCount(orphaned.length, 'unused tag')}`);
+        }
+        resetTagSearch({ focus: true, render: true });
+        releaseTagSearchConfirmSoon();
+        return;
+    }
+
+    if (/\s/.test(rawTerm.trim())) {
+        const fTokens = splitTagTokens(rawTerm, /\s+/);
+        if (fTokens.includes('=')) { showToast('"=" only works in the bulk tag editor'); resetTagSearch(); return; }
+        if (fTokens.includes('++')) { showToast('"++" only works in the bulk tag editor'); resetTagSearch(); return; }
+        const { toDelete, toFilter, toExclude, toRename, toCreate } = parseFilterExpressionTokens(fTokens);
+        if (toDelete.length > 0) {
+            State.confirmInProgress = true;
+            const confirmed = confirm(`Remove ${toDelete.map(t => `"${t}"`).join(', ')} from every file? This cannot be undone.`);
+            if (confirmed) {
+                State.confirmInProgress = false;
+                for (const tag of toDelete) {
+                    await api.delete(`/api/tags/remove-all?tag=${encodeURIComponent(tag)}`);
+                    State.activeTags.delete(tag);
+                    State.excludeTags.delete(tag);
+                }
+            } else {
+                releaseTagSearchConfirmSoon();
+            }
+        }
+        for (const { oldN, newN } of toRename) {
+            await api.post('/api/tags/rename', { old_tag: oldN, new_tag: newN });
+            renameTagInFilters(oldN, newN);
+        }
+        for (const tag of toCreate) {
+            await api.post('/api/tags/create', { tag });
+        }
+        if (toCreate.length) showToast(`Created ${formatCount(toCreate.length, 'tag')}`);
+        for (const tag of toExclude) toggleExcludeTag(tag);
+        for (const tag of toFilter) toggleTagFilter(tag);
+        resetTagSearch({ render: false });
+        if (toDelete.length > 0 || toRename.length > 0 || toCreate.length > 0) await loadData();
+        resetTagSearch({ focus: true, render: true });
+        return;
+    }
+
+    const term = rawTerm.trim();
+    if (term === '=') { showToast('"=" only works in the bulk tag editor'); resetTagSearch(); return; }
+    if (term === '++') { showToast('"++" only works in the bulk tag editor'); resetTagSearch(); return; }
+    if (term.includes('>')) {
+        const [oldN, newN] = term.split('>').map(s => s.trim().toLowerCase());
+        if (oldN && newN) {
+            await api.post('/api/tags/rename', { old_tag: oldN, new_tag: newN });
+            renameTagInFilters(oldN, newN);
+            resetTagSearch({ render: false });
+            await loadData();
+            showToast(`Renamed "${oldN}" to "${newN}"`);
+            resetTagSearch({ focus: true, render: true });
+        } else { showToast('Rename syntax: oldname>newname'); }
+        return;
+    }
+    const { isGlobalDelete, isExcludeMode, isCreateMode, term: searchTerm } = parseLastToken(term);
+
+    if (isCreateMode && searchTerm) {
+        if (State.allTags.find(t => t.toLowerCase() === searchTerm)) {
+            showToast(`Tag "${searchTerm}" already exists`);
+        } else {
+            const result = await api.post('/api/tags/create', { tag: searchTerm });
+            if (result.success) {
+                showToast(`Created tag "${searchTerm}"`);
+                await loadData();
+            }
+        }
+        resetTagSearch({ focus: true });
+        return;
+    }
+
+    const tag = searchTerm ? State.allTags.find(t => t.toLowerCase() === searchTerm) || null : null;
+    if (!tag) {
+        if (searchTerm) showToast(`No tag named "${searchTerm}"`);
+        return;
+    }
+    if (isGlobalDelete) {
+        deleteTagGlobally(tag);
+    } else if (isExcludeMode) {
+        toggleExcludeTag(tag);
+        resetTagSearch();
+    } else {
+        toggleTagFilter(tag);
+        resetTagSearch();
     }
 }
 
+/**
+ * On phones the filter bar sits at the bottom of the screen. Browsers that overlay the
+ * on-screen keyboard instead of resizing the page would hide it, so lift it by the
+ * keyboard's height.
+ */
+function trackKeyboardInset() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+        const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        document.documentElement.style.setProperty('--keyboard-inset', `${Math.round(inset)}px`);
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+}
+
 export function initFilters() {
-    setToggleButtonState(Elements.favoriteFilterBtn, false, 'Filter favorites');
-    setToggleButtonState(Elements.untaggedFilterBtn, false, 'Filter untagged');
+    setToggleButtonState(Elements.favoriteFilterBtn, false);
+    setToggleButtonState(Elements.untaggedFilterBtn, false);
+    updateFilterPlaceholder();
+    window.matchMedia('(max-width: 768px)').addEventListener('change', updateFilterPlaceholder);
+    trackKeyboardInset();
 
     Elements.favoriteFilterBtn.addEventListener('click', () => {
         State.showFavoritesOnly = !State.showFavoritesOnly;
-        setToggleButtonState(
-            Elements.favoriteFilterBtn,
-            State.showFavoritesOnly,
-            State.showFavoritesOnly ? 'Show all files' : 'Filter favorites'
-        );
+        setToggleButtonState(Elements.favoriteFilterBtn, State.showFavoritesOnly);
         applyFilters();
     });
     Elements.untaggedFilterBtn.addEventListener('click', () => {
         State.showUntaggedOnly = !State.showUntaggedOnly;
-        setToggleButtonState(
-            Elements.untaggedFilterBtn,
-            State.showUntaggedOnly,
-            State.showUntaggedOnly ? 'Show tagged and untagged' : 'Filter untagged'
-        );
+        setToggleButtonState(Elements.untaggedFilterBtn, State.showUntaggedOnly);
         if (State.showUntaggedOnly) { State.activeTags.clear(); State.excludeTags.clear(); }
         applyFilters(); renderFilterBarTags();
     });
+
+    // Clicking the bar around the chips focuses the input
+    document.getElementById('filterBar').addEventListener('mousedown', (e) => {
+        if (e.target.closest('button, input, .pop')) return;
+        e.preventDefault();
+        Elements.tagSearch.focus();
+    });
+
     let suggestDebounceTimer = null;
     Elements.tagSearch.addEventListener('input', () => {
         State.suggestionIndex = -1;
@@ -323,18 +490,19 @@ export function initFilters() {
         suggestDebounceTimer = setTimeout(renderSuggestions, CONFIG.SUGGEST_DEBOUNCE_MS);
     });
     Elements.tagSearch.addEventListener('focus', renderSuggestions);
-    // Prevent any click inside the suggestions from blurring the search input
+    // Keep clicks inside the suggestions from blurring the search input
     Elements.tagSuggestions.addEventListener('mousedown', (e) => e.preventDefault());
     Elements.tagSearch.addEventListener('blur', () => {
         if (State.confirmInProgress) return;
         setTimeout(() => {
-            Elements.tagSuggestions.classList.add('hidden');
-            State.suggestionIndex = -1;
+            if (document.activeElement !== Elements.tagSearch) hideSuggestions();
         }, 200);
     });
     Elements.tagSearch.addEventListener('keydown', async (e) => {
         const matches = State.suggestionMatches;
         const suggestionsVisible = !Elements.tagSuggestions.classList.contains('hidden') && matches.length > 0;
+        const pageSize = () => Math.max(1, Math.floor(Elements.tagSuggestionList.clientHeight / ROW_HEIGHT));
+        const from = () => (State.suggestionIndex < 0 ? 0 : State.suggestionIndex);
 
         if (e.key === 'ArrowDown' && suggestionsVisible) {
             e.preventDefault();
@@ -346,13 +514,11 @@ export function initFilters() {
             renderSuggestions();
         } else if (e.key === 'PageDown' && suggestionsVisible) {
             e.preventDefault();
-            const pageSize = Math.max(1, Math.floor(Elements.tagSuggestions.clientHeight / 38));
-            State.suggestionIndex = Math.min((State.suggestionIndex < 0 ? 0 : State.suggestionIndex) + pageSize, matches.length - 1);
+            State.suggestionIndex = Math.min(from() + pageSize(), matches.length - 1);
             renderSuggestions();
         } else if (e.key === 'PageUp' && suggestionsVisible) {
             e.preventDefault();
-            const pageSize = Math.max(1, Math.floor(Elements.tagSuggestions.clientHeight / 38));
-            State.suggestionIndex = Math.max((State.suggestionIndex < 0 ? 0 : State.suggestionIndex) - pageSize, 0);
+            State.suggestionIndex = Math.max(from() - pageSize(), 0);
             renderSuggestions();
         } else if (e.key === 'Home' && suggestionsVisible) {
             e.preventDefault();
@@ -363,125 +529,32 @@ export function initFilters() {
             State.suggestionIndex = matches.length - 1;
             renderSuggestions();
         } else if (e.key === 'Tab') {
+            if (!Elements.tagSearch.value.trim()) return; // let Tab move focus as usual
             e.preventDefault();
+            const highlighted = suggestionsVisible && State.suggestionIndex > -1 ? matches[State.suggestionIndex] : null;
+            if (highlighted) {
+                replaceLastToken(highlighted, { trailingSpace: true });
+                State.suggestionIndex = -1;
+                renderSuggestions();
+                return;
+            }
             tryTabCompletion(Elements.tagSearch.value, matches, {
                 prefixChars: ['--', '-', '+'],
                 setValue: v => { Elements.tagSearch.value = v; },
                 onComplete: () => { State.suggestionIndex = -1; renderSuggestions(); }
             });
-            return;
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            let rawTerm = Elements.tagSearch.value;
-
-            if (rawTerm.trim() === '?') { showToast('"?" LLM analyze is available in the tag flyup (select images first)'); Elements.tagSearch.value = ''; renderSuggestions(); return; }
-
-            if (rawTerm.trim() === '--') {
-                const orphaned = State.allTags.filter(t => !(State.tagCounts[t] > 0));
-                if (orphaned.length === 0) { showToast('No unused tags to remove'); resetTagSearch(); return; }
-                State.confirmInProgress = true;
-                const confirmed = confirm(`Remove ${formatCount(orphaned.length, 'unused tag')} from the database? This cannot be undone.`);
-                if (confirmed) {
-                    for (const tag of orphaned) {
-                        await api.delete(`/api/tags/remove-all?tag=${encodeURIComponent(tag)}`);
-                        State.activeTags.delete(tag);
-                    }
-                    resetTagSearch({ render: false });
-                    await loadData();
-                }
-                resetTagSearch({ focus: true, render: true });
-                releaseTagSearchConfirmSoon();
-                return;
-            }
-
-            if (/\s/.test(rawTerm)) {
-                const fTokens = splitTagTokens(rawTerm, /\s+/);
-                if (fTokens.includes('=')) { showToast('"=" is only available in selection mode'); resetTagSearch(); return; }
-                if (fTokens.includes('++')) { showToast('"++" is only available in selection mode'); resetTagSearch(); return; }
-                const { toDelete, toFilter, toExclude, toRename, toCreate } = parseFilterExpressionTokens(fTokens);
-                if (toDelete.length > 0) {
-                    State.confirmInProgress = true;
-                    const confirmed = confirm(`Remove ${toDelete.map(t => `"${t}"`).join(', ')} from all images? This cannot be undone.`);
-                    if (confirmed) {
-                        State.confirmInProgress = false;
-                        for (const tag of toDelete) {
-                            await api.delete(`/api/tags/remove-all?tag=${encodeURIComponent(tag)}`);
-                            State.activeTags.delete(tag);
-                            State.excludeTags.delete(tag);
-                        }
-                    } else {
-                        releaseTagSearchConfirmSoon();
-                    }
-                }
-                for (const { oldN, newN } of toRename) {
-                    await api.post('/api/tags/rename', { old_tag: oldN, new_tag: newN });
-                    renameTagInFilters(oldN, newN);
-                }
-                for (const tag of toCreate) {
-                    await api.post('/api/tags/create', { tag });
-                }
-                if (toCreate.length) showToast(`Created ${formatCount(toCreate.length, 'tag')}`);
-                for (const tag of toExclude) toggleExcludeTag(tag);
-                for (const tag of toFilter) toggleTagFilter(tag);
-                resetTagSearch({ render: false });
-                if (toDelete.length > 0 || toRename.length > 0 || toCreate.length > 0) await loadData();
-                resetTagSearch({ focus: true, render: true });
-                return;
-            }
-            if (rawTerm.trim() === '=') { showToast('"=" is only available in selection mode'); resetTagSearch(); return; }
-            if (rawTerm.trim() === '++') { showToast('"++" is only available in selection mode'); resetTagSearch(); return; }
-            if (rawTerm.includes('>')) {
-                const [oldN, newN] = rawTerm.split('>').map(s => s.trim().toLowerCase());
-                if (oldN && newN) {
-                    await api.post('/api/tags/rename', { old_tag: oldN, new_tag: newN });
-                    renameTagInFilters(oldN, newN);
-                    resetTagSearch({ render: false });
-                    await loadData();
-                    resetTagSearch({ focus: true, render: true });
-                } else { showToast('Rename syntax: oldname>newname'); }
-                return;
-            }
-            const isGlobalDelete = rawTerm.startsWith('--');
-            const isExclude = !isGlobalDelete && rawTerm.startsWith('-');
-            const isCreateMode = rawTerm.startsWith('+');
-            const searchTerm = (isGlobalDelete ? rawTerm.slice(2) : isExclude || isCreateMode ? rawTerm.slice(1) : rawTerm).trim().toLowerCase();
-
-            if (isCreateMode && searchTerm) {
-                if (State.allTags.find(t => t.toLowerCase() === searchTerm)) {
-                    showToast(`Tag "${searchTerm}" already exists`);
-                } else {
-                    const result = await api.post('/api/tags/create', { tag: searchTerm });
-                    if (result.success) {
-                        showToast(`Created tag "${searchTerm}"`);
-                        await loadData();
-                    }
-                }
-                resetTagSearch({ focus: true });
-                return;
-            }
-
-            let tag = null;
-            if (searchTerm) {
-                tag = State.allTags.find(t => t.toLowerCase() === searchTerm) || null;
-            }
-            if (tag) {
-                if (isGlobalDelete) {
-                    deleteTagGlobally(tag);
-                } else if (isExclude) {
-                    toggleExcludeTag(tag);
-                    resetTagSearch();
-                } else {
-                    toggleTagFilter(tag);
-                    resetTagSearch();
-                }
-            }
+            // A highlighted suggestion stands in for the token being typed
+            const highlighted = suggestionsVisible && State.suggestionIndex > -1 ? matches[State.suggestionIndex] : null;
+            if (highlighted) replaceLastToken(highlighted);
+            await applyFilterExpression();
         } else if (e.key === 'Delete' && suggestionsVisible) {
             e.preventDefault();
             const tag = State.suggestionIndex > -1 ? matches[State.suggestionIndex] : matches[0];
             if (tag) deleteTagGlobally(tag);
         } else if (e.key === 'Escape') {
-            Elements.tagSuggestions.classList.add('hidden');
-            State.suggestionIndex = -1;
+            hideSuggestions();
             State.showOrphanedOnly = false;
         } else if (e.key === 'Backspace' && !Elements.tagSearch.value) {
             const excludes = [...State.excludeTags];
@@ -489,9 +562,7 @@ export function initFilters() {
                 toggleExcludeTag(excludes[excludes.length - 1]);
             } else {
                 const tags = [...State.activeTags];
-                if (tags.length) {
-                    toggleTagFilter(tags[tags.length - 1]);
-                }
+                if (tags.length) toggleTagFilter(tags[tags.length - 1]);
             }
         }
     });

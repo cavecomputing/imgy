@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imgy</title>
+    <meta name="description" content="A fast, local-first image and video organizer">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-filter">
+            <div class="search-container">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="tagSearch" placeholder="Filter tags, -exclude, +create..." class="search-input" autocomplete="off">
+                <div id="tagSuggestions" class="tag-suggestions hidden"></div>
+            </div>
+            <div id="activeTags" class="active-tags"></div>
+        </div>
+        <span class="header-sep"></span>
+        <div class="header-actions">
+            <button id="themeToggleBtn" class="btn btn-secondary" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            <button id="uploadBtn" class="btn btn-secondary" title="Upload files" aria-label="Upload files">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+            </button>
+            <button id="favoriteFilterBtn" class="btn btn-secondary" title="Filter favorites" aria-label="Filter favorites">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+            </button>
+            <button id="selectModeBtn" class="btn btn-secondary" title="Toggle selection mode" aria-label="Toggle selection mode">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+            </button>
+            <button id="untaggedFilterBtn" class="btn btn-secondary" title="Filter untagged" aria-label="Filter untagged">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="2" y1="22" x2="22" y2="2"></line>
+                </svg>
+            </button>
+            <button id="trashBtn" class="btn btn-secondary" title="Open trash" aria-label="Open trash">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+            <button id="shortcutsBtn" class="btn btn-secondary" title="Settings and shortcuts" aria-label="Settings and shortcuts">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <dialog id="trashModal" class="trash-modal">
+        <div class="trash-modal-header">
+            <div class="trash-modal-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <h2>Trash</h2>
+            </div>
+            <div class="trash-header-actions">
+                <button id="cleanupOrphansBtn" class="btn btn-secondary btn-small">Clean Up</button>
+                <button id="emptyTrashBtn" class="btn btn-danger btn-small">Empty Trash</button>
+                <button id="closeTrashModal" class="close-btn" aria-label="Close trash">&times;</button>
+            </div>
+        </div>
+        <div id="trashList" class="trash-list"></div>
+    </dialog>
+
+    <main>
+        <div id="imageGrid" class="image-grid"></div>
+    </main>
+
+    <div id="lightbox" class="lightbox">
+        <div class="lightbox-toolbar">
+            <button id="lightboxHeaderDeleteBtn" class="lightbox-toolbar-btn" title="Move to trash" aria-label="Delete image">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+            <a id="lightboxDownloadBtn" class="lightbox-toolbar-btn" download title="Download" aria-label="Download image">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            </a>
+            <button id="lightboxFavoriteBtn" class="lightbox-toolbar-btn" title="Toggle favorite" aria-label="Toggle favorite">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+            </button>
+            <button id="lightboxTagBtn" class="lightbox-toolbar-btn" title="Edit tags" aria-label="Edit tags">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+            </button>
+            <button id="closeLightbox" class="lightbox-toolbar-btn lightbox-toolbar-close" title="Close lightbox" aria-label="Close lightbox">&times;</button>
+        </div>
+        
+        <div class="lightbox-content" id="lightboxContent">
+            <button id="prevImage" class="lightbox-nav prev" aria-label="Previous image">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <img id="lightboxImage" src="" alt="" draggable="false">
+            <button id="nextImage" class="lightbox-nav next" aria-label="Next image">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 6 15 12 9 18"></polyline>
+                </svg>
+            </button>
+            <div id="lightboxOverlayTags" class="lightbox-overlay-tags"></div>
+            <button id="resetZoom" class="zoom-reset" aria-label="Reset zoom">Reset Zoom</button>
+        </div>
+
+        <div id="lightboxTagFlyup" class="tag-flyup tag-flyup-lightbox hidden">
+            <input type="text" id="lightboxTagInput" placeholder="Tags: foo bar -remove +add" class="search-input" autocomplete="off">
+            <div id="lightboxTagHint" class="quick-tag-mode-hint"></div>
+            <div id="lightboxTagSuggestions" class="quick-tag-suggestions"></div>
+        </div>
+
+        <div id="lightboxTagBar" class="lightbox-tag-bar">
+            <div class="lightbox-tag-bar-top">
+                <div id="lightboxTagBarTags" class="lightbox-tag-bar-tags"></div>
+            </div>
+            <div class="lightbox-meta-sep"></div>
+            <div class="lightbox-meta-row">
+                <span id="lightboxHeaderFilename" class="editable-header-filename lightbox-filename-label"></span>
+                <div id="lightboxMeta" class="lightbox-meta"></div>
+                <button id="llmAnalyzeBtn" class="llm-analyze-btn" title="LLM auto-tag" aria-label="LLM auto-tag">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                </button>
+            </div>
+            <div id="lightboxExif" class="lightbox-exif hidden"></div>
+        </div>
+
+    </div>
+
+    <div id="selectionBar" class="selection-bar hidden">
+        <div class="selection-info">
+            <span id="selectedCount">0</span>
+        </div>
+        <div class="selection-actions">
+            <button class="selection-action-btn star-btn" id="bulkFavoriteBtn" title="Toggle favorite" aria-label="Toggle favorite" data-tooltip="Toggle favorite">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+            </button>
+            <button class="selection-action-btn btn-add-tag" id="bulkTagBtn" title="Edit tags (t)" aria-label="Edit tags" data-tooltip="Edit tags (t)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+            </button>
+            <button class="selection-action-btn" id="groupSelectedBtn" title="Group images" aria-label="Group selected images" data-tooltip="Group images">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                </svg>
+            </button>
+            <button class="selection-action-btn" id="downloadSelectedBtn" title="Download as ZIP" aria-label="Download selected as ZIP" data-tooltip="Download as ZIP">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            </button>
+            <button class="selection-action-btn delete-btn" id="deleteSelectedBtn" title="Delete" aria-label="Delete selected" data-tooltip="Move to trash">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+            <div class="selection-divider"></div>
+            <button class="selection-action-btn cancel-btn" id="clearSelectionBtn" title="Cancel (Esc)" aria-label="Cancel selection" data-tooltip="Cancel selection (Esc)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="loading" class="loading hidden">Loading...</div>
+    <div id="uploadProgress" class="upload-progress hidden">
+        <div class="upload-progress-label"><span id="uploadProgressText">Uploading...</span></div>
+        <div class="upload-progress-track"><div id="uploadProgressBar" class="upload-progress-bar"></div></div>
+    </div>
+    <div id="error" class="error hidden"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="galleryTagFlyup" class="tag-flyup tag-flyup-gallery hidden">
+        <img id="galleryTagThumb" class="tag-flyup-float-img" src="" alt="">
+        <div class="tag-flyup-panel">
+            <div id="galleryTagCurrent" class="quick-tag-current"></div>
+            <input type="text" id="galleryTagInput" placeholder="Tags: foo bar -remove +add" class="search-input" autocomplete="off">
+            <div id="galleryTagHint" class="quick-tag-mode-hint"></div>
+            <div id="galleryTagSuggestions" class="quick-tag-suggestions"></div>
+        </div>
+    </div>
+
+    <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.mp4,.webm,.mov,.mkv,.avi,.m4v" multiple hidden>
+
+    <dialog id="shortcutsModal" class="shortcuts-modal">
+        <div class="shortcuts-content">
+            <div class="shortcuts-header">
+                <h3>About Imgy</h3>
+                <button id="closeShortcutsModal" class="close-btn" aria-label="Close settings">&times;</button>
+            </div>
+
+            <div class="about-section">
+                <p class="about-description">A fast, local-first image and video organizer. Tag, search, favorite, and manage your media library right from the browser &mdash; no cloud required.</p>
+                <div id="storageStats" class="storage-stats"></div>
+            </div>
+
+            <div class="modal-card">
+                <h4>Appearance</h4>
+                <div class="setting-row">
+                    <label for="gallerySizeSlider">Thumbnail Size</label>
+                    <div class="gallery-slider-bar">
+                        <input type="range" id="gallerySizeSlider" min="120" max="400" step="10">
+                        <button id="gallerySizeReset" class="btn btn-secondary btn-small">Reset</button>
+                    </div>
+                </div>
+                <div class="setting-row setting-row-vertical">
+                    <label>Accent Color</label>
+                    <div id="colorSwatches" class="color-swatches"></div>
+                    <div class="color-picker-row">
+                        <input type="text" id="customColorInput" placeholder="#hex" maxlength="7">
+                        <button id="colorReset" class="btn btn-secondary btn-small">Reset</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-card">
+                <h4>LLM Integration</h4>
+                <p class="settings-note">Video files are not supported.</p>
+                <div class="llm-settings-group">
+                    <div class="llm-field-group">
+                        <label for="llmProvider">Provider</label>
+                        <select id="llmProvider">
+                            <option value="custom">Custom OpenAI Endpoint</option>
+                            <option value="openrouter">OpenRouter</option>
+                        </select>
+                    </div>
+                    <div class="llm-field-group" id="llmApiUrlGroup">
+                        <label for="llmApiUrl">API Endpoint</label>
+                        <input type="text" id="llmApiUrl" placeholder="http://localhost:11434/v1/chat/completions">
+                    </div>
+                    <div class="llm-field-group">
+                        <label for="llmModel">Model</label>
+                        <input type="text" id="llmModel" placeholder="gemma3">
+                    </div>
+                    <div class="llm-field-group">
+                        <label for="llmApiSecret">API Secret</label>
+                        <input type="password" id="llmApiSecret" placeholder="API key or Bearer token">
+                    </div>
+                    <div class="llm-mode-row">
+                        <label>Actions</label>
+                        <div class="llm-mode-toggles">
+                            <label class="llm-toggle"><input type="checkbox" id="llmDoRename" checked><span>Rename</span></label>
+                            <label class="llm-toggle"><input type="checkbox" id="llmDoTags" checked><span>Tag</span></label>
+                        </div>
+                    </div>
+                    <div class="llm-field-group">
+                        <label>Exclusive Tag Groups <button id="addTagGroupBtn" class="btn btn-secondary btn-tiny">+ Add</button></label>
+                        <div id="tagGroupsEditor" class="tag-groups-editor"></div>
+                    </div>
+                    <div class="llm-settings-actions">
+                        <button id="llmTestBtn" class="btn btn-secondary btn-small">Test Connection</button>
+                        <button id="llmSettingsReset" class="btn btn-secondary btn-small">Reset to Defaults</button>
+                        <span id="llmTestStatus" class="llm-test-status"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-card">
+                <h4>Keyboard Shortcuts</h4>
+                <div class="shortcuts-columns">
+                    <div class="shortcuts-col">
+                        <h5>General</h5>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>/</kbd></div><span>Focus tag search</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>?</kbd></div><span>Show this page</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>S</kbd></div><span>Toggle selection mode</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>F</kbd></div><span>Toggle favorites filter</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>U</kbd></div><span>Toggle untagged filter</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>X</kbd></div><span>Open trash</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Backspace</kbd></div><span>Remove last tag filter</span></div>
+
+                        <h5>Gallery</h5>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd></div><span>Navigate images</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Enter</kbd></div><span>Open in lightbox</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Space</kbd></div><span>Toggle selection</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>F</kbd></div><span>Toggle favorite</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>T</kbd></div><span>Edit tags (fly-up)</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>R</kbd></div><span>Rename image</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>D</kbd><kbd>Delete</kbd></div><span>Move to trash</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Esc</kbd></div><span>Clear focus</span></div>
+
+                        <h5>Lightbox</h5>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd></div><span>Navigate images</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>F</kbd></div><span>Toggle favorite</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>T</kbd></div><span>Edit tags (fly-up)</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>R</kbd></div><span>Rename image</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>D</kbd><kbd>Delete</kbd></div><span>Move to trash</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>0</kbd></div><span>Reset zoom</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Esc</kbd></div><span>Close lightbox</span></div>
+                    </div>
+                    <div class="shortcuts-col">
+                        <h5>Tag Expressions</h5>
+                        <p class="shortcuts-hint">Works in tag editor, selection bar, and filter search.</p>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>tag</kbd></div><span>Add tag / toggle filter</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>+tag</kbd></div><span>Create &amp; add new tag</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>-tag</kbd></div><span>Remove tag</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>old&gt;new</kbd></div><span>Rename tag</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>a b c</kbd></div><span>Multiple expressions</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>--</kbd></div><span>Remove all tags</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>=</kbd></div><span>Equalize tags (selection)</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&uarr;</kbd><kbd>&darr;</kbd></div><span>Navigate suggestions</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Tab</kbd></div><span>Complete the tag you are typing</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Enter</kbd></div><span>Apply the expression as typed</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Esc</kbd></div><span>Close editor</span></div>
+
+                        <h5>Filter Search</h5>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>tag</kbd></div><span>Include filter (show images with tag)</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>-tag</kbd></div><span>Exclude filter (hide images with tag)</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>--tag</kbd></div><span>Globally delete tag from all images</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>&uarr;</kbd> / <kbd>&darr;</kbd></div><span>Navigate suggestions</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>PgUp</kbd> / <kbd>PgDn</kbd></div><span>Page through suggestions</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Home</kbd> / <kbd>End</kbd></div><span>Jump to first / last suggestion</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Tab</kbd></div><span>Complete the tag you are typing</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Enter</kbd></div><span>Apply the expression as typed</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Delete</kbd></div><span>Delete highlighted tag globally</span></div>
+                        <div class="shortcut-row"><div class="shortcut-keys"><kbd>Backspace</kbd></div><span>Remove last active filter</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-card modal-card-links">
+                <a href="https://github.com/cavecomputing/imgy" target="_blank" rel="noopener" class="about-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                    </svg>
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+    </dialog>
+
+    <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

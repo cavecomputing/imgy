@@ -1,0 +1,14 @@
+services:
+  imgy:
+    build: .
+    container_name: imgy
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    environment:
+      - DATA_DIR=/data
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}

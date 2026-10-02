@@ -16,6 +16,7 @@ venv/
 *.db-shm
 data/
 images/
+assets/
 node_modules/
 .vscode/
 .idea/

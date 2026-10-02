@@ -4,7 +4,7 @@ import { setPressed } from './ui.js';
 import { resizeAllMasonryItems } from './grid.js';
 import { saveSetting } from './settings.js';
 
-const GALLERY_DEFAULT_SIZE = window.innerWidth <= 768 ? 140 : 232;
+const GALLERY_DEFAULT_SIZE = window.innerWidth <= 768 ? 150 : 232;
 const THEME_COLORS = { dark: '#282828', light: '#fbf1c7' };
 
 export function applyTheme(theme) {
@@ -28,7 +28,7 @@ function setTheme(theme) {
 }
 
 function setGalleryColWidth(v) {
-    const value = Math.min(400, Math.max(120, parseInt(v, 10) || GALLERY_DEFAULT_SIZE));
+    const value = Math.min(400, Math.max(150, parseInt(v, 10) || GALLERY_DEFAULT_SIZE));
     document.documentElement.style.setProperty('--gallery-col-width', value + 'px');
     Elements.gallerySizeSlider.value = value;
     Elements.gallerySizeSetting.value = value;

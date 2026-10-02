@@ -505,7 +505,7 @@ button.chip { cursor: pointer; }
 .no-results { padding: 4px 16px 12px; font-size: 13px; color: var(--fg-muted); }
 
 /* ---------- gallery ---------- */
-.gallery { padding: 0 16px 32px; }
+.gallery { padding: 16px 16px 32px; } /* top: clears the focus ring and matches the card gaps */
 .image-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(var(--gallery-col-width, 232px), 1fr));
@@ -628,9 +628,9 @@ button.chip { cursor: pointer; }
     line-height: 1.2;
     color: var(--on-image);
 }
+/* the buttons follow the pointer, or keyboard focus on one of them (Tab) */
 .image-grid:not(.selection-mode) .image-card:hover .card-actions,
-.image-grid:not(.selection-mode) .image-card.keyboard-focused .card-actions,
-.image-grid:not(.selection-mode) .image-card:focus-within .card-actions { opacity: 1; pointer-events: auto; }
+.image-grid:not(.selection-mode) .image-card:has(.card-action-btn:focus-visible) .card-actions { opacity: 1; pointer-events: auto; }
 .image-grid:not(.selection-mode) .image-card:hover .card-tag-preview,
 .image-grid:not(.selection-mode) .image-card.keyboard-focused .card-tag-preview { opacity: 1; }
 
@@ -1508,7 +1508,7 @@ body.drag-over::after {
     .toggle .kbd, .size-ctl { display: none; }
     .toggle:not(#selectModeBtn) svg.i { display: none; }
 
-    .gallery { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); }
+    .gallery { padding: 10px 12px calc(96px + env(safe-area-inset-bottom)); }
     .image-grid { column-gap: 10px; }
     .image-card { margin-bottom: 10px; scroll-margin: 64px 0 100px; }
     .card-foot { height: 30px; gap: 6px; padding: 0 8px; }

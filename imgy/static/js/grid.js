@@ -234,6 +234,10 @@ export function renderImageGrid() {
 
 async function handleCardClick(e, img, idx, card) {
     if (e.target.closest('.inline-rename-input')) return;
+    // A clicked button keeps focus, and the next key press (an arrow key, say) would make
+    // :focus-visible match it and bring the card's buttons back with the pointer elsewhere.
+    // Keyboard activations (detail 0) keep focus so Tab carries on from there.
+    if (e.detail) e.target.closest('.card-action-btn')?.blur();
     if (State.selectionMode) {
         // Only toggle the selection; keep the download link from firing
         e.preventDefault();

@@ -18,7 +18,8 @@
     --radius: 10px;
     --radius-lg: 14px;
     --ease: 160ms ease;
-    --topbar-h: 56px;
+    --shell-gap: 10px; /* the ground showing around the page; none on phones */
+    --topbar-h: calc(56px + var(--shell-gap)); /* viewport top to the bottom of the top bar */
     --subbar-h: 52px;
 
     /* Overlays on top of images keep a dark ground in both themes */
@@ -88,16 +89,30 @@
 /* ---------- base ---------- */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 img { image-orientation: from-image; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg-page); }
 body {
     min-height: 100vh;
+    padding: 0 var(--shell-gap) var(--shell-gap);
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.6;
     color: var(--fg);
-    background: var(--bg-page);
+    background: var(--bg-surface);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+}
+/* The rounded frame cozy draws around its page. The page itself still scrolls, so the frame is
+   laid over it: the huge spread paints the ground everywhere outside the window, rounding its
+   corners and hiding whatever scrolls into the gap. */
+body::before {
+    content: "";
+    position: fixed;
+    inset: var(--shell-gap);
+    z-index: 200;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow), 0 0 0 100vmax var(--bg-page);
+    pointer-events: none;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -280,7 +295,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 0 12px 0 16px;
+    padding: var(--shell-gap) 12px 0 16px; /* the top gap is hidden under the frame */
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border);
 }
@@ -404,7 +419,7 @@ button.chip { cursor: pointer; }
     align-items: center;
     gap: 8px;
     padding: 0 16px;
-    background: var(--bg-page);
+    background: var(--bg-surface);
 }
 .lib-count { font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .lib-count strong { font-weight: 700; color: var(--fg); }
@@ -887,7 +902,7 @@ button.chip { cursor: pointer; }
 }
 .lightbox.active { display: flex; }
 .lb-top {
-    height: var(--topbar-h);
+    height: calc(var(--topbar-h) - var(--shell-gap));
     flex: none;
     display: flex;
     align-items: center;
@@ -1050,7 +1065,7 @@ dialog::backdrop { background: var(--scrim); }
 .dlg-foot-note { flex: 1 1 auto; font-size: 13px; line-height: 1.45; color: var(--fg-muted); }
 
 /* trash */
-dialog.trash-dlg { width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 80px); margin: 64px 16px auto auto; }
+dialog.trash-dlg { width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 80px); margin: calc(var(--topbar-h) + 8px) 16px auto auto; }
 .trash-table { table-layout: fixed; width: 100%; }
 .trash-table th:nth-child(2), .trash-table th:nth-child(3) { width: 84px; }
 .trash-table th:nth-child(4) { width: 148px; }
@@ -1487,7 +1502,9 @@ body.drag-over::after {
 }
 
 @media (max-width: 768px) {
-    :root { --topbar-h: 52px; }
+    :root { --topbar-h: 52px; --shell-gap: 0px; }
+    body::before { display: none; } /* a phone has no room to spare for a frame */
+    body, .subbar { background: var(--bg-page); }
     .topbar { gap: 2px; padding: 0 4px 0 14px; }
     .brand { margin-right: auto; }
     .theme-btn { display: none; }

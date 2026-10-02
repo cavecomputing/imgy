@@ -7,7 +7,7 @@ import { clearCardFocus } from './navigation.js';
 const DRAG_DISTANCE = 5;    // px a mouse travels before a press becomes a drag
 const HOLD_MS = 300;        // how long a finger rests on a card to pick it up
 const HOLD_DRIFT = 10;      // px a resting finger may drift; further than that it is scrolling
-const SWAP_PAUSE_MS = 100;  // between moves, so a fast drag doesn't restart every slide on every frame
+const SWAP_PAUSE_MS = 100;  // least time between moves, so a fast drag doesn't restart every slide on every frame
 const SLIDE_MS = 200;
 const EDGE_TOP = 120;       // px from the top of the window (the sticky bars cover it) where dragging scrolls up
 const EDGE_BOTTOM = 90;
@@ -94,6 +94,14 @@ function placeSlot(aim) {
     if (nearest < others.length) others[nearest].before(item);
 }
 
+/** Put the slot where the floating copy is now, and note where everything sits for `copyLeftSlot`. */
+function moveSlot(aim) {
+    drag.layout = slide(drag.items, () => placeSlot(aim));
+    drag.items = placeable(drag.container);
+    drag.triedX = aim.x + scrollX;
+    drag.triedY = aim.y + scrollY;
+}
+
 function scrollNearEdge() {
     const above = EDGE_TOP - press.y;
     const below = press.y - (innerHeight - EDGE_BOTTOM);
@@ -102,17 +110,16 @@ function scrollNearEdge() {
 }
 
 function tick(now) {
-    const { item, container, ghost } = drag;
+    const { item, ghost } = drag;
     if (!item.isConnected) return end(true); // the gallery was redrawn under the drag
     scrollNearEdge();
     ghost.style.translate = `${press.x - drag.grabX}px ${press.y - drag.grabY}px`;
     const aim = copyCenter();
-    if (now - drag.swappedAt > SWAP_PAUSE_MS && copyLeftSlot(aim)) {
-        drag.layout = slide(drag.items, () => placeSlot(aim));
-        drag.items = placeable(container);
+    if (now - drag.swappedAt > drag.pause && copyLeftSlot(aim)) {
+        moveSlot(aim);
         drag.swappedAt = now;
-        drag.triedX = aim.x + scrollX;
-        drag.triedY = aim.y + scrollY;
+        // A move costs a layout of the whole grid, so a big gallery gets longer pauses to stay responsive
+        drag.pause = Math.max(SWAP_PAUSE_MS, 3 * (performance.now() - now));
     }
     drag.frame = requestAnimationFrame(tick);
 }
@@ -146,6 +153,7 @@ function begin() {
         grabX: press.x - rect.left,
         grabY: press.y - rect.top,
         swappedAt: -Infinity,
+        pause: SWAP_PAUSE_MS,
     };
     container.append(ghost);
     item.classList.add('drag-slot');
@@ -164,6 +172,7 @@ function end(cancelled) {
     cancelAnimationFrame(drag.frame);
     window.removeEventListener('keydown', onKey, true);
     document.body.classList.remove('is-reordering');
+    if (!cancelled && item.isConnected && copyLeftSlot(copyCenter())) moveSlot(copyCenter()); // released within the pause
     const moved = !cancelled && drag.items.some((el, i) => el !== startItems[i]);
     let layout = drag.layout;
     if (cancelled && item.isConnected) layout = slide(drag.items, () => container.insertBefore(item, next));

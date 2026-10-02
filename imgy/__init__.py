@@ -17,8 +17,8 @@ def create_app():
     mimetypes.add_type('text/javascript', '.js')
     app = Flask(__name__)
     app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_BYTES
-    # Answer 400 to unknown Host headers. Otherwise a web page can point its own hostname at
-    # this machine (DNS rebinding) and read the library and the API key as same-origin.
+    # With ALLOWED_HOSTS set, answer 400 to other Host headers, so a web page can't point its own
+    # hostname at this machine (DNS rebinding) and read the library and the API key as same-origin.
     if '*' not in ALLOWED_HOSTS:
         app.config['TRUSTED_HOSTS'] = ['localhost', '127.0.0.1', *ALLOWED_HOSTS]
 

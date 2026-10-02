@@ -1,5 +1,5 @@
 # The build context is the repo root, not this folder, so COPY paths start there.
-# docker-compose.yml sets that up; to build by hand: docker build -f docker/Dockerfile .
+# compose.yml sets that up; to build by hand: docker build -f docker/Dockerfile .
 FROM python:3.11-slim
 
 # Pillow build libraries, gosu for dropping privileges, ffmpeg for video thumbnails

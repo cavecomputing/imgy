@@ -28,9 +28,9 @@ Open http://localhost:8000. Media and the database live in `data/` at the root o
 PUID=$(id -u) PGID=$(id -g) docker compose up --build -d
 ```
 
-Run compose commands from `docker/`, or from the repo root with `-f docker/docker-compose.yml`. A `.env` file for these variables goes in `docker/` too.
+Run compose commands from `docker/`, or from the repo root with `-f docker/compose.yml`. A `.env` file for these variables goes in `docker/` too.
 
-The compose file publishes on `127.0.0.1` only. To reach it another way, change `ports` in `docker/docker-compose.yml` and set `ALLOWED_HOSTS` to the name or address you'll use.
+The compose file publishes on `127.0.0.1` only. To reach it from other machines, change `ports` in `docker/compose.yml` to `"8000:8000"`.
 
 ### Without Docker
 
@@ -41,7 +41,7 @@ uv run app.py                                                             # deve
 uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --timeout 120 app:app   # production
 ```
 
-Both serve http://localhost:8000 and only accept connections from the same machine. Binding gunicorn to `0.0.0.0` exposes the app to your whole network, and you'll also need `ALLOWED_HOSTS`.
+Both serve http://localhost:8000 and only accept connections from the same machine. Binding gunicorn to `0.0.0.0` exposes the app to your whole network.
 
 ## Your data
 
@@ -59,11 +59,11 @@ The folder is the source of truth: files you copy into `data/images/` show up on
 |---|---|---|
 | `DATA_DIR` | `./data` | Where media and the database are stored |
 | `PUID` / `PGID` | `1000` | File owner inside the Docker container |
-| `ALLOWED_HOSTS` | | Host names or IPv4 addresses the app answers to besides `localhost`, comma-separated (for example `photos.lan,192.168.1.20`). A leading dot allows subdomains |
+| `ALLOWED_HOSTS` | `*` | Host names or IPv4 addresses the app answers to besides `localhost`, comma-separated (for example `photos.lan,192.168.1.20`). A leading dot allows subdomains, and `*` allows any host |
 
-Set `ALLOWED_HOSTS` whenever you reach the app by anything other than `localhost`. Requests for other host names are refused, so a website can't point its own domain at your machine and read your library and API key through your browser (DNS rebinding). `*` turns that check off.
+The app answers to any host name by default. Setting `ALLOWED_HOSTS` makes it refuse every other name, so a website can't point its own domain at your machine and read your library and API key through your browser (DNS rebinding).
 
-Behind a reverse proxy, pass the browser's Host header through unchanged, including the port, and list that name. Caddy and Traefik do this by default; for nginx add `proxy_set_header Host $http_host;`. A proxy that replaces the Host header hides the name from the app, so the DNS rebinding check can't work, and over plain HTTP every change is refused as cross-site.
+Behind a reverse proxy, pass the browser's Host header through unchanged, including the port, and list that name if you set `ALLOWED_HOSTS`. Caddy and Traefik do this by default; for nginx add `proxy_set_header Host $http_host;`. A proxy that replaces the Host header hides the name from the app, so the DNS rebinding check can't work, and over plain HTTP every change is refused as cross-site.
 
 Uploads are limited to 500 MB per request. If thumbnails ever look wrong, **Settings › Storage › Reset thumbnails** deletes them so they're made again from your files.
 
@@ -95,7 +95,7 @@ Imgy can suggest a filename and tags for an image using any OpenAI-compatible ch
 
 Once your library has tags, the model may only pick from existing tags. **Exclusive tag groups** limit it to one tag from a set (for example `day`, `night`).
 
-With Docker, `localhost` in the endpoint means the container, not your computer. To reach Ollama on the host, use `http://host.docker.internal:11434/v1/chat/completions`, start Ollama with `OLLAMA_HOST=0.0.0.0`, and on Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the service in `docker/docker-compose.yml`.
+With Docker, `localhost` in the endpoint means the container, not your computer. To reach Ollama on the host, use `http://host.docker.internal:11434/v1/chat/completions`, start Ollama with `OLLAMA_HOST=0.0.0.0`, and on Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the service in `docker/compose.yml`.
 
 ## Development
 

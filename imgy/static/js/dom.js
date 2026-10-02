@@ -3,6 +3,7 @@ const byId = (id) => document.getElementById(id);
 
 export const Elements = {
     imageGrid: byId('imageGrid'),
+    gridEnd: byId('gridEnd'),
     libraryCount: byId('libraryCount'),
     tagSearch: byId('tagSearch'),
     tagSuggestions: byId('tagSuggestions'),

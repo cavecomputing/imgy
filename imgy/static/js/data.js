@@ -92,8 +92,9 @@ function sortForDisplay(images) {
 
 /**
  * Keep the order the user dragged files into, and switch the gallery to it. `shown` is every
- * visible file in its new order; hidden files keep their places, and the visible ones refill
- * the places they held. The grid already shows this order, so nothing is redrawn.
+ * file the grid has drawn, in its new order; the others (hidden by a filter, or not drawn yet)
+ * keep their places, and the drawn ones refill the places they held. The grid already shows
+ * this order, so nothing is redrawn.
  */
 export async function saveImageOrder(shown) {
     const order = sortForDisplay(State.images.slice()).map(img => img.filename);
@@ -101,7 +102,7 @@ export async function saveImageOrder(shown) {
     const places = order.flatMap((filename, i) => visible.has(filename) ? [i] : []);
     places.forEach((place, i) => { order[place] = shown[i]; });
     order.forEach((filename, i) => { State.imagesByFilename.get(filename).position = i; });
-    State.filteredImages = shown.map(filename => State.imagesByFilename.get(filename));
+    State.filteredImages = [...shown.map(filename => State.imagesByFilename.get(filename)), ...State.filteredImages.slice(shown.length)];
     if (State.settings.galleryOrder !== 'custom') {
         saveSetting('galleryOrder', 'custom');
         showToast('Gallery order is now Custom. Change it in Settings › Appearance.');

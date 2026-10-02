@@ -146,7 +146,7 @@ function begin() {
     drag = {
         item, container, ghost, items,
         startItems: items,
-        next: item.nextElementSibling,
+        prev: item.previousElementSibling, // where Esc puts it back; the next sibling would be null for the last card, and cards may be drawn after it mid-drag
         layout: items.map(el => pageBox(el, el.getBoundingClientRect())),
         width: rect.width,
         height: rect.height,
@@ -168,14 +168,14 @@ function begin() {
 /** Drop the item where its slot is, or put it back where it started when `cancelled`. */
 function end(cancelled) {
     if (!drag) return;
-    const { item, container, ghost, startItems, next } = drag;
+    const { item, container, ghost, startItems, prev } = drag;
     cancelAnimationFrame(drag.frame);
     window.removeEventListener('keydown', onKey, true);
     document.body.classList.remove('is-reordering');
     if (!cancelled && item.isConnected && copyLeftSlot(copyCenter())) moveSlot(copyCenter()); // released within the pause
-    const moved = !cancelled && drag.items.some((el, i) => el !== startItems[i]);
+    const moved = !cancelled && startItems.some((el, i) => el !== drag.items[i]); // cards drawn mid-drag are not a move
     let layout = drag.layout;
-    if (cancelled && item.isConnected) layout = slide(drag.items, () => container.insertBefore(item, next));
+    if (cancelled && item.isConnected) layout = slide(drag.items, () => prev ? prev.after(item) : container.prepend(item));
     drag = null;
     if (!item.isConnected) return ghost.remove();
     settle(ghost, item, layout.find(box => box.el === item));

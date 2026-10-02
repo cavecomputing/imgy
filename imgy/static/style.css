@@ -528,6 +528,7 @@ button.chip { cursor: pointer; }
     column-gap: 16px;
     align-items: start;
 }
+#gridEnd { height: 1px; } /* grid.js draws more cards when this comes near the window; some browsers skip a target with no area */
 
 .image-card {
     position: relative;

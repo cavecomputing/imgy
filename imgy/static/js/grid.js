@@ -13,7 +13,12 @@ import { openGalleryTagFlyup } from './flyup.js';
 import { openLightbox } from './lightbox.js';
 import { llmQueueUpdateUI } from './llm.js';
 
+const BATCH = 60;         // files drawn at a time, so a big library opens as fast as a small one
+const PRELOAD_PX = 1500;  // the next batch is drawn when the end of the grid is this close to the bottom of the window
+
 const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+
+let renderedCount = 0; // the grid holds cards for the first renderedCount of State.filteredImages
 
 function createCardTagPreview(tags = []) {
     if (!tags.length) return '';
@@ -76,7 +81,7 @@ function createImageCard(img, idx) {
     return card;
 }
 
-function createGroupContainer(groupId, members, filteredIndex) {
+function createGroupContainer(groupId, members, firstIndex) {
     const groupEl = document.createElement('div');
     groupEl.className = 'image-group';
     groupEl.dataset.groupId = groupId;
@@ -97,10 +102,7 @@ function createGroupContainer(groupId, members, filteredIndex) {
 
     const innerGrid = document.createElement('div');
     innerGrid.className = 'image-group-grid';
-    members.forEach(img => {
-        const idx = filteredIndex ? (filteredIndex.get(img.filename) ?? -1) : State.filteredImages.indexOf(img);
-        innerGrid.appendChild(createImageCard(img, idx));
-    });
+    members.forEach((img, i) => innerGrid.appendChild(createImageCard(img, firstIndex + i)));
     groupEl.appendChild(innerGrid);
     return groupEl;
 }
@@ -193,7 +195,45 @@ function renderEmptyState() {
     document.getElementById('emptyUploadBtn')?.addEventListener('click', () => Elements.imageInput.click());
 }
 
+// Draws the next batch once the end of the grid is within PRELOAD_PX of the bottom of the window
+const gridEndObserver = new IntersectionObserver(
+    (entries) => { if (entries.at(-1).isIntersecting) renderNextBatch(); },
+    { rootMargin: `0px 0px ${PRELOAD_PX}px 0px` }
+);
+
+/**
+ * Draw the next BATCH of State.filteredImages at the end of the grid. A group is always drawn
+ * whole, so a batch that would end inside one takes the rest of it along.
+ */
+function renderNextBatch() {
+    const files = State.filteredImages;
+    if (renderedCount >= files.length) return;
+    const groupOf = (i) => State.filenameToGroup[files[i].filename];
+    let end = Math.min(renderedCount + BATCH, files.length);
+    while (end < files.length && groupOf(end) && groupOf(end) === groupOf(end - 1)) end++;
+
+    // applyFilters keeps each group's visible members next to each other, so a run of
+    // two or more cards from the same group becomes one group block
+    const blocks = [];
+    for (let i = renderedCount; i < end;) {
+        const gid = groupOf(i);
+        let next = i + 1;
+        while (gid && next < end && groupOf(next) === gid) next++;
+        blocks.push(next - i >= 2 ? createGroupContainer(gid, files.slice(i, next), i) : createImageCard(files[i], i));
+        i = next;
+    }
+    renderedCount = end;
+    Elements.imageGrid.append(...blocks);
+    setRowSpans(blocks);
+    llmQueueUpdateUI();
+    // observe() reports the end's position right away, so a batch that leaves it in reach brings the next
+    gridEndObserver.unobserve(Elements.gridEnd);
+    gridEndObserver.observe(Elements.gridEnd);
+}
+
 export function renderImageGrid() {
+    // The redraw has to reach down to where the page is scrolled, or the scroll would be clamped
+    const reach = window.scrollY + window.innerHeight + PRELOAD_PX;
     // Remember the keyboard-focused card so the rebuilt grid can focus it again
     const prevFocus = State.cardFocusActive
         ? { filename: getFocusedCard()?.dataset.filename, index: State.keepFocusPosition ? State.focusedCardIndex : -1 }
@@ -201,6 +241,7 @@ export function renderImageGrid() {
     State.keepFocusPosition = false;
     State.focusedCardIndex = -1;
     Elements.imageGrid.innerHTML = '';
+    renderedCount = 0;
     renderLibraryCount();
     if (!State.filteredImages.length) {
         renderEmptyState();
@@ -208,28 +249,11 @@ export function renderImageGrid() {
         return;
     }
 
-    const filteredIndex = new Map(State.filteredImages.map((img, i) => [img.filename, i]));
-
-    // applyFilters keeps each group's visible members next to each other, so a run of
-    // two or more cards from the same group becomes one group block
-    const fragment = document.createDocumentFragment();
-    for (let i = 0; i < State.filteredImages.length;) {
-        const img = State.filteredImages[i];
-        const gid = State.filenameToGroup[img.filename];
-        let end = i + 1;
-        while (gid && end < State.filteredImages.length && State.filenameToGroup[State.filteredImages[end].filename] === gid) end++;
-        if (end - i >= 2) {
-            fragment.appendChild(createGroupContainer(gid, State.filteredImages.slice(i, end), filteredIndex));
-        } else {
-            fragment.appendChild(createImageCard(img, filteredIndex.get(img.filename) ?? -1));
-        }
-        i = end;
-    }
-    Elements.imageGrid.appendChild(fragment);
-    resizeAllMasonryItems();
+    renderNextBatch();
+    while (renderedCount < State.filteredImages.length
+        && Elements.imageGrid.getBoundingClientRect().bottom + window.scrollY < reach) renderNextBatch();
 
     if (prevFocus) restoreCardFocus(prevFocus.filename, prevFocus.index);
-    llmQueueUpdateUI();
 }
 
 async function handleCardClick(e, img, card) {
@@ -264,6 +288,12 @@ async function handleCardClick(e, img, card) {
 }
 
 export function initGrid() {
-    // Re-flow the masonry layout whenever the grid's size changes
-    new ResizeObserver(resizeAllMasonryItems).observe(Elements.imageGrid);
+    // Re-flow the masonry layout whenever the grid's width changes. Drawing more cards only makes
+    // it taller, and measuring every card again after each batch would slow a deep scroll down.
+    let width = 0;
+    new ResizeObserver(([entry]) => {
+        if (entry.contentRect.width === width) return;
+        width = entry.contentRect.width;
+        resizeAllMasonryItems();
+    }).observe(Elements.imageGrid);
 }

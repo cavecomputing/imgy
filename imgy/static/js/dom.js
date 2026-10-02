@@ -30,7 +30,6 @@ export const Elements = {
     lightboxHeaderFilename: byId('lightboxHeaderFilename'),
     lightboxHeaderExt: byId('lightboxHeaderExt'),
     lightboxPosition: byId('lightboxPosition'),
-    lightboxRenameBtn: byId('lightboxRenameBtn'),
     lightboxBackBtn: byId('lightboxBackBtn'),
     lightboxHeaderDeleteBtn: byId('lightboxHeaderDeleteBtn'),
     lightboxTagBtn: byId('lightboxTagBtn'),

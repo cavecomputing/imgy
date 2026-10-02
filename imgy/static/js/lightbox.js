@@ -354,7 +354,7 @@ export function initLightbox() {
         if (img) startHeaderInlineRename(img, Elements.lightboxHeaderFilename);
     };
     Elements.lightboxHeaderFilename.addEventListener('click', startRename);
-    Elements.lightboxRenameBtn.addEventListener('click', startRename);
+    Elements.lightboxHeaderFilename.addEventListener('keydown', e => { if (e.key === 'Enter') startRename(); });
 
     const autoTag = () => {
         const img = getCurrentLightboxImage();

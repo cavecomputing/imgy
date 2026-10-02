@@ -1453,7 +1453,6 @@ body.drag-over::after {
     .lb-title { font-size: 14px; max-width: 100%; justify-content: center; }
     .lb-pos { font-size: 11px; }
     .lb-top .spacer, .lb-actions, .lb-close { display: none; }
-    #lightboxRenameBtn { width: 44px; height: 44px; }
     .lb-panel {
         width: 100%;
         max-height: 62vh;

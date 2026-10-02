@@ -736,6 +736,16 @@ button.chip { cursor: pointer; }
 .image-group-grid .card-tag-preview { display: none; }
 .image-group-grid .card-play { top: 4px; left: 4px; height: 20px; padding: 0 6px; }
 
+/* dragging a card or group: a floating copy follows the pointer, the original stays as a dashed slot */
+.drag-slot { background: var(--bg-inset); border-style: dashed; border-color: var(--fg-subtle); box-shadow: none; }
+.drag-slot > * { visibility: hidden; }
+.drag-ghost { position: fixed; top: 0; left: 0; z-index: 600; margin: 0; scale: 1.03; box-shadow: var(--shadow-lift); pointer-events: none; will-change: translate; }
+.image-group-header { cursor: grab; }
+.card-media, .image-group-header { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: none; }
+.is-reordering .image-card, .is-reordering .image-group { pointer-events: none; }
+.is-reordering .image-grid { overflow-anchor: none; }
+
 .empty-state {
     grid-column: 1 / -1;
     grid-row-end: span 60;

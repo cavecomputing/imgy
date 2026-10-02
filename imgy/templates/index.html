@@ -285,7 +285,7 @@
                         <p class="settings-lede">A fast, local-first image and video organizer. Tag, search, favorite, group and rename your media from the browser. Nothing leaves this machine unless you turn on auto-tagging with a remote model.</p>
                         <ul class="cc-check settings-facts">
                             <li>Your folder is the source of truth: files copied into the library show up on the next refresh.</li>
-                            <li>The database only holds tags, favorites, groups and settings.</li>
+                            <li>The database only holds tags, favorites, groups, your custom order and settings.</li>
                             <li class="keys-hw">Press <kbd class="kbd kbd-sm">?</kbd> anywhere to see every keyboard shortcut.</li>
                         </ul>
                         <div class="cc-callout cc-callout--warn"><span class="cc-callout__label">Heads up</span><span>Imgy has no login. Anyone who can reach this server can view, change and delete your files. Keep it on localhost or a trusted network.</span></div>
@@ -314,6 +314,16 @@
                                     <button id="gallerySizeReset" class="cc-btn cc-btn--ghost btn-sm" type="button">Reset</button>
                                 </div>
                                 <p class="field-help">The width of a gallery column. The slider next to Select changes it too.</p>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <span class="field-label" id="galleryOrderLabel">Gallery order</span>
+                            <div>
+                                <div class="seg" role="radiogroup" aria-labelledby="galleryOrderLabel">
+                                    <label><input type="radio" name="galleryOrder" value="newest" checked><span>Newest first</span></label>
+                                    <label><input type="radio" name="galleryOrder" value="custom"><span>Custom</span></label>
+                                </div>
+                                <p class="field-help">Drag a file or a group in the gallery to move it, and the order switches to Custom. New files show up first until you place them.</p>
                             </div>
                         </div>
                     </div>

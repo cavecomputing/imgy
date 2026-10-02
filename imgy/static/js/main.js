@@ -1,6 +1,7 @@
 /** Entry point: wires up event listeners, then loads settings and the library. */
 import { abortLoadData, loadData } from './data.js';
 import { initGrid } from './grid.js';
+import { initReorder } from './reorder.js';
 import { initSelection } from './selection.js';
 import { initFlyups } from './flyup.js';
 import { initFilters } from './filters.js';
@@ -23,6 +24,7 @@ async function start() {
     initFlyups();
     initSettingsModal();
     initGrid();
+    initReorder();
     await loadSettings();
     initLlmSettings();
     await loadData();

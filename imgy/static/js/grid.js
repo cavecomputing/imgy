@@ -49,7 +49,7 @@ function createImageCard(img, idx) {
 
     card.innerHTML = `
         <div class="card-media">
-            <img src="${esc(img.thumbnail_url)}"${size} alt="${esc(baseName)}" loading="lazy">
+            <img src="${esc(img.thumbnail_url)}"${size} alt="${esc(baseName)}" loading="lazy" draggable="false">
             ${video ? `<span class="card-play">${icon('play', 'i')}${esc(ext.slice(1).toUpperCase())}</span>` : ''}
             <span class="card-check" aria-hidden="true">${icon('check', 'i')}</span>
             <div class="card-actions">
@@ -72,7 +72,7 @@ function createImageCard(img, idx) {
         if (group) resizeGroupItem(group);
         else resizeMasonryItem(card);
     });
-    card.addEventListener('click', (e) => handleCardClick(e, img, idx, card));
+    card.addEventListener('click', (e) => handleCardClick(e, img, card));
     return card;
 }
 
@@ -232,8 +232,9 @@ export function renderImageGrid() {
     llmQueueUpdateUI();
 }
 
-async function handleCardClick(e, img, idx, card) {
+async function handleCardClick(e, img, card) {
     if (e.target.closest('.inline-rename-input')) return;
+    const idx = Number(card.dataset.idx); // read now: dragging a card to a new place renumbers them
     // A clicked button keeps focus, and the next key press (an arrow key, say) would make
     // :focus-visible match it and bring the card's buttons back with the pointer elsewhere.
     // Keyboard activations (detail 0) keep focus so Tab carries on from there.

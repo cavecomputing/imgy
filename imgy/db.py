@@ -31,7 +31,8 @@ SCHEMA = '''
         filename TEXT PRIMARY KEY,
         created_at REAL NOT NULL,
         width INTEGER,
-        height INTEGER
+        height INTEGER,
+        position INTEGER
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_filename_tag ON tags(filename, tag);
     DROP INDEX IF EXISTS idx_filename;
@@ -70,9 +71,9 @@ def init_db():
     logger.info('Initializing database...')
     with get_db() as conn:
         conn.executescript(SCHEMA)
-        # Databases created before dimensions were tracked lack these columns.
+        # Databases created before dimensions or the custom order were tracked lack these columns.
         columns = {row['name'] for row in conn.execute('PRAGMA table_info(image_metadata)')}
-        for column in ('width', 'height'):
+        for column in ('width', 'height', 'position'):
             if column not in columns:
                 try:
                     conn.execute(f'ALTER TABLE image_metadata ADD COLUMN {column} INTEGER')

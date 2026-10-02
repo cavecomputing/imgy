@@ -6,7 +6,7 @@ import { esc, formatCount, formatFileSize } from './utils.js';
 import { closeOnBackdropClick, showToast, withLoading } from './ui.js';
 import { api } from './api.js';
 import { applyTheme } from './appearance.js';
-import { loadData } from './data.js';
+import { applyFilters, loadData } from './data.js';
 import { renderLightboxTagBar } from './lightbox.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -500,6 +500,12 @@ async function resetThumbnails() {
     }
 }
 
+/** Tick the gallery order in effect: newest first until files have been dragged into a custom order. */
+function showGalleryOrder() {
+    const order = State.settings.galleryOrder === 'custom' ? 'custom' : 'newest';
+    document.querySelectorAll('input[name="galleryOrder"]').forEach(radio => { radio.checked = radio.value === order; });
+}
+
 let currentSection = 'about';
 
 function showSettingsSection(section) {
@@ -524,6 +530,7 @@ export function toggleShortcutsModal(section) {
         return;
     }
     showSettingsSection(typeof section === 'string' ? section : currentSection);
+    showGalleryOrder(); // dragging files in the gallery can switch it while the dialog is closed
     Elements.shortcutsModal.showModal();
     reloadTagGroups();
 }
@@ -540,6 +547,12 @@ export function initSettingsModal() {
         tab.addEventListener('click', () => showSettingsSection(tab.dataset.section));
     });
     document.getElementById('resetThumbnailsBtn').addEventListener('click', resetThumbnails);
+    document.querySelectorAll('input[name="galleryOrder"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            saveSetting('galleryOrder', radio.value);
+            applyFilters();
+        });
+    });
     initTagsEditor();
     showSettingsSection(currentSection);
 }

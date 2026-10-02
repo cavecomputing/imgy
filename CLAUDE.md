@@ -116,7 +116,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 ### Data lives in two places
 
 **The filesystem is the source of truth.** Media lives under `DATA_DIR/images/`; the database
-(`DATA_DIR/database.db`) only holds metadata (tags, favorites, dimensions, groups, settings). Files
+(`DATA_DIR/database.db`) only holds metadata (tags, favorites, dimensions, custom order, groups, settings). Files
 copied in by hand appear on the next listing. When a handler moves or deletes files, it updates the
 rows that reference them in the same request.
 
@@ -129,6 +129,7 @@ rows that reference them in the same request.
 - **Trash keeps metadata.** Moving a file to trash renames its `tags`, `favorites`, and `image_metadata` rows to `trash:<trash name>:<original path>`, and restore renames them back. Names can contain `:` and `_`, so use the helpers in `trash.py` and `db.NOT_TRASHED` (exact prefix match) instead of splitting keys or using `LIKE`. Group memberships are dropped on trash, and groups left with one member are dissolved. Top-level media names starting with `trash:` are reserved (`media._is_media_path()` skips them).
 - **New names start clean.** Rows can outlive their file (files deleted outside the app). Before a file takes a path through upload, rename, or restore, call `db.clear_filename()` so it doesn't inherit them.
 - **Database access.** Use `db.get_db()` (WAL mode and a 5 s busy timeout, so several gunicorn workers can share the file) and keep transactions short. `catalog._build_listing()` reads, walks the filesystem with no connection open, then writes; keep that shape for handlers that mix filesystem and database work. The schema is created idempotently by `init_db()`.
+- **Custom order.** `image_metadata.position` is 0..n-1 for the files in the last `POST /api/images/reorder` and null for files never placed, which the frontend shows first. It sits on `image_metadata` so rename, trash, and restore carry it with the rest of the row. The `galleryOrder` setting (`newest` or `custom`) decides whether it is used.
 - **Settings allowlist.** `PUT /api/settings` drops keys missing from `ALLOWED_SETTINGS_KEYS` in `api/settings.py`. Values are stored as text and the frontend converts types.
 - **LLM.** `POST /api/llm/analyze/<path>` sends the image as a base64 data URL to the OpenAI-compatible endpoint, model, and key that the browser passes from its settings. The prompt is built in `llm.py`. Videos are not supported.
 
@@ -139,6 +140,7 @@ rows that reference them in the same request.
 - Modules that bind event listeners export an `initX()`; `main.js` calls them in order, then loads settings and data. Imported bindings are read-only, so keep reassigned module state (timers, controllers) inside the module that owns it.
 - The tag expression syntax is shared by the filter bar, the tag editor, and the bulk tag editor, but each interprets tokens differently. Check the table in `README.md` before changing `tags.js`, `filters.js`, `flyup.js`, or `selection.js`.
 - Colors come from CSS custom properties on `:root` and `[data-theme="dark"]` in `style.css`; don't hardcode them. The look follows the cavecomputing design system: its components (`cc-btn`, `cc-badge`, `cc-callout`, `cc-table`, ...) are vendored in `cavecomputing.css`, so reuse them before adding new ones, and keep each accent to one meaning (yellow focus and selection, green brand and done, blue links and paths, orange destructive).
+- Dragging to reorder (`reorder.js`) moves the real cards in the DOM and renumbers `card.dataset.idx` instead of re-rendering, so a handler must read a card's index when it runs, not from a closure made at render time. The grid fills columns by height, so the slot is placed by the pointer alone (`placeSlot`); choosing by where the slot is now makes a still pointer bounce it between two spots.
 - Buttons that appear on hover (the card actions) follow the pointer only, plus `:focus-visible` for Tab. Never tie them to `:focus-within` or to arrow-key focus, and blur a button after a mouse click, or the next key press makes it match `:focus-visible` and the buttons come back.
 
 ### Deployment

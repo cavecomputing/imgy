@@ -45,7 +45,10 @@ def _cached(generation):
 
 
 def images_json():
-    """The listing as a JSON string: {"images": [...newest first], "groups": {id: [files]}, "trash_count": n}."""
+    """The listing as a JSON string: {"images": [...newest first], "groups": {id: [files]}, "trash_count": n}.
+
+    Each image carries its "position" in the custom order, or null until it has been placed.
+    """
     generation = _generation()
     if _cached(generation):
         return _cache['data']
@@ -68,7 +71,7 @@ def _build_listing():
     with get_db() as conn:
         tags = _load_tags(conn)
         favorites = {row['filename'] for row in conn.execute('SELECT filename FROM favorites')}
-        metadata = {row['filename']: row for row in conn.execute('SELECT filename, created_at, width, height FROM image_metadata')}
+        metadata = {row['filename']: row for row in conn.execute('SELECT filename, created_at, width, height, position FROM image_metadata')}
         groups, filename_to_group = _load_groups(conn)
 
     images = []
@@ -98,6 +101,7 @@ def _build_listing():
             'tags': tags.get(rel_path, []),
             'is_favorite': rel_path in favorites,
             'modified': created_at,
+            'position': meta['position'] if meta else None,
             'width': w,
             'height': h,
             'size': size,

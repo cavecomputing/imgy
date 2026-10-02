@@ -2,11 +2,12 @@
 import { CONFIG } from './config.js';
 import { incrementTagCount, State } from './state.js';
 import { Elements } from './dom.js';
-import { hideLoading, showError, showLoading } from './ui.js';
+import { hideLoading, showError, showLoading, showToast } from './ui.js';
 import { api } from './api.js';
 import { renderImageGrid } from './grid.js';
 import { updateSelectionBar } from './selection.js';
 import { renderFilterBarTags } from './filters.js';
+import { saveSetting } from './settings.js';
 import { setTrashCount } from './trash.js';
 
 export async function reloadDataPreservingScroll() {
@@ -71,11 +72,13 @@ export async function loadData() {
 }
 
 /**
- * Sort newest first, then pull each group's members up to its newest member so the group
- * sits in one block. The grid, the lightbox, and keyboard navigation all follow this order.
+ * Sort newest first, or by the custom order when that is on (files without a place yet, such
+ * as new uploads, come first). Then pull each group's members up to its first member so the
+ * group sits in one block. The grid, the lightbox, and keyboard navigation all follow this order.
  */
 function sortForDisplay(images) {
-    images.sort((a, b) => b.modified - a.modified);
+    const custom = State.settings.galleryOrder === 'custom';
+    images.sort((a, b) => (custom ? (a.position ?? -1) - (b.position ?? -1) : 0) || b.modified - a.modified);
     const blocks = [];
     const groupBlocks = {};
     for (const img of images) {
@@ -85,6 +88,29 @@ function sortForDisplay(images) {
         groupBlocks[gid].push(img);
     }
     return blocks.flat();
+}
+
+/**
+ * Keep the order the user dragged files into, and switch the gallery to it. `shown` is every
+ * visible file in its new order; hidden files keep their places, and the visible ones refill
+ * the places they held. The grid already shows this order, so nothing is redrawn.
+ */
+export async function saveImageOrder(shown) {
+    const order = sortForDisplay(State.images.slice()).map(img => img.filename);
+    const visible = new Set(shown);
+    const places = order.flatMap((filename, i) => visible.has(filename) ? [i] : []);
+    places.forEach((place, i) => { order[place] = shown[i]; });
+    order.forEach((filename, i) => { State.imagesByFilename.get(filename).position = i; });
+    State.filteredImages = shown.map(filename => State.imagesByFilename.get(filename));
+    if (State.settings.galleryOrder !== 'custom') {
+        saveSetting('galleryOrder', 'custom');
+        showToast('Gallery order is now Custom. Change it in Settings › Appearance.');
+    }
+    try {
+        await api.post('/api/images/reorder', { filenames: order });
+    } catch {
+        await reloadDataPreservingScroll(); // the error banner says what failed; show what the server kept
+    }
 }
 
 export function applyFilters() {

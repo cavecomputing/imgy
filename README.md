@@ -23,6 +23,7 @@ OpenAI-style chat API works.
 - **Settings › Tags** lists every tag with its file count and deletes one or many at once
 - Lightbox with zoom, pan, pinch, and swipe; plays common video formats
 - Bulk selection: tag, favorite, group, download as ZIP, or move to trash
+- Drag files or groups into your own order (press and hold on a phone); **Settings › Appearance** switches back to newest first
 - Trash with restore, inline rename, drag-and-drop upload
 - Press `?` in the app for every keyboard shortcut
 - Gruvbox dark and light themes, with a phone layout that keeps the filter in reach of your thumb
@@ -66,7 +67,7 @@ data/
 ├── images/            # your media; subfolders are fine
 │   ├── .thumbnails/   # generated thumbnails
 │   └── .trash/        # files moved to trash
-└── database.db        # tags, favorites, groups, settings
+└── database.db        # tags, favorites, groups, custom order, settings
 ```
 
 The folder is the source of truth: files you copy into `data/images/` show up on the next refresh,

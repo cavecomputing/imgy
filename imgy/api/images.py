@@ -1,4 +1,4 @@
-"""Listing, renaming, trashing, uploading, and exporting media files."""
+"""Listing, renaming, reordering, trashing, uploading, and exporting media files."""
 import contextlib
 import logging
 import math
@@ -101,6 +101,21 @@ def rename_image():
     delete_thumbnail(old_filename)
     invalidate_images_cache()
     return {'success': True, 'new_filename': new_filename, **media_urls(new_filename)}
+
+
+@bp.post('/images/reorder')
+def reorder_images():
+    """Store the custom gallery order: the files the client lists, in the order they should appear.
+
+    The client lists every file it shows, so there is no limit. A file left out keeps its old
+    position, or none, and then shows first until it is placed.
+    """
+    filenames = active_files(json_body().get('filenames', []), None, '', must_exist=False)
+    with get_db() as conn:
+        conn.executemany('UPDATE image_metadata SET position = ? WHERE filename = ?', enumerate(filenames))
+        conn.commit()
+    invalidate_images_cache()
+    return {'success': True}
 
 
 @bp.post('/upload')

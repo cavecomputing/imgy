@@ -11,7 +11,7 @@ bp = Blueprint('settings', __name__)
 # PUT /api/settings silently drops keys that are not listed here. Tag groups have their own
 # endpoint so they are always validated.
 ALLOWED_SETTINGS_KEYS = {
-    'llmProvider', 'llmApiUrl', 'llmModel', 'llmDoRename', 'llmDoTags', 'llmApiSecret', 'theme',
+    'llmProvider', 'llmApiUrl', 'llmModel', 'llmDoRename', 'llmDoTags', 'llmApiSecret', 'theme', 'galleryOrder',
 }
 
 

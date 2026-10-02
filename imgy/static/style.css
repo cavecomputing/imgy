@@ -1273,6 +1273,19 @@ dialog.settings-dlg { width: min(940px, calc(100vw - 48px)); height: min(780px, 
 .storage-table tr:first-child td { border-top: 0; }
 .storage-table tr.total td { background: var(--bg-raised); font-weight: 700; }
 
+/* tags */
+.tags-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-bottom: 14px; }
+.tags-tools .text-input { flex: 1 1 200px; width: auto; max-width: 320px; }
+.tags-table { table-layout: fixed; }
+.tags-table th:first-child { width: 44px; }
+.tags-table th:nth-child(3) { width: 72px; text-align: right; }
+.tags-table th:nth-child(4) { width: 52px; }
+.tags-table td { padding-top: 4px; padding-bottom: 4px; vertical-align: middle; }
+.tags-table td:first-child { font-weight: 400; }
+.tags-table .check { display: flex; }
+.tags-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 12px; }
+.tags-count, .tags-actions { text-align: right; }
+
 /* ---------- notices ---------- */
 .toast {
     position: fixed;

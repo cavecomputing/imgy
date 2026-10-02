@@ -1,12 +1,13 @@
-/** Server-stored settings, the auto-tagging form, and the settings dialog with its sections. */
+/** Server-stored settings, the auto-tagging form, the tag list, and the settings dialog with its sections. */
 import { CONFIG } from './config.js';
-import { State } from './state.js';
+import { getCurrentLightboxImage, State } from './state.js';
 import { Elements } from './dom.js';
 import { esc, formatCount, formatFileSize } from './utils.js';
 import { closeOnBackdropClick, showToast, withLoading } from './ui.js';
 import { api } from './api.js';
 import { applyTheme } from './appearance.js';
 import { loadData } from './data.js';
+import { renderLightboxTagBar } from './lightbox.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -364,6 +365,108 @@ export function initLlmSettings() {
     initTagGroupsEditor();
 }
 
+// Set by initTagsEditor; shows the Tags section fresh from State
+let showTags = () => {};
+
+const tagCount = (tag) => State.tagCounts[tag] || 0;
+
+const TAG_ORDERS = {
+    name: (a, b) => a.localeCompare(b),
+    most: (a, b) => tagCount(b) - tagCount(a) || a.localeCompare(b),
+    least: (a, b) => tagCount(a) - tagCount(b) || a.localeCompare(b)
+};
+
+function initTagsEditor() {
+    const filterInput = document.getElementById('tagsFilter');
+    const selectAll = document.getElementById('tagsSelectAll');
+    const list = document.getElementById('tagsList');
+    const selectionNote = document.getElementById('tagsSelectionNote');
+    const deleteBtn = document.getElementById('deleteTagsBtn');
+    const selectedTags = new Set();
+
+    function visibleTags() {
+        const query = filterInput.value.trim().toLowerCase();
+        const order = document.querySelector('input[name="tagSort"]:checked').value;
+        return State.allTags.filter(t => t.includes(query)).sort(TAG_ORDERS[order]);
+    }
+
+    function tagRow(tag) {
+        const count = tagCount(tag);
+        return `
+            <tr>
+                <td><label class="check"><input type="checkbox" data-tag="${esc(tag)}" aria-label="Select ${esc(tag)}"${selectedTags.has(tag) ? ' checked' : ''}></label></td>
+                <td class="tags-name" title="${esc(tag)}">${esc(tag)}</td>
+                <td class="tags-count"><span class="tag-count-badge${count ? '' : ' orphaned'}">${count}</span></td>
+                <td class="tags-actions"><button class="icon-btn icon-btn--warn icon-btn--sm" type="button" data-tag="${esc(tag)}" title="Delete tag" aria-label="Delete ${esc(tag)}"><svg class="i i-sm" aria-hidden="true"><use href="#i-trash"/></svg></button></td>
+            </tr>`;
+    }
+
+    // Ticking a row only updates this, so the rows stay put and keyboard focus stays on the box
+    function updateSelection() {
+        const rows = list.querySelectorAll('input[type="checkbox"]').length;
+        selectAll.disabled = rows === 0;
+        selectAll.checked = rows > 0 && selectedTags.size === rows;
+        deleteBtn.disabled = selectedTags.size === 0;
+        selectionNote.textContent = selectedTags.size ? `${selectedTags.size} selected` : 'Tick tags to delete several at once.';
+    }
+
+    function renderTags() {
+        const tags = visibleTags();
+        document.getElementById('tagsSummary').textContent = formatCount(State.allTags.length, 'tag');
+        list.innerHTML = tags.length
+            ? tags.map(tagRow).join('')
+            : `<tr><td colspan="4" class="cc-note">${State.allTags.length ? 'No tag matches the filter.' : 'No tags yet. Add one to a file with T, or create one with +tag in the filter bar.'}</td></tr>`;
+        updateSelection();
+    }
+
+    async function deleteTags(tags) {
+        const what = tags.length === 1 ? `"${tags[0]}"` : formatCount(tags.length, 'tag');
+        if (!confirm(`Remove ${what} from every file? This cannot be undone.`)) return;
+        try {
+            for (const tag of tags) {
+                await api.delete(`/api/tags/remove-all?tag=${encodeURIComponent(tag)}`);
+                State.activeTags.delete(tag);
+                State.excludeTags.delete(tag);
+            }
+            showToast(`Deleted ${what}`);
+        } finally {
+            selectedTags.clear();
+            await loadData();
+            // ? opens the dialog over the lightbox too, which would keep showing the deleted tags
+            const lightboxImage = Elements.lightbox.classList.contains('active') ? getCurrentLightboxImage() : null;
+            if (lightboxImage) renderLightboxTagBar(lightboxImage.tags || [], lightboxImage.filename);
+            // The server also took the tags out of the exclusive groups the Auto-tagging section shows
+            await reloadTagGroups();
+            renderTags();
+        }
+    }
+
+    // A filter change drops the selection, so a bulk delete only ever touches tags you can see
+    filterInput.addEventListener('input', () => { selectedTags.clear(); renderTags(); });
+    document.querySelectorAll('input[name="tagSort"]').forEach(radio => radio.addEventListener('change', renderTags));
+    selectAll.addEventListener('change', () => {
+        selectedTags.clear();
+        if (selectAll.checked) visibleTags().forEach(t => selectedTags.add(t));
+        renderTags();
+    });
+    list.addEventListener('change', (e) => {
+        if (e.target.checked) selectedTags.add(e.target.dataset.tag);
+        else selectedTags.delete(e.target.dataset.tag);
+        updateSelection();
+    });
+    list.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn) deleteTags([btn.dataset.tag]);
+    });
+    deleteBtn.addEventListener('click', () => deleteTags([...selectedTags]));
+
+    showTags = () => {
+        filterInput.value = '';
+        selectedTags.clear();
+        renderTags();
+    };
+}
+
 async function loadStorageStats() {
     const el = document.getElementById('storageStats');
     if (!el) return;
@@ -411,6 +514,7 @@ function showSettingsSection(section) {
         else tab.removeAttribute('aria-current');
     });
     if (section === 'storage') loadStorageStats();
+    if (section === 'tags') showTags();
 }
 
 /** Open the settings dialog at a section (the last one shown by default), or close it. */
@@ -436,5 +540,6 @@ export function initSettingsModal() {
         tab.addEventListener('click', () => showSettingsSection(tab.dataset.section));
     });
     document.getElementById('resetThumbnailsBtn').addEventListener('click', resetThumbnails);
+    initTagsEditor();
     showSettingsSection(currentSection);
 }

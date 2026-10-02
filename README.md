@@ -20,6 +20,7 @@ OpenAI-style chat API works.
 
 - Fast tag editing with a small expression syntax (`+new`, `-remove`, `old>new`, ...)
 - Filter by tags, exclusions, favorites, or untagged files
+- **Settings › Tags** lists every tag with its file count and deletes one or many at once
 - Lightbox with zoom, pan, pinch, and swipe; plays common video formats
 - Bulk selection: tag, favorite, group, download as ZIP, or move to trash
 - Trash with restore, inline rename, drag-and-drop upload

@@ -269,6 +269,7 @@
                 <button type="button" class="settings-tab" data-section="about"><svg class="i i-sm" aria-hidden="true"><use href="#i-terminal"/></svg>About</button>
                 <button type="button" class="settings-tab" data-section="appearance"><svg class="i i-sm" aria-hidden="true"><use href="#i-sun"/></svg>Appearance</button>
                 <button type="button" class="settings-tab" data-section="llm"><svg class="i i-sm" aria-hidden="true"><use href="#i-eye"/></svg>Auto-tagging</button>
+                <button type="button" class="settings-tab" data-section="tags"><svg class="i i-sm" aria-hidden="true"><use href="#i-tag"/></svg>Tags</button>
                 <button type="button" class="settings-tab" data-section="shortcuts"><svg class="i i-sm" aria-hidden="true"><use href="#i-keyboard"/></svg>Shortcuts</button>
                 <button type="button" class="settings-tab" data-section="storage"><svg class="i i-sm" aria-hidden="true"><use href="#i-drive"/></svg>Storage</button>
                 <div class="spacer"></div>
@@ -368,6 +369,29 @@
                         <span id="llmTestStatus" class="llm-test-status" role="status"></span>
                         <span class="spacer"></span>
                         <button id="llmSettingsReset" class="cc-btn cc-btn--ghost" type="button">Reset to defaults</button>
+                    </div>
+                </section>
+
+                <section class="settings-section settings-section--foot" data-section="tags" aria-labelledby="setTagsTitle" hidden>
+                    <div class="settings-scroll">
+                        <h2 id="setTagsTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tag"/></svg>Tags<small id="tagsSummary"></small></h2>
+                        <p class="settings-lede">Every tag in your library and how many files carry it. Deleting a tag takes it off every file and out of the exclusive tag groups.</p>
+                        <div class="tags-tools">
+                            <input type="text" id="tagsFilter" class="text-input" placeholder="Filter tags" aria-label="Filter tags" autocomplete="off" autocapitalize="none" spellcheck="false">
+                            <div class="seg" role="radiogroup" aria-label="Sort tags">
+                                <label><input type="radio" name="tagSort" value="name" checked><span>Name</span></label>
+                                <label><input type="radio" name="tagSort" value="most"><span>Most used</span></label>
+                                <label><input type="radio" name="tagSort" value="least"><span>Least used</span></label>
+                            </div>
+                        </div>
+                        <table class="cc-table tags-table">
+                            <thead><tr><th><label class="check"><input type="checkbox" id="tagsSelectAll" aria-label="Select every listed tag"></label></th><th>Tag</th><th>Files</th><th><span class="sr-only">Actions</span></th></tr></thead>
+                            <tbody id="tagsList"></tbody>
+                        </table>
+                    </div>
+                    <div class="settings-foot">
+                        <span id="tagsSelectionNote" class="dlg-foot-note"></span>
+                        <button id="deleteTagsBtn" class="cc-btn btn-warn" type="button" disabled><svg class="i i-sm" aria-hidden="true"><use href="#i-trash"/></svg>Delete selected</button>
                     </div>
                 </section>
 

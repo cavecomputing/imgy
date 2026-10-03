@@ -64,6 +64,7 @@ export const Elements = {
     galleryTagThumb: byId('galleryTagThumb'),
     galleryTagEyebrow: byId('galleryTagEyebrow'),
     galleryTagTitle: byId('galleryTagTitle'),
+    closeGalleryTagFlyupBtn: byId('closeGalleryTagFlyup'),
     quickTagCurrent: byId('galleryTagCurrent'),
     quickTagInput: byId('galleryTagInput'),
     quickTagHint: byId('galleryTagHint'),

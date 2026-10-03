@@ -394,6 +394,12 @@ export function initFlyups() {
         }
     });
 
+    // Phones have no Esc key
+    Elements.closeGalleryTagFlyupBtn.addEventListener('click', () => {
+        closeGalleryTagFlyup();
+        Elements.quickTagInput.blur();
+    });
+
     // Shared handlers for the gallery and lightbox inputs
     function handleQuickTagInput() {
         State.quickTagIndex = -1;

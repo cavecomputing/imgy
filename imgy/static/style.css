@@ -802,6 +802,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 .tag-flyup-gallery.bulk-mode .flyup-thumb { display: none; }
 .flyup-eyebrow { flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
 .flyup-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fg-muted); }
+.flyup-close { display: none; } /* phones have no Esc key, so they get this instead of its hint */
 .flyup-body { display: flex; flex-direction: column; gap: 12px; padding: 14px; overflow-y: auto; min-height: 0; }
 .flyup-input {
     display: flex;
@@ -1584,7 +1585,8 @@ body.drag-over::after {
         max-height: calc(100dvh - var(--keyboard-inset, 0px) - var(--topbar-h) - 20px);
     }
     .tag-flyup-gallery:not(.bulk-mode) { bottom: max(calc(76px + var(--shell-gap) + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px)); }
-    .chip-add .kbd { display: none; }
+    .chip-add .kbd, .flyup-head .kbd { display: none; }
+    .flyup-close { display: inline-grid; margin: -6px -13px -6px 0; } /* the glyph lines up with the input's edge; the margins keep the header's height */
     .flyup-input input { font-size: 16px; }
 
     .toast, .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }

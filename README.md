@@ -98,7 +98,9 @@ or the filter bar (`/`). Separate several with spaces.
 | `++` | | Group the selected files | |
 | `?` | Auto-tag with the LLM | Auto-tag selected files with the LLM | |
 
-`@text` ignores case and also matches the extension and folder, so `@.mp4` shows every MP4.
+`@text` runs to the end of the line, so it can hold spaces; put it last, as in `sunset @beach house`.
+It ignores case, treats spaces, underscores and hyphens alike, and also matches the extension and
+folder, so `@.mp4` shows every MP4.
 
 The tag editors preview what each expression will do before you press `Enter`. `Tab` completes the
 tag you are typing, and `Enter` applies the expression, or the suggestion you highlighted with the

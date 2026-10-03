@@ -2,7 +2,7 @@
 import { CONFIG } from './config.js';
 import { State } from './state.js';
 import { Elements } from './dom.js';
-import { esc, formatCount, highlightMatch } from './utils.js';
+import { esc, formatCount, highlightMatch, nameContains } from './utils.js';
 import { isPhoneLayout, setToggleButtonState, showToast } from './ui.js';
 import { api } from './api.js';
 import { applyFilters, loadData } from './data.js';
@@ -13,8 +13,8 @@ const DESKTOP_PLACEHOLDER = 'Filter by tag   -exclude   +create   old>new';
 const ROW_HEIGHT = 34;
 
 function getFilterModeInfo(rawTerm) {
+    if (splitNameSearch(rawTerm)) return { mode: 'name', label: 'Name', detail: 'show files whose name contains this' };
     const token = rawTerm.trimStart().split(/\s+/).pop() || '';
-    if (token.startsWith('@')) return { mode: 'name', label: 'Name', detail: 'show files whose name contains this' };
     if (token.includes('>')) return { mode: 'rename', label: 'Rename', detail: 'old>new renames a tag on every file' };
     if (token.startsWith('--')) return { mode: 'delete', label: 'Delete', detail: token.length > 2 ? 'removes this tag from every file' : 'deletes tags that no file uses' };
     if (token.startsWith('-')) return { mode: 'exclude', label: 'Exclude', detail: 'hide files that have this tag' };
@@ -208,6 +208,16 @@ function parseLastToken(rawTerm) {
     return { lastToken, prefix, isGlobalDelete, isExcludeMode, isCreateMode, term: lastToken.slice(prefix.length).toLowerCase().trim() };
 }
 
+/**
+ * An '@' that starts a word begins a file name search, which runs to the end of the input so it
+ * can hold spaces. Returns the expression before it and the search, or null when there is none.
+ */
+function splitNameSearch(rawTerm) {
+    const at = rawTerm.search(/(?:^|\s)@/);
+    if (at === -1) return null;
+    return { before: rawTerm.slice(0, at), term: rawTerm.slice(rawTerm.indexOf('@', at) + 1).trim().toLowerCase() };
+}
+
 function noteRow(html, warn = false) {
     const note = document.createElement('div');
     note.className = `suggestion-note${warn ? ' warn' : ''}`;
@@ -219,7 +229,7 @@ function renderSuggestions() {
     const list = Elements.tagSuggestionList;
     const rawTerm = Elements.tagSearch.value;
     const modeInfo = getFilterModeInfo(rawTerm);
-    const { lastToken, term, isGlobalDelete, isExcludeMode, isCreateMode } = parseLastToken(rawTerm);
+    const { term, isGlobalDelete, isExcludeMode, isCreateMode } = parseLastToken(rawTerm);
 
     const isOrphaned = t => !(State.tagCounts[t] > 0);
     const orphanedTags = State.allTags.filter(isOrphaned);
@@ -255,13 +265,13 @@ function renderSuggestions() {
     }
 
     // '@text' filters by file name, so there are no tags to suggest
-    if (modeInfo.mode === 'name') {
-        const nameTerm = lastToken.slice(1).toLowerCase();
-        const count = State.filteredImages.filter(img => img.filename.toLowerCase().includes(nameTerm)).length;
+    const nameSearch = splitNameSearch(rawTerm);
+    if (nameSearch) {
+        const count = State.filteredImages.filter(img => nameContains(img.filename, nameSearch.term)).length;
         appendSuggestionHeader(list, modeInfo);
-        list.appendChild(noteRow(nameTerm
-            ? `<span>${formatCount(count, 'file')} here ${count === 1 ? 'has' : 'have'} “${esc(nameTerm)}” in the name.</span>`
-            : '<span>Type part of a file name, like <code>@beach</code> or <code>@.mp4</code>.</span>'));
+        list.appendChild(noteRow(nameSearch.term
+            ? `<span>${formatCount(count, 'file')} here ${count === 1 ? 'has' : 'have'} “${esc(nameSearch.term)}” in the name.</span>`
+            : '<span>Type part of a file name, spaces and all, like <code>@beach house</code> or <code>@.mp4</code>.</span>'));
         State.suggestionMatches = [];
         showSuggestions();
         return;
@@ -368,7 +378,14 @@ function replaceLastToken(tag, { trailingSpace = false } = {}) {
 }
 
 async function applyFilterExpression() {
-    const rawTerm = Elements.tagSearch.value;
+    let rawTerm = Elements.tagSearch.value;
+
+    const nameSearch = splitNameSearch(rawTerm);
+    if (nameSearch) {
+        if (nameSearch.term) toggleNameTerm(nameSearch.term);
+        rawTerm = nameSearch.before;
+        if (!rawTerm.trim()) { resetTagSearch(); return; }
+    }
 
     if (rawTerm.trim() === '?') { showToast('Select files, then type ? in the tag editor to auto-tag them'); resetTagSearch(); return; }
 
@@ -395,7 +412,7 @@ async function applyFilterExpression() {
         const fTokens = splitTagTokens(rawTerm, /\s+/);
         if (fTokens.includes('=')) { showToast('"=" only works in the bulk tag editor'); resetTagSearch(); return; }
         if (fTokens.includes('++')) { showToast('"++" only works in the bulk tag editor'); resetTagSearch(); return; }
-        const { toDelete, toFilter, toExclude, toRename, toCreate, nameTerms } = parseFilterExpressionTokens(fTokens);
+        const { toDelete, toFilter, toExclude, toRename, toCreate } = parseFilterExpressionTokens(fTokens);
         if (toDelete.length > 0) {
             State.confirmInProgress = true;
             const confirmed = confirm(`Remove ${toDelete.map(t => `"${t}"`).join(', ')} from every file? This cannot be undone.`);
@@ -420,7 +437,6 @@ async function applyFilterExpression() {
         if (toCreate.length) showToast(`Created ${formatCount(toCreate.length, 'tag')}`);
         for (const tag of toExclude) toggleExcludeTag(tag);
         for (const tag of toFilter) toggleTagFilter(tag);
-        for (const nameTerm of nameTerms) toggleNameTerm(nameTerm);
         resetTagSearch({ render: false });
         if (toDelete.length > 0 || toRename.length > 0 || toCreate.length > 0) await loadData();
         resetTagSearch({ focus: true, render: true });
@@ -430,11 +446,6 @@ async function applyFilterExpression() {
     const term = rawTerm.trim();
     if (term === '=') { showToast('"=" only works in the bulk tag editor'); resetTagSearch(); return; }
     if (term === '++') { showToast('"++" only works in the bulk tag editor'); resetTagSearch(); return; }
-    if (term.startsWith('@')) {
-        if (term.length > 1) toggleNameTerm(term.slice(1).toLowerCase());
-        resetTagSearch();
-        return;
-    }
     if (term.includes('>')) {
         const [oldN, newN] = term.split('>').map(s => s.trim().toLowerCase());
         if (oldN && newN) {

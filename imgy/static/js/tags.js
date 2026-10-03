@@ -56,12 +56,9 @@ export function parseFilterExpressionTokens(tokens) {
     const toExclude = [];
     const toRename = [];
     const toCreate = [];
-    const nameTerms = [];
 
     for (const token of tokens) {
-        if (token.startsWith('@')) {
-            if (token.length > 1) nameTerms.push(token.slice(1).toLowerCase());
-        } else if (token.includes('>')) {
+        if (token.includes('>')) {
             const [oldN, newN] = token.split('>').map(s => s.trim().toLowerCase());
             if (oldN && newN) toRename.push({ oldN, newN });
             else showToast('Rename syntax: oldname>newname');
@@ -81,7 +78,7 @@ export function parseFilterExpressionTokens(tokens) {
         }
     }
 
-    return { toDelete, toFilter, toExclude, toRename, toCreate, nameTerms };
+    return { toDelete, toFilter, toExclude, toRename, toCreate };
 }
 
 export function tryTabCompletion(rawValue, matches, opts) {

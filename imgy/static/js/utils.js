@@ -20,6 +20,15 @@ export function formatCount(count, singular, plural = `${singular}s`) {
     return `${count} ${count === 1 ? singular : plural}`;
 }
 
+/**
+ * Whether a file's path contains `term`, ignoring case. Spaces, underscores and hyphens count as
+ * the same character, since uploads turn spaces into underscores and auto-tag names use hyphens.
+ */
+export function nameContains(filename, term) {
+    const words = s => s.toLowerCase().replace(/[\s_-]+/g, ' ');
+    return words(filename).includes(words(term));
+}
+
 export function getImageBaseName(filename) {
     return filename.split('/').pop().replace(/\.[^/.]+$/, "");
 }

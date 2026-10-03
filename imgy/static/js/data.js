@@ -2,6 +2,7 @@
 import { CONFIG } from './config.js';
 import { incrementTagCount, State } from './state.js';
 import { Elements } from './dom.js';
+import { nameContains } from './utils.js';
 import { hideLoading, showError, showLoading, showToast } from './ui.js';
 import { api } from './api.js';
 import { renderImageGrid } from './grid.js';
@@ -125,7 +126,7 @@ export function applyFilters() {
         const matchesFavorites = !State.showFavoritesOnly || img.is_favorite;
         const matchesTags = State.activeTags.size === 0 || Array.from(State.activeTags).every(t => img.tags?.includes(t));
         const matchesExclude = State.excludeTags.size === 0 || !Array.from(State.excludeTags).some(t => img.tags?.includes(t));
-        const matchesName = State.nameTerms.size === 0 || Array.from(State.nameTerms).every(t => img.filename.toLowerCase().includes(t));
+        const matchesName = State.nameTerms.size === 0 || Array.from(State.nameTerms).every(t => nameContains(img.filename, t));
         return matchesUntagged && matchesFavorites && matchesTags && matchesExclude && matchesName;
     });
     State.filteredImages = sortForDisplay(filtered);

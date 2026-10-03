@@ -33,9 +33,9 @@ function createCardTagPreview(tags = []) {
 }
 
 function createCardFootMeta(tags = []) {
-    if (!tags.length) return '<span class="cc-badge cc-badge--warn">Untagged</span>';
-    const title = `${formatCount(tags.length, 'tag')}: ${tags.join(', ')}`;
-    return `<span class="card-tag-count" title="${esc(title)}">${icon('tag', 'i i-xs')}${tags.length}<span class="sr-only"> ${tags.length === 1 ? 'tag' : 'tags'}</span></span>`;
+    if (!tags.length) return '<button class="card-tag-btn tag-btn" type="button" title="Edit tags (T)" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span></button>';
+    const count = formatCount(tags.length, 'tag');
+    return `<button class="card-tag-btn tag-btn" type="button" title="${esc(`Edit tags (T): ${tags.join(', ')}`)}" aria-label="Edit tags, ${count}">${icon('tag', 'i i-xs')}${tags.length}</button>`;
 }
 
 function createImageCard(img, idx) {
@@ -59,7 +59,6 @@ function createImageCard(img, idx) {
             <span class="card-check" aria-hidden="true">${icon('check', 'i')}</span>
             <div class="card-actions">
                 <button class="card-action-btn star-btn" type="button" title="Favorite (F)" aria-label="Favorite" aria-pressed="${img.is_favorite ? 'true' : 'false'}">${icon('star')}</button>
-                <button class="card-action-btn tag-btn" type="button" title="Edit tags (T)" aria-label="Edit tags">${icon('tag')}</button>
                 <a class="card-action-btn" href="${esc(img.url)}" download="${esc(getDisplayFilename(img.filename))}" title="Download" aria-label="Download">${icon('download')}</a>
                 <button class="card-action-btn delete-btn" type="button" title="Move to trash (D)" aria-label="Move to trash">${icon('trash')}</button>
             </div>

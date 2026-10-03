@@ -587,7 +587,10 @@ button.chip { cursor: pointer; }
 }
 .card-star { display: none; width: 14px; height: 14px; flex: none; fill: var(--star); stroke: var(--star); }
 .image-card.is-fav .card-star { display: block; }
-.card-tag-count { display: inline-flex; align-items: center; gap: 4px; flex: none; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); }
+/* the corner button: padded to a click target, with the margin keeping its content on the footer's padding */
+.card-tag-btn { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; margin-right: -6px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); cursor: pointer; }
+.card-tag-btn:hover { background: var(--bg-inset); color: var(--fg); }
+.image-grid.selection-mode .card-tag-btn { pointer-events: none; }
 .card-foot .cc-badge { padding: 1px 7px 1px 6px; font-size: 10px; }
 
 .card-actions {
@@ -1552,7 +1555,7 @@ body.drag-over::after {
     .image-grid { column-gap: 10px; }
     .image-card { margin-bottom: 10px; scroll-margin: 64px 0 100px; }
     .card-foot { height: 30px; gap: 6px; padding: 0 8px; }
-    .card-title, .card-tag-count { font-size: 11px; }
+    .card-title, .card-tag-btn { font-size: 11px; }
     .card-star { width: 13px; height: 13px; }
     .card-foot .cc-badge { letter-spacing: 0.04em; }
     .card-actions, .card-tag-preview { display: none; }

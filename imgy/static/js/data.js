@@ -23,7 +23,8 @@ export function abortLoadData() {
     if (loadDataController) loadDataController.abort();
 }
 
-export async function loadData() {
+/** Fetch the library and draw it. `ready` is an optional promise to wait for before drawing. */
+export async function loadData(ready) {
     // Abort any in-flight loadData request
     if (loadDataController) loadDataController.abort();
     const controller = new AbortController();
@@ -38,6 +39,7 @@ export async function loadData() {
             api.get('/api/tags', { signal: controller.signal })
         ]);
         // If this call was superseded, discard stale results
+        await ready;
         if (controller.signal.aborted) return;
         const { images, groups } = imagesResp;
         setTrashCount(imagesResp.trash_count);

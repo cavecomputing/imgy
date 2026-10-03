@@ -25,9 +25,12 @@ async function start() {
     initSettingsModal();
     initGrid();
     initReorder();
-    await loadSettings();
+    // The library downloads while the settings do; it waits for them before it is drawn
+    const settingsLoaded = loadSettings();
+    const dataLoaded = loadData(settingsLoaded);
+    await settingsLoaded;
     initLlmSettings();
-    await loadData();
+    await dataLoaded;
 }
 
 start();

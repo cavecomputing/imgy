@@ -17,6 +17,10 @@
             document.documentElement.setAttribute('data-theme', theme);
         } catch { /* storage blocked: keep the default */ }
     </script>
+    <!-- Start downloading the library now: main.js asks for these once its modules have loaded -->
+    <link rel="preload" href="/api/images" as="fetch" crossorigin>
+    <link rel="preload" href="/api/tags" as="fetch" crossorigin>
+    <link rel="preload" href="/api/settings" as="fetch" crossorigin>
     <link rel="stylesheet" href="/static/cavecomputing.css">
     <link rel="stylesheet" href="/static/style.css">
 </head>

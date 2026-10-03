@@ -97,6 +97,14 @@ async function uploadFiles(files) {
 }
 
 export function initUpload() {
+    // The service worker sends files shared from the phone's share sheet here with the count it uploaded
+    const shared = new URLSearchParams(location.search).get('shared');
+    if (shared !== null) {
+        history.replaceState(null, '', '/');
+        if (shared === '0') showError('Could not add the shared files');
+        else showToast(`Uploaded ${formatCount(Number(shared), 'file')}`);
+    }
+
     Elements.uploadBtn.addEventListener('click', () => Elements.imageInput.click());
     Elements.imageInput.addEventListener('change', async (e) => {
         await uploadFiles(Array.from(e.target.files));

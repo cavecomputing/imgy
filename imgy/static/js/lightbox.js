@@ -379,6 +379,17 @@ export function initLightbox() {
     Elements.lightboxSheetGrab.addEventListener('click', () => {
         setSheetExpanded(!Elements.lightboxPanel.classList.contains('expanded'));
     });
+    // The handle also takes a swipe: up opens the details, down closes them
+    let grabStartY = 0;
+    Elements.lightboxSheetGrab.addEventListener('touchstart', (e) => {
+        grabStartY = e.touches[0].clientY;
+    }, { passive: true });
+    Elements.lightboxSheetGrab.addEventListener('touchend', (e) => {
+        const deltaY = e.changedTouches[0].clientY - grabStartY;
+        if (Math.abs(deltaY) < 20) return; // a tap, which the click handler takes
+        setSheetExpanded(deltaY < 0);
+        e.preventDefault(); // or the click that can follow would undo the swipe
+    });
 
     Elements.lightboxContent.addEventListener('wheel', (e) => {
         if (!Elements.lightbox.classList.contains('active')) return;

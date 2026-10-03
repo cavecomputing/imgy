@@ -1467,7 +1467,7 @@ body.drag-over::after {
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         box-shadow: var(--shadow-lift);
     }
-    .lb-grab { display: grid; place-items: center; width: 100%; height: 22px; flex: none; padding: 0; border: 0; background: transparent; }
+    .lb-grab { display: grid; place-items: center; width: 100%; height: 22px; flex: none; padding: 0; border: 0; background: transparent; touch-action: none; }
     .lb-grab span { width: 36px; height: 4px; border-radius: 999px; background: var(--fg-subtle); }
     .lb-panel .cc-eyebrow { display: none; }
     .lb-panel .chip { height: 30px; }

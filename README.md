@@ -1,4 +1,6 @@
-<h1 align="center">Imgy</h1>
+<p align="center">
+  <img src="imgy/static/favicon.svg" alt="Imgy" width="250">
+</p>
 
 <p align="center">
   A local-first image and video organizer 🖼️

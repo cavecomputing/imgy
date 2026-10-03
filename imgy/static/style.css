@@ -591,6 +591,32 @@ button.chip { cursor: pointer; }
 .card-tag-btn { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; margin-right: -6px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); cursor: pointer; }
 .card-tag-btn:hover { background: var(--bg-inset); color: var(--fg); }
 .image-grid.selection-mode .card-tag-btn { pointer-events: none; }
+/* the tag list, above the footer and inside the card: the button stays unpositioned so the card is its containing block */
+.card-tag-tip {
+    position: absolute;
+    right: 8px;
+    bottom: 42px;
+    z-index: 4;
+    display: none;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    max-width: calc(100% - 16px);
+    pointer-events: none;
+}
+.card-tag-tip span {
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: var(--on-image-bg);
+    border: 1px solid var(--on-image-line);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.2;
+    color: var(--on-image);
+}
+@media (hover: hover) {
+    .card-tag-btn:hover .card-tag-tip { display: flex; }
+}
 .card-foot .cc-badge { padding: 1px 7px 1px 6px; font-size: 10px; }
 
 .card-actions {
@@ -623,35 +649,6 @@ button.chip { cursor: pointer; }
 .card-action-btn:hover { background: var(--on-image-hover); }
 .card-action-btn.delete-btn:hover { color: var(--on-image-warn); }
 .image-card.is-fav .star-btn svg.i { fill: var(--star); stroke: var(--star); }
-.card-tag-preview {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    z-index: 2;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--ease);
-}
-.card-tag-preview span {
-    padding: 3px 7px;
-    border-radius: 5px;
-    background: var(--on-image-bg);
-    border: 1px solid var(--on-image-line);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1.2;
-    color: var(--on-image);
-}
-/* the buttons follow the pointer, or keyboard focus on one of them (Tab, which initGrid marks as .shown) */
-.image-grid:not(.selection-mode) .image-card:hover .card-actions,
-.image-grid:not(.selection-mode) .card-actions.shown { opacity: 1; pointer-events: auto; }
-.image-grid:not(.selection-mode) .image-card:hover .card-tag-preview,
-.image-grid:not(.selection-mode) .image-card.keyboard-focused .card-tag-preview { opacity: 1; }
-
 .card-play {
     position: absolute;
     left: 8px;
@@ -735,8 +732,7 @@ button.chip { cursor: pointer; }
 .image-group-grid .card-media { border-radius: calc(var(--radius-sm) - 1px); }
 .image-group-grid .card-media img { aspect-ratio: 1; object-fit: cover; }
 .image-group-grid .card-foot,
-.image-group-grid .card-actions,
-.image-group-grid .card-tag-preview { display: none; }
+.image-group-grid .card-actions { display: none; }
 .image-group-grid .card-play { top: 4px; left: 4px; height: 20px; padding: 0 6px; }
 
 /* dragging a card or group: a floating copy follows the pointer, the original stays as a dashed slot */
@@ -1558,7 +1554,8 @@ body.drag-over::after {
     .card-title, .card-tag-btn { font-size: 11px; }
     .card-star { width: 13px; height: 13px; }
     .card-foot .cc-badge { letter-spacing: 0.04em; }
-    .card-actions, .card-tag-preview { display: none; }
+    .card-actions { display: none; }
+    .card-tag-tip { bottom: 38px; }
 
     .selection-bar {
         left: 0;

@@ -20,22 +20,12 @@ const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><
 
 let renderedCount = 0; // the grid holds cards for the first renderedCount of State.filteredImages
 
-function createCardTagPreview(tags = []) {
-    if (!tags.length) return '';
-    const visible = tags.slice(0, 3);
-    const overflow = tags.length - visible.length;
-    return `
-        <div class="card-tag-preview" aria-hidden="true">
-            ${visible.map(t => `<span>${esc(t)}</span>`).join('')}
-            ${overflow > 0 ? `<span>+${overflow}</span>` : ''}
-        </div>
-    `;
-}
-
 function createCardFootMeta(tags = []) {
-    if (!tags.length) return '<button class="card-tag-btn tag-btn" type="button" title="Edit tags (T)" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span></button>';
-    const count = formatCount(tags.length, 'tag');
-    return `<button class="card-tag-btn tag-btn" type="button" title="${esc(`Edit tags (T): ${tags.join(', ')}`)}" aria-label="Edit tags, ${count}">${icon('tag', 'i i-xs')}${tags.length}</button>`;
+    if (!tags.length) return '<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span><span class="card-tag-tip" aria-hidden="true"><span>Add tags (T)</span></span></button>';
+    const shown = tags.slice(0, 12);
+    const more = tags.length - shown.length;
+    const tip = shown.map(t => `<span>${esc(t)}</span>`).join('') + (more ? `<span>+${more}</span>` : '');
+    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}">${icon('tag', 'i i-xs')}${tags.length}<span class="card-tag-tip" aria-hidden="true">${tip}</span></button>`;
 }
 
 function createImageCard(img, idx) {
@@ -62,7 +52,6 @@ function createImageCard(img, idx) {
                 <a class="card-action-btn" href="${esc(img.url)}" download="${esc(getDisplayFilename(img.filename))}" title="Download" aria-label="Download">${icon('download')}</a>
                 <button class="card-action-btn delete-btn" type="button" title="Move to trash (D)" aria-label="Move to trash">${icon('trash')}</button>
             </div>
-            ${createCardTagPreview(img.tags || [])}
         </div>
         <div class="card-foot">
             <span class="card-title"><span class="card-title-text" title="Rename (R)">${esc(baseName)}</span><span class="card-ext">${esc(ext)}</span></span>
@@ -82,11 +71,9 @@ function createImageCard(img, idx) {
     return card;
 }
 
-/** Redraw the parts of a card that show its tags. */
+/** Redraw the part of a card that shows its tags. */
 function refreshCardTags(card, tags) {
     card.drawnTags = tags.join('\n');
-    card.querySelector('.card-tag-preview')?.remove();
-    card.querySelector('.card-actions').insertAdjacentHTML('afterend', createCardTagPreview(tags));
     const foot = card.querySelector('.card-foot');
     foot.lastElementChild.remove();
     foot.insertAdjacentHTML('beforeend', createCardFootMeta(tags));

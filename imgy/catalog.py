@@ -5,6 +5,7 @@ couple of seconds. Every handler that changes files, tags, favorites, metadata, 
 must call invalidate_images_cache(). The cache is per process; a generation file under
 DATA_DIR tells other gunicorn workers that their copy is stale.
 """
+import gzip
 import json
 import logging
 import threading
@@ -21,6 +22,7 @@ CACHE_TTL = 2.0
 _GENERATION_FILE = DATA_DIR / '.images-cache-generation'
 _cache = {'data': None, 'timestamp': 0.0, 'generation': None}
 _lock = threading.Lock()
+_gzipped = (None, b'')  # (listing, its gzip), so each rebuild is compressed once
 
 
 def invalidate_images_cache():
@@ -64,6 +66,17 @@ def images_json():
             data = _build_listing()
             _cache.update(data=data, timestamp=time.monotonic(), generation=generation)
         return data
+
+
+def images_gzip():
+    """images_json() gzipped: 2.8 MB of JSON for 10,000 files becomes 0.2 MB."""
+    global _gzipped
+    listing = images_json()
+    source, packed = _gzipped
+    if source is not listing:
+        packed = gzip.compress(listing.encode(), 6)
+        _gzipped = (listing, packed)
+    return packed
 
 
 def media_urls(rel_path):

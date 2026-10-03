@@ -13,7 +13,7 @@ from flask import Blueprint, Response, abort, request
 from PIL import ExifTags, Image
 from werkzeug.utils import secure_filename
 
-from ..catalog import images_json, invalidate_images_cache, media_urls
+from ..catalog import images_gzip, images_json, invalidate_images_cache, media_urls
 from ..config import MAX_BULK_FILES, UPLOAD_FOLDER
 from ..db import TRASH_PREFIX, clear_filename, get_db, rename_filename
 from ..media import ALLOWED_EXTENSIONS, allowed_file, is_video, normalize_active_filename, read_dimensions
@@ -28,7 +28,10 @@ bp = Blueprint('images', __name__)
 
 @bp.get('/images')
 def list_images():
-    return Response(images_json(), mimetype='application/json')
+    if request.accept_encodings['gzip']:
+        return Response(images_gzip(), mimetype='application/json',
+                        headers={'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding'})
+    return Response(images_json(), mimetype='application/json', headers={'Vary': 'Accept-Encoding'})
 
 
 @bp.delete('/images/<path:filename>')

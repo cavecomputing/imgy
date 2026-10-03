@@ -4,24 +4,20 @@ const form = document.getElementById('form');
 const preview = document.getElementById('preview');
 const tagsInput = document.getElementById('tags');
 const tagChoices = document.getElementById('tagChoices');
-const serverBox = document.getElementById('serverBox');
-const serverInput = document.getElementById('server');
 const sendButton = document.getElementById('send');
+const settingsButton = document.getElementById('settings');
 const status = document.getElementById('status');
 
 const src = new URLSearchParams(location.search).get('src');
 const extensionOfType = {
     'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/webp': '.webp', 'image/bmp': '.bmp',
 };
+let server = '';
 let knownTags = [];
 
 function setStatus(text, isError = false) {
     status.textContent = text;
     status.classList.toggle('error', isError);
-}
-
-function serverUrl() {
-    return serverInput.value.trim().replace(/\/+$/, '');
 }
 
 /** The file name Imgy gets: the last part of the URL, with an extension from the content type if it has none. */
@@ -34,14 +30,12 @@ function fileNameFor(blob) {
 
 async function loadKnownTags() {
     try {
-        const response = await fetch(`${serverUrl()}/api/tags`);
+        const response = await fetch(`${server}/api/tags`);
         knownTags = response.ok ? await response.json() : [];
     } catch {
         knownTags = [];
     }
 }
-
-serverInput.addEventListener('change', loadKnownTags);
 
 // Suggest tags for the word being typed, keeping the ones already typed before it.
 tagsInput.addEventListener('input', () => {
@@ -67,13 +61,12 @@ form.addEventListener('submit', async (event) => {
         for (const tag of tagsInput.value.split(',')) {
             if (tag.trim()) body.append('tags', tag.trim());
         }
-        const response = await fetch(`${serverUrl()}/api/upload`, { method: 'POST', body });
+        const response = await fetch(`${server}/api/upload`, { method: 'POST', body });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) {
             const skipped = result.skipped?.[0]?.reason;
             throw new Error(result.error || skipped || `Imgy answered ${response.status}`);
         }
-        await browser.storage.local.set({ server: serverUrl() });
         setStatus(`Uploaded as ${result.uploaded[0].filename}`);
         setTimeout(window.close, 1200);
     } catch (error) {
@@ -82,11 +75,16 @@ form.addEventListener('submit', async (event) => {
     }
 });
 
+settingsButton.addEventListener('click', () => browser.runtime.openOptionsPage());
+
 (async () => {
     preview.src = src;
-    const { server } = await browser.storage.local.get('server');
-    serverInput.value = server || '';
-    serverBox.open = !server;
-    if (server) loadKnownTags();
-    else serverInput.focus();
+    ({ server = '' } = await browser.storage.local.get('server'));
+    if (server) {
+        loadKnownTags();
+        return;
+    }
+    sendButton.disabled = true;
+    settingsButton.hidden = false;
+    setStatus('Set your Imgy address in the extension settings first.', true);
 })();

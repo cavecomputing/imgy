@@ -26,7 +26,6 @@ export function closeLightbox() {
     if (video) { video.pause(); video.remove(); }
     Elements.lightboxExif.textContent = '';
     closeLightboxTagFlyup();
-    setSheetExpanded(false);
     const restoreFilename = getCurrentLightboxImage()?.filename;
     Elements.lightbox.classList.remove('active');
     document.body.style.overflow = '';
@@ -47,12 +46,6 @@ export function closeLightbox() {
 export function setLightboxFavoriteState(isFavorite) {
     setToggleButtonState(Elements.lightboxFavoriteBtn, isFavorite);
     setToggleButtonState(Elements.lightboxFavoriteTab, isFavorite);
-}
-
-function setSheetExpanded(expanded) {
-    Elements.lightboxPanel.classList.toggle('expanded', expanded);
-    Elements.lightboxSheetGrab.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    Elements.lightboxSheetGrab.setAttribute('aria-label', expanded ? 'Hide details' : 'Show details');
 }
 
 export function updateLightboxContent() {
@@ -376,20 +369,6 @@ export function initLightbox() {
     Elements.lightboxTagTab.addEventListener('click', toggleLightboxTagFlyup);
     Elements.lightboxFavoriteBtn.addEventListener('click', favorite);
     Elements.lightboxFavoriteTab.addEventListener('click', favorite);
-    Elements.lightboxSheetGrab.addEventListener('click', () => {
-        setSheetExpanded(!Elements.lightboxPanel.classList.contains('expanded'));
-    });
-    // The handle also takes a swipe: up opens the details, down closes them
-    let grabStartY = 0;
-    Elements.lightboxSheetGrab.addEventListener('touchstart', (e) => {
-        grabStartY = e.touches[0].clientY;
-    }, { passive: true });
-    Elements.lightboxSheetGrab.addEventListener('touchend', (e) => {
-        const deltaY = e.changedTouches[0].clientY - grabStartY;
-        if (Math.abs(deltaY) < 20) return; // a tap, which the click handler takes
-        setSheetExpanded(deltaY < 0);
-        e.preventDefault(); // or the click that can follow would undo the swipe
-    });
 
     Elements.lightboxContent.addEventListener('wheel', (e) => {
         if (!Elements.lightbox.classList.contains('active')) return;

@@ -43,7 +43,6 @@ export const Elements = {
     prevImageBtn: byId('prevImage'),
     nextImageBtn: byId('nextImage'),
     lightboxPanel: byId('lightboxPanel'),
-    lightboxSheetGrab: byId('lightboxSheetGrab'),
     lightboxTagBarTags: byId('lightboxTagBarTags'),
     lightboxTagFlyup: byId('lightboxTagFlyup'),
     lightboxTagInput: byId('lightboxTagInput'),

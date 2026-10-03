@@ -72,11 +72,12 @@ function createImageCard(img, idx) {
         </div>
     `;
 
-    card.querySelector('img').addEventListener('load', () => {
-        const group = card.closest('.image-group');
-        if (group) resizeGroupItem(group);
-        else resizeMasonryItem(card);
-    });
+    // Re-measure once the thumbnail settles. A broken one draws at a different height than
+    // the shape reserved for it, so it needs this as much as one that loads.
+    const remeasure = () => setRowSpans([card.closest('.image-group') || card]);
+    const thumb = card.querySelector('img');
+    thumb.addEventListener('load', remeasure);
+    thumb.addEventListener('error', remeasure);
     card.addEventListener('click', (e) => handleCardClick(e, img, card));
     return card;
 }
@@ -123,14 +124,6 @@ function setRowSpans(items) {
         const { height, margin } = sizes[i];
         if (height > 0) item.style.gridRowEnd = `span ${Math.ceil((height + margin) / rowHeight)}`;
     });
-}
-
-function resizeMasonryItem(item) {
-    if (item) setRowSpans([item]);
-}
-
-function resizeGroupItem(groupEl) {
-    if (groupEl) setRowSpans([groupEl]);
 }
 
 export function resizeAllMasonryItems() {

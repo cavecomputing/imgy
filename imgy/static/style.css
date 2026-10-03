@@ -18,7 +18,7 @@
     --radius: 10px;
     --radius-lg: 14px;
     --ease: 160ms ease;
-    --shell-gap: 10px; /* the ground showing around the page; none on phones */
+    --shell-gap: 10px; /* the ground showing around the page */
     --topbar-h: calc(56px + var(--shell-gap)); /* viewport top to the bottom of the top bar */
     --subbar-h: 52px;
 
@@ -1508,10 +1508,8 @@ body.drag-over::after {
 }
 
 @media (max-width: 768px) {
-    :root { --topbar-h: 52px; --shell-gap: 0px; }
-    body::before { display: none; } /* a phone has no room to spare for a frame */
-    body, .subbar { background: var(--bg-page); }
-    .topbar { gap: 2px; padding: 0 4px 0 14px; }
+    :root { --topbar-h: calc(52px + var(--shell-gap)); }
+    .topbar { gap: 2px; padding: var(--shell-gap) 4px 0 14px; }
     .brand { margin-right: auto; }
     .theme-btn { display: none; }
     .icon-btn { width: 44px; height: 44px; }
@@ -1520,9 +1518,9 @@ body.drag-over::after {
     /* the filter and upload move to a bar at the bottom, in reach of a thumb */
     .topbar-filter {
         position: fixed;
-        left: 0;
-        right: 0;
-        bottom: var(--keyboard-inset, 0px);
+        left: var(--shell-gap);
+        right: var(--shell-gap);
+        bottom: max(var(--shell-gap), var(--keyboard-inset, 0px));
         z-index: 120;
         margin: 0;
         gap: 8px;
@@ -1535,18 +1533,18 @@ body.drag-over::after {
     .cmd-input { font-size: 16px; } /* under 16px, iOS zooms the page when the field takes focus */
     .cmd-kbd, .keys-hw { display: none; }
     .upload-btn { width: 44px; height: 44px; }
-    .filter-pop { top: auto; bottom: calc(100% + 8px); width: calc(100vw - 24px); }
+    .filter-pop { top: auto; bottom: calc(100% + 8px); width: calc(100vw - 32px - 2 * var(--shell-gap)); }
     .filter-pop-list { max-height: min(360px, calc(100vh - 260px)); }
 
-    .subbar { position: static; height: 54px; gap: 6px; padding: 0 12px; }
+    .subbar { position: static; height: 54px; gap: 4px; padding: 0 12px; }
     .lib-count-extra, .lib-count-total, .lib-count-unit { display: none; }
-    .toggle { height: 36px; gap: 6px; padding: 0 10px; }
+    .toggle { height: 36px; gap: 6px; padding: 0 8px; }
     .toggle .kbd, .size-ctl { display: none; }
     .toggle:not(#selectModeBtn) svg.i { display: none; }
 
     .gallery { padding: 10px 12px calc(96px + env(safe-area-inset-bottom)); }
     .image-grid { column-gap: 10px; }
-    .image-card { margin-bottom: 10px; scroll-margin: 64px 0 100px; }
+    .image-card { margin-bottom: 10px; scroll-margin: calc(var(--topbar-h) + 12px) 0 100px; }
     .card-foot { height: 30px; gap: 6px; padding: 0 8px; }
     .card-title, .card-tag-btn { font-size: 11px; }
     .card-star { width: 13px; height: 13px; }
@@ -1554,9 +1552,10 @@ body.drag-over::after {
     .card-actions { display: none; }
 
     .selection-bar {
-        left: 0;
-        right: 0;
-        bottom: 0;
+        left: var(--shell-gap);
+        right: var(--shell-gap);
+        bottom: var(--shell-gap);
+        z-index: 150; /* under the frame, so its rounded corners cut the bar's square ones */
         transform: none;
         max-width: none;
         justify-content: space-between;
@@ -1570,17 +1569,18 @@ body.drag-over::after {
     #downloadSelectedBtn span::before { content: "Save"; font-size: 10px; }
     .selection-count { padding: 0 4px; }
     .tag-flyup-gallery, .tag-flyup-gallery.bulk-mode {
-        bottom: max(calc(80px + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px));
-        max-height: calc(100dvh - var(--keyboard-inset, 0px) - 72px);
+        bottom: max(calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px));
+        width: calc(100vw - 24px - 2 * var(--shell-gap));
+        max-height: calc(100dvh - var(--keyboard-inset, 0px) - var(--topbar-h) - 20px);
     }
-    .tag-flyup-gallery:not(.bulk-mode) { bottom: max(calc(76px + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px)); }
+    .tag-flyup-gallery:not(.bulk-mode) { bottom: max(calc(76px + var(--shell-gap) + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px)); }
     .chip-add .kbd { display: none; }
     .flyup-input input { font-size: 16px; }
 
-    .toast, .upload-progress { bottom: calc(80px + env(safe-area-inset-bottom)); }
+    .toast, .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }
     .selection-bar:not(.hidden) ~ .toast,
-    .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(80px + env(safe-area-inset-bottom)); }
-    .tag-flyup-gallery.active ~ .toast { top: calc(env(safe-area-inset-top) + 10px); bottom: auto; }
+    .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }
+    .tag-flyup-gallery.active ~ .toast { top: calc(env(safe-area-inset-top) + var(--shell-gap) + 10px); bottom: auto; }
 
     dialog.dlg { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; }
     dialog.trash-dlg { margin: 0; max-height: 100dvh; }

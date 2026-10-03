@@ -499,7 +499,9 @@ function trackKeyboardInset() {
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
-        const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        // iOS reports a negative offsetTop while the page is pulled down past the top (pull to
+        // refresh), which would read as a keyboard that many pixels tall
+        const inset = Math.max(0, window.innerHeight - vv.height - Math.max(0, vv.offsetTop));
         document.documentElement.style.setProperty('--keyboard-inset', `${Math.round(inset)}px`);
     };
     vv.addEventListener('resize', update);

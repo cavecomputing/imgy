@@ -538,12 +538,13 @@ button.chip { cursor: pointer; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-card);
+    overflow: hidden;
     cursor: pointer;
     scroll-margin: calc(var(--topbar-h) + var(--subbar-h) + 16px) 0 96px;
     transition: box-shadow var(--ease);
 }
 .image-card:hover { box-shadow: var(--shadow-lift); }
-.image-card.keyboard-focused, .image-card.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+.image-card.keyboard-focused, .image-card.selected { outline: 2px solid var(--accent); outline-offset: 2px; overflow: visible; }
 .image-card.keyboard-focused { box-shadow: var(--shadow-lift); z-index: 2; }
 .card-media { position: relative; overflow: hidden; border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; }
 .card-media img { display: block; width: 100%; height: auto; background: var(--bg-inset); }
@@ -590,17 +591,12 @@ button.chip { cursor: pointer; }
 .card-tag-btn { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; margin-right: -6px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); cursor: pointer; }
 .card-tag-btn:hover { background: var(--bg-inset); color: var(--fg); }
 .image-grid.selection-mode .card-tag-btn { pointer-events: none; }
-/* the tooltip, just below the card (the button stays unpositioned so the card is its containing block; the card
-   doesn't clip, so only .card-media rounds its corners).
-   Like a native one it waits half a second to show and goes the moment the pointer leaves. */
-.card-tag-tip {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 6px);
-    z-index: 4;
+/* the tag button's tooltip: placed by initTagTip() in grid.js */
+.tag-tip {
+    position: fixed;
+    z-index: 1000;
     visibility: hidden;
-    opacity: 0;
-    max-width: 100%;
+    max-width: min(320px, calc(100vw - 12px));
     padding: 4px 8px;
     border-radius: var(--radius-sm);
     background: var(--bg-raised);
@@ -609,14 +605,11 @@ button.chip { cursor: pointer; }
     font-family: var(--font-mono);
     font-size: 11px;
     line-height: 1.4;
-    white-space: normal;
     overflow-wrap: anywhere;
     color: var(--fg);
     pointer-events: none;
 }
-@media (hover: hover) {
-    .card-tag-btn:hover .card-tag-tip { visibility: visible; opacity: 1; transition: opacity 0.12s 0.5s, visibility 0s 0.5s; }
-}
+.tag-tip.shown { visibility: visible; }
 .card-foot .cc-badge { padding: 1px 7px 1px 6px; font-size: 10px; }
 
 .card-actions {

@@ -36,11 +36,16 @@ def create_app():
         Browsers send Sec-Fetch-Site to localhost and HTTPS servers. Over plain HTTP elsewhere they
         send only Origin, which must then match the host and port exactly (another port on the
         same machine is another site). Scripts like curl send neither.
+
+        Firefox extension pages (the Imgy extension's upload window) send a moz-extension:// Origin,
+        which no web page can forge, so those writes pass whatever Sec-Fetch-Site says.
         """
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return
         site = request.headers.get('Sec-Fetch-Site')
         origin = request.headers.get('Origin')
+        if origin and origin.startswith('moz-extension://'):
+            return
         if site in ('cross-site', 'same-site') \
                 or (site is None and origin is not None and urlsplit(origin).netloc != request.host):
             abort(403, 'Cross-site request blocked')

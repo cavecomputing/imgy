@@ -282,6 +282,13 @@ async function handleCardClick(e, img, card) {
 }
 
 export function initGrid() {
+    // A card's buttons show for keyboard focus on one of them. This class does what
+    // :has(.card-action-btn:focus-visible) did, which slowed every redraw down.
+    Elements.imageGrid.addEventListener('focusin', (e) => {
+        e.target.closest('.card-actions')?.classList.toggle('shown', e.target.matches(':focus-visible'));
+    });
+    Elements.imageGrid.addEventListener('focusout', (e) => e.target.closest('.card-actions')?.classList.remove('shown'));
+
     // Re-flow the masonry layout whenever the grid's width changes. Drawing more cards only makes
     // it taller, and measuring every card again after each batch would slow a deep scroll down.
     let width = 0;

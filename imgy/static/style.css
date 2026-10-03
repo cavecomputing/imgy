@@ -643,9 +643,9 @@ button.chip { cursor: pointer; }
     line-height: 1.2;
     color: var(--on-image);
 }
-/* the buttons follow the pointer, or keyboard focus on one of them (Tab) */
+/* the buttons follow the pointer, or keyboard focus on one of them (Tab, which initGrid marks as .shown) */
 .image-grid:not(.selection-mode) .image-card:hover .card-actions,
-.image-grid:not(.selection-mode) .image-card:has(.card-action-btn:focus-visible) .card-actions { opacity: 1; pointer-events: auto; }
+.image-grid:not(.selection-mode) .card-actions.shown { opacity: 1; pointer-events: auto; }
 .image-grid:not(.selection-mode) .image-card:hover .card-tag-preview,
 .image-grid:not(.selection-mode) .image-card.keyboard-focused .card-tag-preview { opacity: 1; }
 
@@ -1332,10 +1332,10 @@ dialog.settings-dlg { width: min(940px, calc(100vw - 48px)); height: min(780px, 
     pointer-events: none;
     animation: notice-in 180ms ease-out;
 }
-body:has(.selection-bar:not(.hidden)) .toast,
-body:has(.selection-bar:not(.hidden)) .upload-progress { bottom: 90px; }
+.selection-bar:not(.hidden) ~ .toast,
+.selection-bar:not(.hidden) ~ .upload-progress { bottom: 90px; }
 /* The gallery tag editor sits at the bottom, so its results show up top */
-body:has(.tag-flyup-gallery.active) .toast { top: calc(var(--topbar-h) + 10px); bottom: auto; }
+.tag-flyup-gallery.active ~ .toast { top: calc(var(--topbar-h) + 10px); bottom: auto; }
 .error {
     position: fixed;
     top: calc(var(--topbar-h) + 10px);
@@ -1582,9 +1582,9 @@ body.drag-over::after {
     .flyup-input input { font-size: 16px; }
 
     .toast, .upload-progress { bottom: calc(80px + env(safe-area-inset-bottom)); }
-    body:has(.selection-bar:not(.hidden)) .toast,
-    body:has(.selection-bar:not(.hidden)) .upload-progress { bottom: calc(80px + env(safe-area-inset-bottom)); }
-    body:has(.tag-flyup-gallery.active) .toast { top: calc(env(safe-area-inset-top) + 10px); bottom: auto; }
+    .selection-bar:not(.hidden) ~ .toast,
+    .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(80px + env(safe-area-inset-bottom)); }
+    .tag-flyup-gallery.active ~ .toast { top: calc(env(safe-area-inset-top) + 10px); bottom: auto; }
 
     dialog.dlg { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; }
     dialog.trash-dlg { margin: 0; max-height: 100dvh; }

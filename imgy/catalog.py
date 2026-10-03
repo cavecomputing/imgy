@@ -82,11 +82,11 @@ def _build_listing():
     images = []
     new_metadata = []
     updated_metadata = []
-    for path, rel_path in walk_active_files():
+    for path, rel_path, st in walk_active_files():
         meta = metadata.get(rel_path)
         if meta is None:
             w, h = read_dimensions(path, rel_path)
-            created_at = path.stat().st_mtime
+            created_at = st.st_mtime
             new_metadata.append((rel_path, created_at, w, h))
         elif meta['width'] is None:
             w, h = read_dimensions(path, rel_path)
@@ -94,11 +94,6 @@ def _build_listing():
             created_at = meta['created_at']
         else:
             created_at, w, h = meta['created_at'], meta['width'], meta['height']
-
-        try:
-            size = path.stat().st_size
-        except OSError:
-            size = None
 
         images.append({
             'filename': rel_path,
@@ -109,7 +104,7 @@ def _build_listing():
             'position': meta['position'] if meta else None,
             'width': w,
             'height': h,
-            'size': size,
+            'size': st.st_size,
             'type': 'video' if is_video(rel_path) else 'image',
             'group_id': filename_to_group.get(rel_path),
         })

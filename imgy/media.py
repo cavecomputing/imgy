@@ -2,6 +2,7 @@
 import functools
 import logging
 import os
+import stat
 import subprocess
 from pathlib import Path
 
@@ -93,15 +94,26 @@ def _is_media_path(rel_path):
 
 
 def walk_active_files():
-    """Yield (path, relative path) for every media file, skipping hidden directories and symlinks."""
+    """Yield (path, relative path, stat result) for every media file, skipping hidden directories and symlinks.
+
+    One lstat per file does for the symlink check, the regular-file check and the size, and plain
+    strings stand in for Path objects until a file is known to count: the listing walks every
+    file on each rebuild.
+    """
     for root, dirs, files in os.walk(UPLOAD_FOLDER):
         dirs[:] = [d for d in dirs if not d.startswith('.')]
-        root = Path(root)
+        folder = os.path.relpath(root, UPLOAD_FOLDER)
         for name in files:
-            path = root / name
-            rel_path = str(path.relative_to(UPLOAD_FOLDER))
-            if _is_media_path(rel_path) and not path.is_symlink() and path.is_file():
-                yield path, rel_path
+            rel_path = name if folder == '.' else os.path.join(folder, name)
+            if not allowed_file(name) or rel_path.startswith(TRASH_PREFIX):
+                continue
+            path = os.path.join(root, name)
+            try:
+                st = os.lstat(path)
+            except OSError:
+                continue
+            if stat.S_ISREG(st.st_mode):
+                yield path, rel_path, st
 
 
 def video_dimensions(path):

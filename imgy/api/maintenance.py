@@ -56,7 +56,7 @@ def reset_thumbnails():
 @bp.post('/maintenance/cleanup')
 def cleanup_orphans():
     """Remove DB rows and thumbnails whose media file (active or trashed) no longer exists."""
-    active_files = {rel for _path, rel in walk_active_files()}
+    active_files = {rel for _path, rel, _st in walk_active_files()}
     active_thumbs = {thumb_rel_path_for(rel) for rel in active_files}
     trash_files = {f.name for f in TRASH_FOLDER.iterdir() if f.is_file() and not f.name.startswith('.')} if TRASH_FOLDER.exists() else set()
     trash_thumbs = {thumb_rel_path_for(str(Path('.trash') / name)) for name in trash_files}

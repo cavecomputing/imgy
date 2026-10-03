@@ -89,7 +89,7 @@ function createGroupContainer(groupId, members, firstIndex) {
     const header = document.createElement('div');
     header.className = 'image-group-header';
     header.innerHTML = `
-        <span class="image-group-badge">${icon('grid')}<span class="image-group-label">Group</span><strong>${formatCount(members.length, 'file')}</strong></span>
+        <span class="image-group-badge">${icon('grid')}<strong>${formatCount(members.length, 'file')}</strong></span>
         <button class="link-btn image-group-ungroup" type="button" title="Keep the files, drop the group">Ungroup</button>
     `;
     header.querySelector('.image-group-ungroup').addEventListener('click', async (e) => {

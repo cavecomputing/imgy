@@ -723,12 +723,11 @@ button.chip { cursor: pointer; }
     box-shadow: var(--shadow-card);
 }
 /* 8px on every side of the row: the group's padding above and beside it, this padding below */
-.image-group-header { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); container-type: inline-size; }
+.image-group-header { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); }
 .image-group-badge { display: inline-flex; align-items: center; gap: 8px; }
 .image-group-badge svg.i { color: var(--accent-rose); }
 .image-group-badge strong { font-weight: 400; color: var(--fg); white-space: nowrap; }
-.image-group-ungroup { margin-left: auto; line-height: 1; } /* like the label: .link-btn's 1.2 sits the text a pixel higher */
-@container (max-width: 190px) { .image-group-label { display: none; } } /* no room for it beside a 100-file count; the phone layout drops it too */
+.image-group-ungroup { margin-left: auto; line-height: 1; } /* like the count: .link-btn's 1.2 sits the text a pixel higher */
 .image-group-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .image-group-grid .image-card { margin: 0; border-radius: var(--radius-sm); box-shadow: none; grid-row-end: auto !important; }
 .image-group-grid .card-media { border-radius: calc(var(--radius-sm) - 1px); }
@@ -1557,7 +1556,7 @@ body.drag-over::after {
     .card-title, .card-tag-count { font-size: 11px; }
     .card-star { width: 13px; height: 13px; }
     .card-foot .cc-badge { letter-spacing: 0.04em; }
-    .card-actions, .card-tag-preview, .image-group-label { display: none; }
+    .card-actions, .card-tag-preview { display: none; }
 
     .selection-bar {
         left: 0;

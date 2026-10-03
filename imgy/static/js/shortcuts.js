@@ -10,6 +10,9 @@ import { removeLastFilter } from './filters.js';
 import { closeLightbox, navigateImage, openLightbox, resetZoom } from './lightbox.js';
 import { closeShortcutsModal, toggleShortcutsModal } from './settings.js';
 
+// h j k l act as the arrow keys
+const VIM_ARROWS = { h: 'ArrowLeft', j: 'ArrowDown', k: 'ArrowUp', l: 'ArrowRight' };
+
 export function initShortcuts() {
     document.addEventListener('keydown', async (e) => {
         const target = document.activeElement;
@@ -54,10 +57,11 @@ export function initShortcuts() {
         if (anyModalOpen) return;
 
         const inLightbox = Elements.lightbox.classList.contains('active');
+        const arrow = VIM_ARROWS[e.key] ?? e.key;
 
         if (inLightbox) {
-            if (e.key === 'ArrowLeft') { navigateImage(-1); return; }
-            if (e.key === 'ArrowRight') { navigateImage(1); return; }
+            if (arrow === 'ArrowLeft') { navigateImage(-1); return; }
+            if (arrow === 'ArrowRight') { navigateImage(1); return; }
             if (e.key === 'f') { e.preventDefault(); Elements.lightboxFavoriteBtn?.click(); return; }
             if (e.key === 't') { e.preventDefault(); Elements.lightboxTagBtn?.click(); return; }
             if (e.key === 'd' || e.key === 'Delete') { e.preventDefault(); deleteImage(State.currentImageIndex); return; }
@@ -66,9 +70,9 @@ export function initShortcuts() {
             if (e.key === '/') { e.preventDefault(); Elements.lightboxTagBtn?.click(); return; }
         } else {
             // Gallery keyboard navigation
-            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(arrow)) {
                 e.preventDefault();
-                const dir = e.key.replace('Arrow', '').toLowerCase();
+                const dir = arrow.replace('Arrow', '').toLowerCase();
                 navigateGrid(dir);
                 return;
             }

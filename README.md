@@ -26,7 +26,7 @@ OpenAI-style chat API works.
 - Drag files or groups into your own order (press and hold on a phone); **Settings › Appearance** switches back to newest first
 - Trash with restore, inline rename, drag-and-drop upload
 - Big libraries open fast: the gallery draws its files in batches and keeps drawing ahead of your scroll
-- Press `?` in the app for every keyboard shortcut
+- Press `?` in the app for every keyboard shortcut; `h` `j` `k` `l` move like the arrow keys
 - Gruvbox dark and light themes, with a phone layout that keeps the filter in reach of your thumb
 
 > [!WARNING]

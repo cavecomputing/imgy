@@ -35,5 +35,8 @@ async function start() {
 
 start();
 
+// Only exists on HTTPS and localhost; elsewhere the app just isn't installable
+navigator.serviceWorker?.register('/sw.js');
+
 // Abort in-flight API requests on page unload to prevent server pile-up
 window.addEventListener('beforeunload', abortLoadData);

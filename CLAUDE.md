@@ -107,7 +107,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [imgy/trash.py](imgy/trash.py) | Soft delete and restore. |
 | [imgy/catalog.py](imgy/catalog.py) | The cached `/api/images` listing and `media_urls()`. |
 | [imgy/llm.py](imgy/llm.py) | LLM client and prompt. |
-| [imgy/views.py](imgy/views.py) | Page, media file and thumbnail routes. |
+| [imgy/views.py](imgy/views.py) | Page, media file and thumbnail routes, plus `/sw.js`: a worker only controls pages under its own path, so it is served from the root. |
 | [imgy/api/](imgy/api/) | One blueprint per resource, all mounted under `/api`. |
 | [imgy/templates/index.html](imgy/templates/index.html) | The entire page. JS modules are in [imgy/static/js/](imgy/static/js/), entry [main.js](imgy/static/js/main.js). |
 | [imgy/static/](imgy/static/) | `cavecomputing.css` (vendored design system) and `style.css` (Imgy's layout and theme tokens). |
@@ -139,6 +139,7 @@ rows that reference them in the same request.
 - Call the server through `api.get/post/delete` in `api.js`, which throws on errors and shows them in the error banner.
 - Modules that bind event listeners export an `initX()`; `main.js` calls them in order, then loads settings and data. Imported bindings are read-only, so keep reassigned module state (timers, controllers) inside the module that owns it.
 - The tag expression syntax is shared by the filter bar, the tag editor, and the bulk tag editor, but each interprets tokens differently. Check the table in `README.md` before changing `tags.js`, `filters.js`, `flyup.js`, or `selection.js`.
+- The PWA service worker (`static/sw.js`) caches nothing on purpose: `/api/*` must stay fresh and the static JS has no hashed names, so a cache would pin old code after an update. Keep it that way.
 - Colors come from CSS custom properties on `:root` and `[data-theme="dark"]` in `style.css`; don't hardcode them. The look follows the cavecomputing design system: its components (`cc-btn`, `cc-badge`, `cc-callout`, `cc-table`, ...) are vendored in `cavecomputing.css`, so reuse them before adding new ones, and keep each accent to one meaning (yellow focus and selection, green brand and done, blue links and paths, orange destructive).
 - The grid draws only the first part of `State.filteredImages`: `renderImageGrid()` draws `BATCH` files, and an observer on `#gridEnd` draws the next batch whenever the end of the grid comes within `PRELOAD_PX` of the window (both in `grid.js`). A file can therefore have no card, so look files up in `State`, not the DOM, and expect a missing card from a selector. A redraw reaches down to the current scroll position, so `applyFilters()` can scroll back to it. Files not drawn yet keep their places when the user drags (`saveImageOrder`).
 - `applyFilters()` does not rebuild the grid when the files shown are the same ones, or the same minus some top-level cards (`updateInPlace()` in `grid.js`); it only redraws a card's tags, and `updateLocalState()` patches the favorite star. Anything else a card shows has to be patched by whoever changes it, or the rebuild forced by changing the list.

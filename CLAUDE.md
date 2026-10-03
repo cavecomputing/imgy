@@ -107,7 +107,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [imgy/trash.py](imgy/trash.py) | Soft delete and restore. |
 | [imgy/catalog.py](imgy/catalog.py) | The cached `/api/images` listing and `media_urls()`. |
 | [imgy/llm.py](imgy/llm.py) | LLM client and prompt. |
-| [imgy/views.py](imgy/views.py) | Page, media file and thumbnail routes, plus `/sw.js`: a worker only controls pages under its own path, so it is served from the root. |
+| [imgy/views.py](imgy/views.py) | Page, media file and thumbnail routes, plus `/sw.js` (a worker only controls pages under its own path, so it is served from the root) and `/manifest.webmanifest`, built from `imgy/manifest.json` with fullscreen added for phones. |
 | [imgy/api/](imgy/api/) | One blueprint per resource, all mounted under `/api`. |
 | [imgy/templates/index.html](imgy/templates/index.html) | The entire page. JS modules are in [imgy/static/js/](imgy/static/js/), entry [main.js](imgy/static/js/main.js). |
 | [imgy/static/](imgy/static/) | `cavecomputing.css` (vendored design system) and `style.css` (Imgy's layout and theme tokens). |

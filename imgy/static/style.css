@@ -1597,20 +1597,6 @@ body.drag-over::after {
     .card-action-btn { width: 36px; height: 36px; }
 }
 
-/* The installed desktop app draws its window buttons over the page's top corner (left on macOS,
-   right elsewhere), so the bars leave room for them and drag the window. Phones get fullscreen from the
-   manifest instead; browsers that support neither fall back to standalone. */
-@media (display-mode: window-controls-overlay) {
-    :root {
-        --controls-left: env(titlebar-area-x, 0px);
-        --controls-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
-    }
-    .topbar { padding-left: calc(16px + var(--controls-left)); padding-right: calc(12px + var(--controls-right)); }
-    .lb-top { padding-left: calc(18px + var(--controls-left)); padding-right: calc(12px + var(--controls-right)); }
-    .topbar, .lb-top { -webkit-app-region: drag; }
-    .topbar-filter, .topbar button, .lb-heading, .lb-top button { -webkit-app-region: no-drag; }
-}
-
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;

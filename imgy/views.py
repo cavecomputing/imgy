@@ -1,5 +1,8 @@
 """The single-page app shell plus the routes that serve media files and thumbnails."""
-from flask import Blueprint, current_app, jsonify, render_template, send_from_directory
+import json
+from pathlib import Path
+
+from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 from .config import THUMBNAIL_FOLDER, UPLOAD_FOLDER
 from .media import normalize_active_filename
@@ -17,6 +20,19 @@ def index():
 def service_worker():
     # A worker only controls pages under its own path, so it can't be served from /static/.
     return send_from_directory(current_app.static_folder, 'sw.js')
+
+
+@bp.get('/manifest.webmanifest')
+def manifest():
+    app_manifest = json.loads((Path(current_app.root_path) / 'manifest.json').read_text())
+    # Phones go fullscreen. A desktop app with its title bar hidden gets Chrome's address flashed
+    # over it at every launch, so desktop keeps the standalone window.
+    if request.headers.get('Sec-CH-UA-Mobile') == '?1':
+        app_manifest['display_override'] = ['fullscreen']
+    response = jsonify(app_manifest)
+    response.mimetype = 'application/manifest+json'
+    response.vary.add('Sec-CH-UA-Mobile')
+    return response
 
 
 @bp.get('/images/<path:filename>')

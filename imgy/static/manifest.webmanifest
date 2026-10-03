@@ -5,6 +5,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "fullscreen"],
   "background_color": "#282828",
   "theme_color": "#282828",
   "share_target": {

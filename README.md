@@ -59,7 +59,7 @@ The container runs as UID/GID 1000 by default. To match your host user, start it
 `PUID=$(id -u) PGID=$(id -g) docker compose up --build -d`. Run compose from `docker/`, or from the
 repo root with `-f docker/compose.yml`; a `.env` file for these variables goes in `docker/`.
 
-For a production server, run `uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --timeout 120 app:app`.
+For a production server, run `uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --worker-class gthread --threads 8 --timeout 120 app:app`.
 
 ## Your data
 

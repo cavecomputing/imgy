@@ -39,9 +39,13 @@ def _generation():
 
 
 def _cached(generation):
-    return (_cache['data'] is not None
+    """The cached listing if it is still fresh, else None. Read once: another thread may invalidate it."""
+    data = _cache['data']
+    if (data is not None
             and _cache['generation'] == generation
-            and time.monotonic() - _cache['timestamp'] < CACHE_TTL)
+            and time.monotonic() - _cache['timestamp'] < CACHE_TTL):
+        return data
+    return None
 
 
 def images_json():
@@ -50,15 +54,16 @@ def images_json():
     Each image carries its "position" in the custom order, or null until it has been placed.
     """
     generation = _generation()
-    if _cached(generation):
-        return _cache['data']
+    data = _cached(generation)
+    if data is not None:
+        return data
     with _lock:
         generation = _generation()
-        if not _cached(generation):
-            _cache['data'] = _build_listing()
-            _cache['timestamp'] = time.monotonic()
-            _cache['generation'] = generation
-        return _cache['data']
+        data = _cached(generation)
+        if data is None:
+            data = _build_listing()
+            _cache.update(data=data, timestamp=time.monotonic(), generation=generation)
+        return data
 
 
 def media_urls(rel_path):

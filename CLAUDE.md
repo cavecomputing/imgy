@@ -57,7 +57,7 @@ buries the real diff under noise.
 ```bash
 uv sync                                               # install the locked dependencies into .venv
 uv run app.py                                         # dev server on 127.0.0.1:8000 (DATA_DIR defaults to ./data)
-uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --timeout 120 app:app
+uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --worker-class gthread --threads 8 --timeout 120 app:app
 docker compose -f docker/compose.yml up --build -d    # serves 127.0.0.1:8000
 
 uv run python -m compileall -q app.py imgy            # backend syntax check
@@ -128,7 +128,7 @@ rows that reference them in the same request.
 - **No login.** `create_app()` answers to any host unless `ALLOWED_HOSTS` is set, and then only to `localhost`, `127.0.0.1`, and those names (Flask's `TRUSTED_HOSTS`, against DNS rebinding). It always refuses state-changing requests that browsers mark as cross-site (`Sec-Fetch-Site`, or, when that header is absent, an `Origin` that doesn't match the request's host and port); keep new write routes on POST/PUT/DELETE so they stay covered. Build media URLs with `catalog.media_urls()`, which percent-encodes names.
 - **Trash keeps metadata.** Moving a file to trash renames its `tags`, `favorites`, and `image_metadata` rows to `trash:<trash name>:<original path>`, and restore renames them back. Names can contain `:` and `_`, so use the helpers in `trash.py` and `db.NOT_TRASHED` (exact prefix match) instead of splitting keys or using `LIKE`. Group memberships are dropped on trash, and groups left with one member are dissolved. Top-level media names starting with `trash:` are reserved (`media._is_media_path()` skips them).
 - **New names start clean.** Rows can outlive their file (files deleted outside the app). Before a file takes a path through upload, rename, or restore, call `db.clear_filename()` so it doesn't inherit them.
-- **Database access.** Use `db.get_db()` (WAL mode and a 5 s busy timeout, so several gunicorn workers can share the file) and keep transactions short. `catalog._build_listing()` reads, walks the filesystem with no connection open, then writes; keep that shape for handlers that mix filesystem and database work. The schema is created idempotently by `init_db()`.
+- **Database access.** Use `db.get_db()` (WAL mode and a 5 s busy timeout, so several gunicorn workers can share the file) and keep transactions short. Each worker runs 8 threads (`gthread`), so module-level state needs a lock or a single read, as in `catalog._cached()`. `catalog._build_listing()` reads, walks the filesystem with no connection open, then writes; keep that shape for handlers that mix filesystem and database work. The schema is created idempotently by `init_db()`.
 - **Custom order.** `image_metadata.position` is 0..n-1 for the files in the last `POST /api/images/reorder` and null for files never placed, which the frontend shows first. It sits on `image_metadata` so rename, trash, and restore carry it with the rest of the row. The `galleryOrder` setting (`newest` or `custom`) decides whether it is used.
 - **Settings allowlist.** `PUT /api/settings` drops keys missing from `ALLOWED_SETTINGS_KEYS` in `api/settings.py`. Values are stored as text and the frontend converts types.
 - **LLM.** `POST /api/llm/analyze/<path>` sends the image as a base64 data URL to the OpenAI-compatible endpoint, model, and key that the browser passes from its settings. The prompt is built in `llm.py`. Videos are not supported.

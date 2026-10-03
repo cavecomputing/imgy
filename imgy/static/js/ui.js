@@ -5,6 +5,7 @@ import { Elements } from './dom.js';
 
 let loadingTimer = null;
 let toastTimer = null;
+let errorTimer = null;
 
 export function showLoading() {
     if (LlmQueue.processing) return;
@@ -20,7 +21,8 @@ export function hideLoading() {
 export function showError(msg) {
     Elements.errorEl.textContent = msg;
     Elements.errorEl.classList.remove('hidden');
-    setTimeout(() => Elements.errorEl.classList.add('hidden'), CONFIG.ERROR_DURATION_MS);
+    clearTimeout(errorTimer);
+    errorTimer = setTimeout(() => Elements.errorEl.classList.add('hidden'), CONFIG.ERROR_DURATION_MS);
 }
 
 export function showToast(msg) {

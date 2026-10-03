@@ -90,13 +90,14 @@ def remove_tag(filename, tag):
 def delete_tag():
     """Delete a tag (?tag=...) from every image and the standalone tag list.
 
-    The tag is a query parameter because tags may contain '/'.
+    Trashed files keep it, so a restore brings them back as they were. The tag is a query
+    parameter because tags may contain '/'.
     """
     tag = request.args.get('tag', '').strip().lower()
     if not tag:
         abort(400, 'Tag required')
     with get_db() as conn:
-        conn.execute('DELETE FROM tags WHERE tag = ?', (tag,))
+        conn.execute(f'DELETE FROM tags WHERE tag = ? AND {NOT_TRASHED}', (tag,))
         rename_tag_in_groups(conn, tag, None)
         conn.commit()
     invalidate_images_cache()

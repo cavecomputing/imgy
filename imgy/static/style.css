@@ -649,6 +649,10 @@ button.chip { cursor: pointer; }
 .card-action-btn:hover { background: var(--on-image-hover); }
 .card-action-btn.delete-btn:hover { color: var(--on-image-warn); }
 .image-card.is-fav .star-btn svg.i { fill: var(--star); stroke: var(--star); }
+/* the buttons follow the pointer, or keyboard focus on one of them (Tab, which initGrid marks as .shown) */
+.image-grid:not(.selection-mode) .image-card:hover .card-actions,
+.image-grid:not(.selection-mode) .card-actions.shown { opacity: 1; pointer-events: auto; }
+
 .card-play {
     position: absolute;
     left: 8px;

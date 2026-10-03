@@ -79,7 +79,18 @@ function createImageCard(img, idx) {
     thumb.addEventListener('load', remeasure);
     thumb.addEventListener('error', remeasure);
     card.addEventListener('click', (e) => handleCardClick(e, img, card));
+    card.drawnTags = (img.tags || []).join('\n');
     return card;
+}
+
+/** Redraw the parts of a card that show its tags. */
+function refreshCardTags(card, tags) {
+    card.drawnTags = tags.join('\n');
+    card.querySelector('.card-tag-preview')?.remove();
+    card.querySelector('.card-actions').insertAdjacentHTML('afterend', createCardTagPreview(tags));
+    const foot = card.querySelector('.card-foot');
+    foot.lastElementChild.remove();
+    foot.insertAdjacentHTML('beforeend', createCardFootMeta(tags));
 }
 
 function createGroupContainer(groupId, members, firstIndex) {
@@ -225,7 +236,39 @@ function renderNextBatch() {
     gridEndObserver.observe(Elements.gridEnd);
 }
 
-export function renderImageGrid() {
+/**
+ * Bring the drawn cards up to date without rebuilding them, when the files shown are the same
+ * as `previous` or the same minus some top-level cards (a trashed file, a tag edit that moves
+ * a file out of the filter). Only a card's tags can have changed then. Returns false when
+ * the grid needs a rebuild: files were added or moved, or a removed card sits in a group.
+ */
+function updateInPlace(previous) {
+    const next = State.filteredImages;
+    if (!next.length || !previous.length) return false;
+    const gone = [];
+    let kept = 0;
+    for (const [i, img] of previous.entries()) {
+        if (img === next[kept]) { kept++; continue; }
+        if (i >= renderedCount) continue; // never drawn
+        const card = Elements.imageGrid.querySelector(`:scope > .image-card[data-filename="${CSS.escape(img.filename)}"]`);
+        if (!card) return false;
+        gone.push(card);
+    }
+    if (kept < next.length) return false;
+
+    gone.forEach(card => card.remove());
+    renderedCount -= gone.length;
+    const indexOf = new Map(next.map((img, i) => [img.filename, i]));
+    for (const card of Elements.imageGrid.querySelectorAll('.image-card')) {
+        card.dataset.idx = indexOf.get(card.dataset.filename);
+        const tags = State.imagesByFilename.get(card.dataset.filename)?.tags || [];
+        if (card.drawnTags !== tags.join('\n')) refreshCardTags(card, tags);
+    }
+    return true;
+}
+
+/** Draw State.filteredImages. `previous` is what the grid was drawn from, so a small change can skip the rebuild. */
+export function renderImageGrid(previous = []) {
     // The redraw has to reach down to where the page is scrolled, or the scroll would be clamped
     const reach = window.scrollY + window.innerHeight + PRELOAD_PX;
     // Remember the keyboard-focused card so the rebuilt grid can focus it again
@@ -234,16 +277,17 @@ export function renderImageGrid() {
         : null;
     State.keepFocusPosition = false;
     State.focusedCardIndex = -1;
-    Elements.imageGrid.innerHTML = '';
-    renderedCount = 0;
     renderLibraryCount();
-    if (!State.filteredImages.length) {
-        renderEmptyState();
-        if (prevFocus) clearCardFocus();
-        return;
+    if (!updateInPlace(previous)) {
+        Elements.imageGrid.innerHTML = '';
+        renderedCount = 0;
+        if (!State.filteredImages.length) {
+            renderEmptyState();
+            if (prevFocus) clearCardFocus();
+            return;
+        }
+        renderNextBatch();
     }
-
-    renderNextBatch();
     while (renderedCount < State.filteredImages.length
         && Elements.imageGrid.getBoundingClientRect().bottom + window.scrollY < reach) renderNextBatch();
 

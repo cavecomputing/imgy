@@ -129,6 +129,7 @@ export function applyFilters() {
         const matchesName = State.nameTerms.size === 0 || Array.from(State.nameTerms).every(t => nameContains(img.filename, t));
         return matchesUntagged && matchesFavorites && matchesTags && matchesExclude && matchesName;
     });
+    const previous = State.filteredImages;
     State.filteredImages = sortForDisplay(filtered);
 
     // Restore lightbox index to the pinned image
@@ -147,6 +148,6 @@ export function applyFilters() {
         updateSelectionBar();
     }
 
-    renderImageGrid();
+    renderImageGrid(previous);
     window.scrollTo(0, scrollY);
 }

@@ -1,4 +1,13 @@
 :root {
+    --bg: #282828;
+    --field: #3c3836;
+    --fg: #ebdbb2;
+    --muted: #a89984;
+    --accent: #b8bb26;
+    --error: #fe8019;
+    color-scheme: dark;
+}
+[data-theme="light"] {
     --bg: #f9f5d7;
     --field: #ebdbb2;
     --fg: #3c3836;
@@ -6,17 +15,6 @@
     --accent: #79740e;
     --error: #af3a03;
     color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #282828;
-        --field: #3c3836;
-        --fg: #ebdbb2;
-        --muted: #a89984;
-        --accent: #b8bb26;
-        --error: #fe8019;
-        color-scheme: dark;
-    }
 }
 * { box-sizing: border-box; }
 body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }
@@ -26,8 +24,8 @@ label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); }
 input, button { font: inherit; padding: 8px 10px; border: 1px solid transparent; border-radius: 6px; }
 input { background: var(--field); color: var(--fg); width: 100%; }
 input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-summary { color: var(--muted); cursor: pointer; margin-bottom: 6px; }
 button { background: var(--accent); color: var(--bg); font-weight: 600; cursor: pointer; }
+button.secondary { background: var(--field); color: var(--fg); }
 button:disabled { opacity: 0.5; cursor: default; }
 #status { min-height: 1.5em; color: var(--muted); }
 #status.error { color: var(--error); }

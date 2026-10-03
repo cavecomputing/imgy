@@ -2,6 +2,7 @@
 const form = document.getElementById('form');
 const serverInput = document.getElementById('server');
 const status = document.getElementById('status');
+const themeButton = document.getElementById('theme');
 
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -18,3 +19,20 @@ form.addEventListener('submit', async (event) => {
 });
 
 browser.storage.local.get('server').then(({ server }) => { serverInput.value = server || ''; });
+
+function showTheme() {
+    const theme = document.documentElement.dataset.theme || 'dark';
+    themeButton.textContent = theme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme';
+}
+
+themeButton.addEventListener('click', async () => {
+    const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = theme;
+    await browser.storage.local.set({ theme });
+    showTheme();
+});
+
+browser.storage.local.get('theme').then(({ theme }) => {
+    document.documentElement.dataset.theme = theme || 'dark';
+    showTheme();
+});

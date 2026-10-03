@@ -532,6 +532,7 @@ export function initSettingsModal() {
         tab.addEventListener('click', () => showSettingsSection(tab.dataset.section));
     });
     document.getElementById('resetThumbnailsBtn').addEventListener('click', resetThumbnails);
+    document.getElementById('extensionAddress').textContent = location.origin;
     document.querySelectorAll('input[name="galleryOrder"]').forEach(radio => {
         radio.addEventListener('change', () => {
             saveSetting('galleryOrder', radio.value);

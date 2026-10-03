@@ -29,6 +29,7 @@ OpenAI-style chat API works.
 - Trash with restore, inline rename, drag-and-drop upload
 - Big libraries open fast: the gallery draws its files in batches and keeps drawing ahead of your scroll
 - Press `?` in the app for every keyboard shortcut; `h` `j` `k` `l` move like the arrow keys
+- Firefox extension (**Settings › Extension**): right-click any image on the web, set tags, and upload it to Imgy
 - Installs as an app on a phone or computer when it is served over HTTPS (or from `localhost`), and on Android appears in the share sheet so you can send photos and videos straight in
 - Gruvbox dark and light themes, with a phone layout that keeps the filter in reach of your thumb
 

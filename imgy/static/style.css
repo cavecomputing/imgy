@@ -1134,6 +1134,7 @@ dialog.settings-dlg { width: min(940px, calc(100vw - 48px)); height: min(780px, 
 .settings-lede { max-width: 600px; margin: 0 0 12px; font-size: 14px; line-height: 1.65; color: var(--fg-muted); }
 .settings-facts { margin: 4px 0 18px; font-size: 14px; line-height: 1.5; }
 .settings-facts li { padding: 4px 0; }
+a.cc-btn { text-decoration: none; }
 .settings-foot { flex: none; display: flex; align-items: center; gap: 12px; padding: 14px 24px 14px 28px; background: var(--bg-raised); border-top: 1px solid var(--border); }
 
 .field { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; padding: 14px 0; border-top: 1px solid var(--border-soft); }

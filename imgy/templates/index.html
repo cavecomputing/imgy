@@ -282,6 +282,7 @@
                 <button type="button" class="settings-tab" data-section="tags"><svg class="i i-sm" aria-hidden="true"><use href="#i-tag"/></svg>Tags</button>
                 <button type="button" class="settings-tab" data-section="shortcuts"><svg class="i i-sm" aria-hidden="true"><use href="#i-keyboard"/></svg>Shortcuts</button>
                 <button type="button" class="settings-tab" data-section="storage"><svg class="i i-sm" aria-hidden="true"><use href="#i-drive"/></svg>Storage</button>
+                <button type="button" class="settings-tab" data-section="extension"><svg class="i i-sm" aria-hidden="true"><use href="#i-download"/></svg>Extension</button>
                 <div class="spacer"></div>
                 <a class="settings-tab settings-link" href="https://github.com/cavecomputing/imgy" target="_blank" rel="noopener"><svg class="i i-sm i-fill" aria-hidden="true"><use href="#i-github"/></svg>GitHub</a>
                 <div class="settings-credit">a <span class="cc-wordmark">cave<b>computing</b></span> project</div>
@@ -491,6 +492,19 @@
                                 <p class="field-help">Deletes every thumbnail so Imgy makes them again from the files. Use it if thumbnails look wrong or after updating from an older version.</p>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <section class="settings-section" data-section="extension" aria-labelledby="setExtensionTitle" hidden>
+                    <div class="settings-scroll">
+                        <h2 id="setExtensionTitle" class="cc-section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg>Extension<small>Firefox</small></h2>
+                        <p class="settings-lede">Right-click any image on the web, set its tags, and upload it to Imgy without saving it first.</p>
+                        <ul class="cc-check settings-facts">
+                            <li><span>Download the extension and click <b>Add</b> when Firefox asks. If it says it blocked this site from installing software, click <b>Allow</b> and download again.</span></li>
+                            <li><span>Right-click an image and choose <b>Set tags and upload to Imgy</b>.</span></li>
+                            <li><span>Open the extension's preferences (Add-ons, then Imgy, then Preferences) and save this address once: <code id="extensionAddress"></code></span></li>
+                        </ul>
+                        <a class="cc-btn cc-btn--primary" href="/static/imgy.xpi">Download for Firefox</a>
                     </div>
                 </section>
             </div>

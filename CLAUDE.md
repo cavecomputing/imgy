@@ -111,7 +111,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [imgy/api/](imgy/api/) | One blueprint per resource, all mounted under `/api`. |
 | [imgy/templates/index.html](imgy/templates/index.html) | The entire page. JS modules are in [imgy/static/js/](imgy/static/js/), entry [main.js](imgy/static/js/main.js). |
 | [imgy/static/](imgy/static/) | `cavecomputing.css` (vendored design system) and `style.css` (Imgy's layout and theme tokens). |
-| [extension/](extension/) | The Firefox extension: right-click an image, set tags, upload to Imgy. Plain JS, no build; zip the folder with `manifest.json` at its root to sign it at addons.mozilla.org, and bump `version` first. |
+| [extension/](extension/) | The Firefox extension: right-click an image, set tags, upload to Imgy. Plain JS, no build; zip the folder with `manifest.json` at its root to sign it at addons.mozilla.org (unlisted), bump `version` first, and replace `imgy/static/imgy.xpi`, the signed build that Settings › Extension offers, with the result. |
 | [docker/](docker/) | Dockerfile, `compose.yml`, `entrypoint.sh`, `Dockerfile.dockerignore`. |
 
 ### Data lives in two places

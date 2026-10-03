@@ -15,6 +15,8 @@ def create_app():
     # Browsers refuse module scripts not served as JavaScript, and some Windows registries
     # map .js to text/plain.
     mimetypes.add_type('text/javascript', '.js')
+    # Firefox installs a downloaded extension only when it is served as this type.
+    mimetypes.add_type('application/x-xpinstall', '.xpi')
     app = Flask(__name__)
     app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_BYTES
     # With ALLOWED_HOSTS set, answer 400 to other Host headers, so a web page can't point its own

@@ -1,7 +1,9 @@
 """Listing, renaming, reordering, trashing, uploading, and exporting media files."""
 import contextlib
+import io
 import logging
 import math
+import mimetypes
 import os
 import tempfile
 import time
@@ -11,6 +13,7 @@ from pathlib import Path
 
 from flask import Blueprint, Response, abort, request
 from PIL import ExifTags, Image
+from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from ..catalog import images_gzip, images_json, invalidate_images_cache, media_urls
@@ -125,9 +128,14 @@ def reorder_images():
 @bp.post('/upload')
 def upload():
     files = request.files.getlist('images')
+    if not files and request.mimetype != 'multipart/form-data' and request.content_length:
+        # The body is the file itself, as an iOS Shortcut sends it with Request Body set to File.
+        # It comes without a name, so the content type picks the extension.
+        extension = mimetypes.guess_extension(request.mimetype) or ''
+        files = [FileStorage(io.BytesIO(request.get_data()), filename=f'upload_{uuid.uuid4().hex[:8]}{extension}')]
     if not files:
         abort(400, 'No files uploaded')
-    tags = request_tags(request.form.getlist('tags'))
+    tags = request_tags(request.form.getlist('tags') + request.args.getlist('tags'))
 
     uploaded = []
     skipped = []

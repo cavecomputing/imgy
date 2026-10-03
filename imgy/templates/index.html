@@ -93,11 +93,15 @@
         <button id="selectModeBtn" class="toggle" type="button" title="Select files (S)" aria-pressed="false">
             <svg class="i i-sm" aria-hidden="true"><use href="#i-check-square"/></svg><span>Select</span><kbd class="kbd kbd-sm">S</kbd>
         </button>
-        <label class="size-ctl" title="Thumbnail size">
-            <svg class="i i-xs" aria-hidden="true"><use href="#i-square"/></svg>
+        <div class="size-ctl" title="Thumbnail size">
+            <button id="gallerySizeDown" class="icon-btn icon-btn--sm" type="button" title="Smaller thumbnails" aria-label="Smaller thumbnails">
+                <svg class="i i-sm" aria-hidden="true"><use href="#i-square"/></svg>
+            </button>
             <input type="range" id="gallerySizeSlider" min="150" max="400" step="10" aria-label="Thumbnail size">
-            <svg class="i i-sm" aria-hidden="true"><use href="#i-grid"/></svg>
-        </label>
+            <button id="gallerySizeUp" class="icon-btn icon-btn--sm" type="button" title="Larger thumbnails" aria-label="Larger thumbnails">
+                <svg class="i i-sm" aria-hidden="true"><use href="#i-grid"/></svg>
+            </button>
+        </div>
     </div>
 
     <main class="gallery">

@@ -201,7 +201,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
     text-decoration: none;
     transition: background var(--ease), color var(--ease);
 }
-.icon-btn:hover { background: var(--bg-inset); color: var(--fg); }
+.icon-btn:hover:not(:disabled) { background: var(--bg-inset); color: var(--fg); }
 .icon-btn.active { color: var(--accent); }
 .icon-btn--warn:hover { color: var(--accent-warm); }
 .icon-btn--sm { width: 30px; height: 30px; }
@@ -423,7 +423,7 @@ button.chip { cursor: pointer; }
 }
 .lib-count { font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .lib-count strong { font-weight: 700; color: var(--fg); }
-.size-ctl { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; color: var(--fg-muted); cursor: pointer; }
+.size-ctl { display: inline-flex; align-items: center; gap: 3.5px; margin-right: -7.5px; } /* icons sit 7.5px inside their 30px buttons: the margin lines the grid icon up with the cards, the half pixel keeps icons and slider on whole pixels */
 .size-ctl input { width: 104px; accent-color: var(--fg-muted); }
 
 /* ---------- popovers ---------- */

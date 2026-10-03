@@ -19,6 +19,8 @@ export const Elements = {
     themeToggleBtn: byId('themeToggleBtn'),
     themeIcon: byId('themeIcon'),
     gallerySizeSlider: byId('gallerySizeSlider'),
+    gallerySizeDown: byId('gallerySizeDown'),
+    gallerySizeUp: byId('gallerySizeUp'),
     uploadProgress: byId('uploadProgress'),
     uploadProgressBar: byId('uploadProgressBar'),
     uploadProgressText: byId('uploadProgressText'),

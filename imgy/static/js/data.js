@@ -125,7 +125,8 @@ export function applyFilters() {
         const matchesFavorites = !State.showFavoritesOnly || img.is_favorite;
         const matchesTags = State.activeTags.size === 0 || Array.from(State.activeTags).every(t => img.tags?.includes(t));
         const matchesExclude = State.excludeTags.size === 0 || !Array.from(State.excludeTags).some(t => img.tags?.includes(t));
-        return matchesUntagged && matchesFavorites && matchesTags && matchesExclude;
+        const matchesName = State.nameTerms.size === 0 || Array.from(State.nameTerms).every(t => img.filename.toLowerCase().includes(t));
+        return matchesUntagged && matchesFavorites && matchesTags && matchesExclude && matchesName;
     });
     State.filteredImages = sortForDisplay(filtered);
 

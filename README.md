@@ -19,7 +19,7 @@ OpenAI-style chat API works.
 </p>
 
 - Fast tag editing with a small expression syntax (`+new`, `-remove`, `old>new`, ...)
-- Filter by tags, exclusions, favorites, or untagged files
+- Filter by tags, exclusions, file names, favorites, or untagged files
 - **Settings › Tags** lists every tag with its file count and deletes one or many at once
 - Lightbox with zoom, pan, pinch, and swipe; plays common video formats
 - Bulk selection: tag, favorite, group, download as ZIP, or move to trash
@@ -90,12 +90,15 @@ or the filter bar (`/`). Separate several with spaces.
 | `tag` | Add an existing tag | Add to every selected file | Show files with the tag |
 | `+tag` | Create and add | Create and add to every selected file | Create the tag |
 | `-tag` | Remove | Remove from selected files | Hide files with the tag |
+| `@text` | | | Show files whose name contains the text |
 | `--tag` | | | Delete the tag everywhere |
 | `old>new` | Rename on this file | Rename on selected files | Rename everywhere |
 | `--` | Remove all tags | Remove all tags from selected files | Delete unused tags |
 | `=` | | Give every selected file all their tags | |
 | `++` | | Group the selected files | |
 | `?` | Auto-tag with the LLM | Auto-tag selected files with the LLM | |
+
+`@text` ignores case and also matches the extension and folder, so `@.mp4` shows every MP4.
 
 The tag editors preview what each expression will do before you press `Enter`. `Tab` completes the
 tag you are typing, and `Enter` applies the expression, or the suggestion you highlighted with the

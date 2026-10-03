@@ -8,6 +8,7 @@ export const State = {
     currentImageIndex: 0,
     activeTags: new Set(),
     excludeTags: new Set(),
+    nameTerms: new Set(), // from @text in the filter bar: a file's name must contain each one
     showUntaggedOnly: false,
     showFavoritesOnly: false,
     selectionMode: false,

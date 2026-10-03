@@ -1,4 +1,4 @@
-/** Filter bar: include/exclude tag filters, suggestions, and library-wide tag rename/delete. */
+/** Filter bar: include/exclude tag filters, file name search, suggestions, and library-wide tag rename/delete. */
 import { CONFIG } from './config.js';
 import { State } from './state.js';
 import { Elements } from './dom.js';
@@ -14,6 +14,7 @@ const ROW_HEIGHT = 34;
 
 function getFilterModeInfo(rawTerm) {
     const token = rawTerm.trimStart().split(/\s+/).pop() || '';
+    if (token.startsWith('@')) return { mode: 'name', label: 'Name', detail: 'show files whose name contains this' };
     if (token.includes('>')) return { mode: 'rename', label: 'Rename', detail: 'old>new renames a tag on every file' };
     if (token.startsWith('--')) return { mode: 'delete', label: 'Delete', detail: token.length > 2 ? 'removes this tag from every file' : 'deletes tags that no file uses' };
     if (token.startsWith('-')) return { mode: 'exclude', label: 'Exclude', detail: 'hide files that have this tag' };
@@ -50,38 +51,41 @@ function releaseTagSearchConfirmSoon() {
 }
 
 function updateFilterPlaceholder() {
-    const hasChips = State.activeTags.size > 0 || State.excludeTags.size > 0;
+    const hasChips = State.activeTags.size > 0 || State.excludeTags.size > 0 || State.nameTerms.size > 0;
     let placeholder = DESKTOP_PLACEHOLDER;
     if (hasChips) placeholder = '';
     else if (isPhoneLayout()) placeholder = State.images.length ? `Filter ${formatCount(State.images.length, 'file')} by tag` : 'Filter by tag';
     Elements.tagSearch.placeholder = placeholder;
 }
 
-function createFilterChip(tag, exclude) {
+/** A chip that drops its filter when clicked. A qualifier ('not' or 'name') shows in bold before the text. */
+function createFilterChip(text, qualifier, onRemove) {
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'chip';
+    chip.className = qualifier === 'name' ? 'chip chip-name' : 'chip';
     chip.title = 'Remove this filter';
-    chip.setAttribute('aria-label', `Remove filter ${exclude ? 'not ' : ''}${tag}`);
-    chip.innerHTML = `<span>${exclude ? '<b>not</b> ' : ''}${esc(tag)}</span><span class="chip-x" aria-hidden="true"><svg class="i"><use href="#i-x"/></svg></span>`;
-    chip.addEventListener('click', () => (exclude ? toggleExcludeTag(tag) : toggleTagFilter(tag)));
+    chip.setAttribute('aria-label', `Remove filter ${qualifier ? `${qualifier} ` : ''}${text}`);
+    chip.innerHTML = `<span>${qualifier ? `<b>${qualifier}</b> ` : ''}${esc(text)}</span><span class="chip-x" aria-hidden="true"><svg class="i"><use href="#i-x"/></svg></span>`;
+    chip.addEventListener('click', onRemove);
     return chip;
 }
 
 export function renderFilterBarTags() {
     const container = Elements.activeTagsContainer;
     container.innerHTML = '';
-    State.activeTags.forEach(t => container.appendChild(createFilterChip(t, false)));
-    State.excludeTags.forEach(t => container.appendChild(createFilterChip(t, true)));
-    if (State.activeTags.size + State.excludeTags.size >= 2) {
+    State.activeTags.forEach(t => container.appendChild(createFilterChip(t, '', () => toggleTagFilter(t))));
+    State.excludeTags.forEach(t => container.appendChild(createFilterChip(t, 'not', () => toggleExcludeTag(t))));
+    State.nameTerms.forEach(t => container.appendChild(createFilterChip(t, 'name', () => toggleNameTerm(t))));
+    if (State.activeTags.size + State.excludeTags.size + State.nameTerms.size >= 2) {
         const clear = document.createElement('button');
         clear.type = 'button';
         clear.className = 'chip chip-clear';
         clear.textContent = 'Clear';
-        clear.title = 'Remove every tag filter';
+        clear.title = 'Remove every tag and name filter';
         clear.addEventListener('click', () => {
             State.activeTags.clear();
             State.excludeTags.clear();
+            State.nameTerms.clear();
             applyFilters();
             renderFilterBarTags();
             Elements.tagSearch.focus();
@@ -109,6 +113,23 @@ export function toggleExcludeTag(t) {
     leaveUntaggedFilter();
     State.excludeTags.has(t) ? State.excludeTags.delete(t) : State.excludeTags.add(t);
     applyFilters(); renderFilterBarTags();
+}
+
+function toggleNameTerm(t) {
+    State.nameTerms.has(t) ? State.nameTerms.delete(t) : State.nameTerms.add(t);
+    applyFilters(); renderFilterBarTags();
+}
+
+/** Drop the filter whose chip is last in the bar. Returns false when there is none. */
+export function removeLastFilter() {
+    const names = [...State.nameTerms];
+    const excludes = [...State.excludeTags];
+    const tags = [...State.activeTags];
+    if (names.length) toggleNameTerm(names.at(-1));
+    else if (excludes.length) toggleExcludeTag(excludes.at(-1));
+    else if (tags.length) toggleTagFilter(tags.at(-1));
+    else return false;
+    return true;
 }
 
 /** Move include and exclude filters on a renamed tag over to its new name. */
@@ -198,7 +219,7 @@ function renderSuggestions() {
     const list = Elements.tagSuggestionList;
     const rawTerm = Elements.tagSearch.value;
     const modeInfo = getFilterModeInfo(rawTerm);
-    const { term, isGlobalDelete, isExcludeMode, isCreateMode } = parseLastToken(rawTerm);
+    const { lastToken, term, isGlobalDelete, isExcludeMode, isCreateMode } = parseLastToken(rawTerm);
 
     const isOrphaned = t => !(State.tagCounts[t] > 0);
     const orphanedTags = State.allTags.filter(isOrphaned);
@@ -228,6 +249,19 @@ function renderSuggestions() {
                 list.appendChild(item);
             }
         }
+        State.suggestionMatches = [];
+        showSuggestions();
+        return;
+    }
+
+    // '@text' filters by file name, so there are no tags to suggest
+    if (modeInfo.mode === 'name') {
+        const nameTerm = lastToken.slice(1).toLowerCase();
+        const count = State.filteredImages.filter(img => img.filename.toLowerCase().includes(nameTerm)).length;
+        appendSuggestionHeader(list, modeInfo);
+        list.appendChild(noteRow(nameTerm
+            ? `<span>${formatCount(count, 'file')} here ${count === 1 ? 'has' : 'have'} “${esc(nameTerm)}” in the name.</span>`
+            : '<span>Type part of a file name, like <code>@beach</code> or <code>@.mp4</code>.</span>'));
         State.suggestionMatches = [];
         showSuggestions();
         return;
@@ -361,7 +395,7 @@ async function applyFilterExpression() {
         const fTokens = splitTagTokens(rawTerm, /\s+/);
         if (fTokens.includes('=')) { showToast('"=" only works in the bulk tag editor'); resetTagSearch(); return; }
         if (fTokens.includes('++')) { showToast('"++" only works in the bulk tag editor'); resetTagSearch(); return; }
-        const { toDelete, toFilter, toExclude, toRename, toCreate } = parseFilterExpressionTokens(fTokens);
+        const { toDelete, toFilter, toExclude, toRename, toCreate, nameTerms } = parseFilterExpressionTokens(fTokens);
         if (toDelete.length > 0) {
             State.confirmInProgress = true;
             const confirmed = confirm(`Remove ${toDelete.map(t => `"${t}"`).join(', ')} from every file? This cannot be undone.`);
@@ -386,6 +420,7 @@ async function applyFilterExpression() {
         if (toCreate.length) showToast(`Created ${formatCount(toCreate.length, 'tag')}`);
         for (const tag of toExclude) toggleExcludeTag(tag);
         for (const tag of toFilter) toggleTagFilter(tag);
+        for (const nameTerm of nameTerms) toggleNameTerm(nameTerm);
         resetTagSearch({ render: false });
         if (toDelete.length > 0 || toRename.length > 0 || toCreate.length > 0) await loadData();
         resetTagSearch({ focus: true, render: true });
@@ -395,6 +430,11 @@ async function applyFilterExpression() {
     const term = rawTerm.trim();
     if (term === '=') { showToast('"=" only works in the bulk tag editor'); resetTagSearch(); return; }
     if (term === '++') { showToast('"++" only works in the bulk tag editor'); resetTagSearch(); return; }
+    if (term.startsWith('@')) {
+        if (term.length > 1) toggleNameTerm(term.slice(1).toLowerCase());
+        resetTagSearch();
+        return;
+    }
     if (term.includes('>')) {
         const [oldN, newN] = term.split('>').map(s => s.trim().toLowerCase());
         if (oldN && newN) {
@@ -557,13 +597,7 @@ export function initFilters() {
             hideSuggestions();
             State.showOrphanedOnly = false;
         } else if (e.key === 'Backspace' && !Elements.tagSearch.value) {
-            const excludes = [...State.excludeTags];
-            if (excludes.length) {
-                toggleExcludeTag(excludes[excludes.length - 1]);
-            } else {
-                const tags = [...State.activeTags];
-                if (tags.length) toggleTagFilter(tags[tags.length - 1]);
-            }
+            removeLastFilter();
         }
     });
 }

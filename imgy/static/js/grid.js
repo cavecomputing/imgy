@@ -131,7 +131,7 @@ export function resizeAllMasonryItems() {
 }
 
 function hasActiveFilters() {
-    return State.activeTags.size > 0 || State.excludeTags.size > 0 || State.showFavoritesOnly || State.showUntaggedOnly;
+    return State.activeTags.size > 0 || State.excludeTags.size > 0 || State.nameTerms.size > 0 || State.showFavoritesOnly || State.showUntaggedOnly;
 }
 
 /** The line above the grid: library totals, how many files the filters leave, or the selection. */
@@ -160,10 +160,11 @@ function renderEmptyState() {
     let title = 'No files yet';
     let detail = 'Upload images or videos, or copy them into the library folder, to start organizing.';
     const showUploadCta = State.images.length === 0 && !hasActiveFilters();
-    if (State.activeTags.size > 0 || State.excludeTags.size > 0) {
+    if (State.activeTags.size > 0 || State.excludeTags.size > 0 || State.nameTerms.size > 0) {
         const parts = [];
         if (State.activeTags.size > 0) parts.push([...State.activeTags].map(t => `“${esc(t)}”`).join(' and '));
         if (State.excludeTags.size > 0) parts.push([...State.excludeTags].map(t => `not “${esc(t)}”`).join(', '));
+        if (State.nameTerms.size > 0) parts.push([...State.nameTerms].map(t => `name “${esc(t)}”`).join(', '));
         title = `No files match ${parts.join(', ')}`;
         detail = 'Remove a filter or try a different tag.';
     } else if (State.showFavoritesOnly) {

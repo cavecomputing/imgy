@@ -383,6 +383,7 @@ button.chip { cursor: pointer; }
 .chip-label { padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
 .chip-label:hover { color: var(--accent); }
 .chip b { font-weight: 700; color: var(--accent-warm); }
+.chip-name b { color: var(--accent-cool); }
 .chip-x {
     display: inline-grid;
     place-items: center;
@@ -455,7 +456,7 @@ button.chip { cursor: pointer; }
 }
 .mode-label.exclude, .mode-label.delete { color: var(--accent-warm); }
 .mode-label.create { color: var(--accent-aqua); }
-.mode-label.rename, .mode-label.llm { color: var(--accent-cool); }
+.mode-label.rename, .mode-label.llm, .mode-label.name { color: var(--accent-cool); }
 .mode-head small { font-size: 12px; color: var(--fg-muted); }
 
 /* filter suggestions */

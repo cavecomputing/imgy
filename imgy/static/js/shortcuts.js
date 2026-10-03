@@ -6,7 +6,7 @@ import { clearCardFocus, deleteSelectedOrFocusedImage, getFocusedCard, getFocuse
 import { bulkToggleFavorites, clearSelection, toggleImageSelection, toggleSelectionMode } from './selection.js';
 import { deleteImage, toggleFavorite, updateLocalState } from './actions.js';
 import { closeGalleryTagFlyup, closeLightboxTagFlyup, isGalleryTagFlyupOpen, isLightboxTagFlyupOpen, openBulkTagFlyup, openGalleryTagFlyup } from './flyup.js';
-import { toggleExcludeTag, toggleTagFilter } from './filters.js';
+import { removeLastFilter } from './filters.js';
 import { closeLightbox, navigateImage, openLightbox, resetZoom } from './lightbox.js';
 import { closeShortcutsModal, toggleShortcutsModal } from './settings.js';
 
@@ -102,17 +102,7 @@ export function initShortcuts() {
                 }
             }
             if (e.key === 'Backspace') {
-                const excludes = [...State.excludeTags];
-                if (excludes.length) {
-                    e.preventDefault();
-                    toggleExcludeTag(excludes[excludes.length - 1]);
-                } else {
-                    const tags = [...State.activeTags];
-                    if (tags.length) {
-                        e.preventDefault();
-                        toggleTagFilter(tags[tags.length - 1]);
-                    }
-                }
+                if (removeLastFilter()) e.preventDefault();
                 return;
             }
             if (e.key === 'Delete') {

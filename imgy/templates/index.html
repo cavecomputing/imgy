@@ -56,12 +56,12 @@
             <div class="cmd" id="filterBar" role="search">
                 <svg class="i i-sm cmd-icon" aria-hidden="true"><use href="#i-search"/></svg>
                 <div id="activeTags" class="cmd-chips"></div>
-                <input type="text" id="tagSearch" class="cmd-input" placeholder="Filter by tag   -exclude   +create   old>new" aria-label="Filter by tag" autocomplete="off" autocapitalize="none" spellcheck="false">
+                <input type="text" id="tagSearch" class="cmd-input" placeholder="Filter by tag   -exclude   +create   old>new" aria-label="Filter by tag or file name" autocomplete="off" autocapitalize="none" spellcheck="false">
                 <kbd class="kbd cmd-kbd" title="Focus the filter">/</kbd>
                 <div id="tagSuggestions" class="pop filter-pop hidden">
                     <div id="tagSuggestionList" class="filter-pop-list"></div>
                     <div class="pop-foot">
-                        <div class="keys"><span><code>-tag</code> hide</span><span><code>+tag</code> create</span><span><code>old&gt;new</code> rename</span><span><code>--tag</code> delete everywhere</span></div>
+                        <div class="keys"><span><code>-tag</code> hide</span><span><code>@name</code> file name</span><span><code>+tag</code> create</span><span><code>old&gt;new</code> rename</span><span><code>--tag</code> delete everywhere</span></div>
                         <div class="keys keys-hw"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>Tab</kbd> complete</span><span><kbd>Enter</kbd> apply</span><span><kbd>&#9003;</kbd> drop last filter</span></div>
                     </div>
                 </div>
@@ -458,6 +458,7 @@
                                 <h3 class="cc-eyebrow">Filter</h3>
                                 <div class="shortcut-row"><span class="shortcut-keys"><code>tag</code></span><span>Show files with the tag</span></div>
                                 <div class="shortcut-row"><span class="shortcut-keys"><code>-tag</code></span><span>Hide files with the tag</span></div>
+                                <div class="shortcut-row"><span class="shortcut-keys"><code>@name</code></span><span>Show files whose name contains it</span></div>
                                 <div class="shortcut-row"><span class="shortcut-keys"><code>--tag</code></span><span>Delete the tag everywhere</span></div>
                                 <div class="shortcut-row"><span class="shortcut-keys"><kbd>&uarr;</kbd><kbd>&darr;</kbd></span><span>Move through suggestions</span></div>
                                 <div class="shortcut-row"><span class="shortcut-keys"><kbd>PgUp</kbd><kbd>PgDn</kbd></span><span>Page through suggestions</span></div>

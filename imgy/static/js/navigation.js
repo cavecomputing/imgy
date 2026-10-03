@@ -1,7 +1,10 @@
 /** Arrow-key focus movement between gallery cards, including into and out of groups. */
 import { State } from './state.js';
 import { Elements } from './dom.js';
+import { CONFIG } from './config.js';
 import { deleteImage } from './actions.js';
+
+let scrolledAt = 0; // when focusCard last started scrolling a card into view
 
 function findNearestVisibleCardIndex() {
     const cards = Elements.imageGrid.querySelectorAll('.image-card');
@@ -27,7 +30,10 @@ function focusCard(index, { scroll = true } = {}) {
     State.focusedCardIndex = index;
     State.cardFocusActive = true;
     cards[index].classList.add('keyboard-focused');
-    if (scroll) cards[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (scroll) {
+        cards[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        scrolledAt = performance.now();
+    }
 }
 
 /**
@@ -186,9 +192,11 @@ export function navigateGrid(direction) {
         focusCard(findNearestVisibleCardIndex());
         return;
     }
+    // Unless it was focused a moment ago, and is off-screen only until the smooth scroll arrives
     const focusedRect = allCards[State.focusedCardIndex].getBoundingClientRect();
     const viewH = window.innerHeight;
-    if (focusedRect.bottom < -100 || focusedRect.top > viewH + 100) {
+    const scrollSettled = performance.now() - scrolledAt > CONFIG.FOCUS_SCROLL_MS;
+    if (scrollSettled && (focusedRect.bottom < -100 || focusedRect.top > viewH + 100)) {
         focusCard(findNearestVisibleCardIndex());
         return;
     }

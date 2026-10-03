@@ -21,9 +21,8 @@ const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><
 let renderedCount = 0; // the grid holds cards for the first renderedCount of State.filteredImages
 
 function createCardFootMeta(tags = []) {
-    const tip = `<span class="card-tag-tip" aria-hidden="true">Edit tags (T)${tags.length ? `: ${esc(tags.join(', '))}` : ''}</span>`;
-    if (!tags.length) return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span>${tip}</button>`;
-    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}">${icon('tag', 'i i-xs')}${tags.length}${tip}</button>`;
+    if (!tags.length) return '<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span></button>';
+    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}">${icon('tag', 'i i-xs')}${tags.length}<span class="card-tag-tip" aria-hidden="true">${esc(tags.join(', '))}</span></button>`;
 }
 
 function createImageCard(img, idx) {

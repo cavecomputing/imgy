@@ -298,7 +298,7 @@ export function initLlmSettings() {
     renameCheck.onchange = () => saveSetting('llmDoRename', renameCheck.checked);
     tagsCheck.onchange = () => saveSetting('llmDoTags', tagsCheck.checked);
     resetBtn.onclick = () => {
-        State.settings = {...LLM_DEFAULTS};
+        Object.assign(State.settings, LLM_DEFAULTS);
         putSettings(LLM_DEFAULTS);
         const defaults = getLlmSettings();
         setProviderControl(defaults.provider);

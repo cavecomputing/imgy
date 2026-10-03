@@ -88,7 +88,7 @@ async function loadTrash() {
     Elements.trashList.replaceChildren(table);
 }
 
-export function toggleTrashModal() {
+function toggleTrashModal() {
     if (Elements.trashModal.open) {
         Elements.trashModal.close();
     } else {

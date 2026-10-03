@@ -164,10 +164,6 @@ export function renderActiveQuickTagPanel() {
     renderQuickTagSuggestions();
 }
 
-export function refreshQuickTagUI() {
-    renderActiveQuickTagPanel();
-}
-
 function resetQuickTagInput({ focus = false, lightboxRefresh = false } = {}) {
     ActiveFlyup.input.value = '';
     State.quickTagIndex = -1;

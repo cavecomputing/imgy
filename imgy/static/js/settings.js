@@ -41,21 +41,6 @@ export async function loadSettings() {
         const data = await res.json();
         State.settings = data;
         if (data.theme) applyTheme(data.theme);
-        // One-time migration from localStorage
-        if (Object.keys(data).length === 0) {
-            const migrated = {};
-            for (const key of Object.keys(LLM_DEFAULTS)) {
-                const val = localStorage.getItem(key);
-                if (val !== null) {
-                    migrated[key] = val;
-                    localStorage.removeItem(key);
-                }
-            }
-            if (Object.keys(migrated).length > 0) {
-                State.settings = migrated;
-                putSettings(migrated);
-            }
-        }
     } catch (err) {
         console.error('Failed to load settings:', err);
         State.settings = {};

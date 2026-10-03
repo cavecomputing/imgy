@@ -38,9 +38,8 @@ export async function loadData() {
         ]);
         // If this call was superseded, discard stale results
         if (controller.signal.aborted) return;
-        const images = imagesResp.images || imagesResp;
-        const groups = imagesResp.groups || {};
-        if (typeof imagesResp.trash_count === 'number') setTrashCount(imagesResp.trash_count);
+        const { images, groups } = imagesResp;
+        setTrashCount(imagesResp.trash_count);
         State.filenameToGroup = {};
         for (const [gid, members] of Object.entries(groups)) {
             for (const fn of members) State.filenameToGroup[fn] = gid;

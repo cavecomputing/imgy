@@ -7,7 +7,7 @@ import { showToast } from './ui.js';
 import { api } from './api.js';
 import { applyFilters } from './data.js';
 import { addTags, applyRenameLocally } from './actions.js';
-import { refreshLightboxAfterTagEdit, refreshQuickTagUI } from './flyup.js';
+import { refreshLightboxAfterTagEdit, renderActiveQuickTagPanel } from './flyup.js';
 import { getLlmSettings } from './settings.js';
 
 export function getLlmActionSummary(settings = getLlmSettings()) {
@@ -40,9 +40,7 @@ async function llmProcessOne(img) {
         if (settings.doTags && result.tags && result.tags.length) {
             // Pass the list as is: joining and re-splitting would break multi-word tags
             await addTags(currentFilename, result.tags.filter(t => t));
-            if (State.currentQuickTagImage) {
-                refreshQuickTagUI();
-            }
+            renderActiveQuickTagPanel();
             refreshLightboxAfterTagEdit();
         }
 

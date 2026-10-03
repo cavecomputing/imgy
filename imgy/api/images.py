@@ -20,6 +20,7 @@ from ..media import ALLOWED_EXTENSIONS, allowed_file, is_video, normalize_active
 from ..thumbnails import delete_thumbnail
 from ..trash import move_to_trash
 from .common import active_file, active_files, json_body
+from .tags import request_tags
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +127,7 @@ def upload():
     files = request.files.getlist('images')
     if not files:
         abort(400, 'No files uploaded')
+    tags = request_tags(request.form.getlist('tags'))
 
     uploaded = []
     skipped = []
@@ -168,6 +170,8 @@ def upload():
             ON CONFLICT(filename) DO UPDATE SET
                 created_at = excluded.created_at, width = excluded.width, height = excluded.height
         ''', rows)
+        conn.executemany('INSERT OR IGNORE INTO tags (filename, tag) VALUES (?, ?)',
+                         [(file['filename'], tag) for file in uploaded for tag in tags])
         conn.commit()
     invalidate_images_cache()
     return {'success': True, 'count': len(uploaded), 'uploaded': uploaded, 'skipped': skipped}

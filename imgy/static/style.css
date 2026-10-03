@@ -18,8 +18,7 @@
     --radius: 10px;
     --radius-lg: 14px;
     --ease: 160ms ease;
-    --shell-gap: 10px; /* the ground showing around the page */
-    --topbar-h: calc(56px + var(--shell-gap)); /* viewport top to the bottom of the top bar */
+    --topbar-h: 56px;
     --subbar-h: 52px;
 
     /* Overlays on top of images keep a dark ground in both themes */
@@ -89,10 +88,9 @@
 /* ---------- base ---------- */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 img { image-orientation: from-image; }
-html { -webkit-text-size-adjust: 100%; background: var(--bg-page); }
+html { -webkit-text-size-adjust: 100%; }
 body {
     min-height: 100vh;
-    padding: 0 var(--shell-gap) var(--shell-gap);
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.6;
@@ -100,19 +98,6 @@ body {
     background: var(--bg-surface);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-}
-/* The rounded frame cozy draws around its page. The page itself still scrolls, so the frame is
-   laid over it: the huge spread paints the ground everywhere outside the window, rounding its
-   corners and hiding whatever scrolls into the gap. */
-body::before {
-    content: "";
-    position: fixed;
-    inset: var(--shell-gap);
-    z-index: 200;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow), 0 0 0 100vmax var(--bg-page);
-    pointer-events: none;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -294,7 +279,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: var(--shell-gap) 12px 0 16px; /* the top gap is hidden under the frame */
+    padding: 0 12px 0 16px;
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border);
 }
@@ -898,27 +883,17 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 /* ---------- lightbox ---------- */
 .lightbox {
     position: fixed;
-    inset: var(--shell-gap);
+    inset: 0;
     z-index: 1000;
     display: none;
     flex-direction: column;
-    height: calc(100dvh - 2 * var(--shell-gap));
-    border-radius: var(--radius-lg);
+    height: 100dvh;
     background: var(--bg-page);
     overflow: hidden;
 }
-.lightbox::after { /* the frame's border, over the bars and the sticky tabs */
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    border: 1px solid var(--border);
-    border-radius: inherit;
-    pointer-events: none;
-}
 .lightbox.active { display: flex; }
 .lb-top {
-    height: calc(var(--topbar-h) - var(--shell-gap));
+    height: var(--topbar-h);
     flex: none;
     display: flex;
     align-items: center;
@@ -1083,7 +1058,7 @@ dialog::backdrop { background: var(--scrim); }
 .dlg-foot-note { flex: 1 1 auto; font-size: 13px; line-height: 1.45; color: var(--fg-muted); }
 
 /* trash */
-dialog.trash-dlg { width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 80px); margin: calc(var(--topbar-h) + 8px) 16px auto auto; }
+dialog.trash-dlg { width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 80px); margin: 64px 16px auto auto; }
 .trash-table { table-layout: fixed; width: 100%; }
 .trash-table th:nth-child(2), .trash-table th:nth-child(3) { width: 84px; }
 .trash-table th:nth-child(4) { width: 148px; }
@@ -1514,8 +1489,8 @@ body.drag-over::after {
 }
 
 @media (max-width: 768px) {
-    :root { --topbar-h: calc(52px + var(--shell-gap)); }
-    .topbar { gap: 2px; padding: var(--shell-gap) 4px 0 14px; }
+    :root { --topbar-h: 52px; }
+    .topbar { gap: 2px; padding: 0 4px 0 14px; }
     .brand { margin-right: auto; }
     .theme-btn { display: none; }
     .icon-btn { width: 44px; height: 44px; }
@@ -1524,9 +1499,9 @@ body.drag-over::after {
     /* the filter and upload move to a bar at the bottom, in reach of a thumb */
     .topbar-filter {
         position: fixed;
-        left: var(--shell-gap);
-        right: var(--shell-gap);
-        bottom: max(var(--shell-gap), var(--keyboard-inset, 0px));
+        left: 0;
+        right: 0;
+        bottom: var(--keyboard-inset, 0px);
         z-index: 120;
         margin: 0;
         gap: 8px;
@@ -1539,18 +1514,18 @@ body.drag-over::after {
     .cmd-input { font-size: 16px; } /* under 16px, iOS zooms the page when the field takes focus */
     .cmd-kbd, .keys-hw { display: none; }
     .upload-btn { width: 44px; height: 44px; }
-    .filter-pop { top: auto; bottom: calc(100% + 8px); width: calc(100vw - 32px - 2 * var(--shell-gap)); }
+    .filter-pop { top: auto; bottom: calc(100% + 8px); width: calc(100vw - 24px); }
     .filter-pop-list { max-height: min(360px, calc(100vh - 260px)); }
 
-    .subbar { position: static; height: 54px; gap: 4px; padding: 0 12px; }
+    .subbar { position: static; height: 54px; gap: 6px; padding: 0 12px; }
     .lib-count-extra, .lib-count-total, .lib-count-unit { display: none; }
-    .toggle { height: 36px; gap: 6px; padding: 0 8px; }
+    .toggle { height: 36px; gap: 6px; padding: 0 10px; }
     .toggle .kbd, .size-ctl { display: none; }
     .toggle:not(#selectModeBtn) svg.i { display: none; }
 
     .gallery { padding: 10px 12px calc(96px + env(safe-area-inset-bottom)); }
     .image-grid { column-gap: 10px; }
-    .image-card { margin-bottom: 10px; scroll-margin: calc(var(--topbar-h) + 12px) 0 100px; }
+    .image-card { margin-bottom: 10px; scroll-margin: 64px 0 100px; }
     .card-foot { height: 30px; gap: 6px; padding: 0 8px; }
     .card-title, .card-tag-btn { font-size: 11px; }
     .card-star { width: 13px; height: 13px; }
@@ -1558,10 +1533,9 @@ body.drag-over::after {
     .card-actions { display: none; }
 
     .selection-bar {
-        left: var(--shell-gap);
-        right: var(--shell-gap);
-        bottom: var(--shell-gap);
-        z-index: 150; /* under the frame, so its rounded corners cut the bar's square ones */
+        left: 0;
+        right: 0;
+        bottom: 0;
         transform: none;
         max-width: none;
         justify-content: space-between;
@@ -1575,23 +1549,21 @@ body.drag-over::after {
     #downloadSelectedBtn span::before { content: "Save"; font-size: 10px; }
     .selection-count { padding: 0 4px; }
     .tag-flyup-gallery, .tag-flyup-gallery.bulk-mode {
-        bottom: max(calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px));
-        width: calc(100vw - 24px - 2 * var(--shell-gap));
-        max-height: calc(100dvh - var(--keyboard-inset, 0px) - var(--topbar-h) - 20px);
+        bottom: max(calc(80px + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px));
+        max-height: calc(100dvh - var(--keyboard-inset, 0px) - 72px);
     }
-    .tag-flyup-gallery:not(.bulk-mode) { bottom: max(calc(76px + var(--shell-gap) + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px)); }
+    .tag-flyup-gallery:not(.bulk-mode) { bottom: max(calc(76px + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px)); }
     .chip-add .kbd, .flyup-head .kbd { display: none; }
     .flyup-close { display: inline-grid; margin: -6px -13px -6px 0; } /* the glyph lines up with the input's edge; the margins keep the header's height */
     .flyup-input input { font-size: 16px; }
 
-    .toast, .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }
+    .toast, .upload-progress { bottom: calc(80px + env(safe-area-inset-bottom)); }
     .selection-bar:not(.hidden) ~ .toast,
-    .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }
-    .tag-flyup-gallery.active ~ .toast { top: calc(env(safe-area-inset-top) + var(--shell-gap) + 10px); bottom: auto; }
+    .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(80px + env(safe-area-inset-bottom)); }
+    .tag-flyup-gallery.active ~ .toast { top: calc(env(safe-area-inset-top) + 10px); bottom: auto; }
 
-    /* a dialog fills the window inside the frame, which shows through the backdrop */
-    dialog.dlg { width: calc(100vw - 2 * var(--shell-gap)); max-width: none; height: calc(100dvh - 2 * var(--shell-gap)); max-height: none; margin: var(--shell-gap); box-shadow: none; }
-    dialog.dlg::backdrop { background: transparent; }
+    dialog.dlg { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; }
+    dialog.trash-dlg { margin: 0; max-height: 100dvh; }
     .dlg-foot { flex-wrap: wrap; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
     .dlg-foot-note { order: 3; flex-basis: 100%; }
     .settings-shell { flex-direction: column; }
@@ -1630,8 +1602,8 @@ body.drag-over::after {
    manifest instead; browsers that support neither fall back to standalone. */
 @media (display-mode: window-controls-overlay) {
     :root {
-        --controls-left: max(0px, calc(env(titlebar-area-x, 0px) - var(--shell-gap)));
-        --controls-right: max(0px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) - var(--shell-gap)));
+        --controls-left: env(titlebar-area-x, 0px);
+        --controls-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
     }
     .topbar { padding-left: calc(16px + var(--controls-left)); padding-right: calc(12px + var(--controls-right)); }
     .lb-top { padding-left: calc(18px + var(--controls-left)); padding-right: calc(12px + var(--controls-right)); }

@@ -275,9 +275,9 @@ async function downloadSelectedAsZip() {
 
 async function deleteSelectedImages() {
     if (State.selectedImages.size === 0) return;
-    const count = State.selectedImages.size;
     await withLoading(async () => {
-        await api.post('/api/images/bulk-trash', { filenames: getSelectedFilenames() });
+        // Counts only the files that moved: some may have been deleted or trashed elsewhere
+        const { count } = await api.post('/api/images/bulk-trash', { filenames: getSelectedFilenames() });
         clearSelection();
         await reloadDataPreservingScroll();
         showToast(`Moved ${formatCount(count, 'file')} to trash`);

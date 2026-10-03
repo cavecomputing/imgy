@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Upload to Imgy</title>
+    <link rel="stylesheet" href="upload.css">
+</head>
+<body>
+    <form id="form">
+        <img id="preview" alt="">
+        <label>
+            Tags
+            <input id="tags" list="tagChoices" placeholder="sunset, beach house" autocomplete="off" autofocus>
+            <datalist id="tagChoices"></datalist>
+        </label>
+        <details id="serverBox">
+            <summary>Imgy address</summary>
+            <input id="server" type="url" placeholder="https://imgy.example.com" required>
+        </details>
+        <p id="status" role="status"></p>
+        <button id="send" type="submit">Upload</button>
+    </form>
+    <script src="upload.js"></script>
+</body>
+</html>

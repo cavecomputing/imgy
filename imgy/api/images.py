@@ -135,7 +135,8 @@ def upload():
         files = [FileStorage(io.BytesIO(request.get_data()), filename=f'upload_{uuid.uuid4().hex[:8]}{extension}')]
     if not files:
         abort(400, 'No files uploaded')
-    tags = request_tags(request.form.getlist('tags') + request.args.getlist('tags'))
+    # A tag prompt left empty (the Shortcut's ?tags=) sends a blank value, which means no tag.
+    tags = request_tags([tag for tag in request.form.getlist('tags') + request.args.getlist('tags') if tag.strip()])
 
     uploaded = []
     skipped = []

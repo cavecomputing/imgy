@@ -45,7 +45,7 @@ uv sync
 uv run app.py
 ```
 
-Then open <http://localhost:8000> in your browser, click **Upload** (or copy files into
+Then open <http://localhost:5000> in your browser, click **Upload** (or copy files into
 `data/images/`), and start tagging.
 
 To run Imgy with Docker instead:
@@ -59,7 +59,7 @@ The container runs as UID/GID 1000 by default. To match your host user, start it
 `PUID=$(id -u) PGID=$(id -g) docker compose up --build -d`. Run compose from `docker/`, or from the
 repo root with `-f docker/compose.yml`; a `.env` file for these variables goes in `docker/`.
 
-For a production server, run `uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --worker-class gthread --threads 8 --timeout 120 app:app`.
+For a production server, run `uv run gunicorn --bind 127.0.0.1:5000 --workers 4 --worker-class gthread --threads 8 --timeout 120 app:app`.
 
 ## Your data
 
@@ -142,10 +142,10 @@ With Docker, run `git pull` and then `docker compose up --build -d` from `docker
 Imgy listens only on `localhost` by default, and the Docker compose file publishes on `127.0.0.1`
 only, so nothing else on your network can reach it until you say so.
 
-- **Python:** run gunicorn with `--bind 0.0.0.0:8000`.
-- **Docker:** change `ports` in `docker/compose.yml` to `"8000:8000"`.
+- **Python:** run gunicorn with `--bind 0.0.0.0:5000`.
+- **Docker:** change `ports` in `docker/compose.yml` to `"5000:5000"`.
 
-Then open `http://<computer's LAN address>:8000` on your phone. Only do this on a network you trust,
+Then open `http://<computer's LAN address>:5000` on your phone. Only do this on a network you trust,
 because of the warning above.
 
 | Variable | Default | Description |

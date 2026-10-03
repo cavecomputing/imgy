@@ -56,9 +56,9 @@ buries the real diff under noise.
 
 ```bash
 uv sync                                               # install the locked dependencies into .venv
-uv run app.py                                         # dev server on 127.0.0.1:8000 (DATA_DIR defaults to ./data)
-uv run gunicorn --bind 127.0.0.1:8000 --workers 4 --worker-class gthread --threads 8 --timeout 120 app:app
-docker compose -f docker/compose.yml up --build -d    # serves 127.0.0.1:8000
+uv run app.py                                         # dev server on 127.0.0.1:5000 (DATA_DIR defaults to ./data)
+uv run gunicorn --bind 127.0.0.1:5000 --workers 4 --worker-class gthread --threads 8 --timeout 120 app:app
+docker compose -f docker/compose.yml up --build -d    # serves 127.0.0.1:5000
 
 uv run python -m compileall -q app.py imgy            # backend syntax check
 node --input-type=module --check < imgy/static/js/<file>.js   # frontend syntax check
@@ -154,7 +154,7 @@ Everything Docker lives in `docker/`, so mind which folder a relative path start
 - The build's ignore file is `docker/Dockerfile.dockerignore` (BuildKit reads it beside the Dockerfile, in place of a root `.dockerignore`), and its patterns are relative to the repo root.
 - The top-level `name: imgy` keeps the Compose project name from becoming `docker`.
 
-The image installs the locked dependencies into `/app/.venv` (on `PATH`) with uv, which is mounted for that step and not kept. It starts as root; `docker/entrypoint.sh` chowns `/data` to `PUID:PGID` and drops privileges with `gosu` before starting gunicorn. The compose file publishes port 8000 on `127.0.0.1`.
+The image installs the locked dependencies into `/app/.venv` (on `PATH`) with uv, which is mounted for that step and not kept. It starts as root; `docker/entrypoint.sh` chowns `/data` to `PUID:PGID` and drops privileges with `gosu` before starting gunicorn. The compose file publishes port 5000 on `127.0.0.1`.
 
 ## Things that must change together
 

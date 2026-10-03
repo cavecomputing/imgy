@@ -13,7 +13,6 @@ export function showLoading() {
 }
 
 export function hideLoading() {
-    if (LlmQueue.processing) return;
     clearTimeout(loadingTimer);
     Elements.loadingEl.classList.add('hidden');
 }

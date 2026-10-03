@@ -21,11 +21,9 @@ const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><
 let renderedCount = 0; // the grid holds cards for the first renderedCount of State.filteredImages
 
 function createCardFootMeta(tags = []) {
-    if (!tags.length) return '<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span><span class="card-tag-tip" aria-hidden="true"><span>Add tags (T)</span></span></button>';
-    const shown = tags.slice(0, 12);
-    const more = tags.length - shown.length;
-    const tip = shown.map(t => `<span>${esc(t)}</span>`).join('') + (more ? `<span>+${more}</span>` : '');
-    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}">${icon('tag', 'i i-xs')}${tags.length}<span class="card-tag-tip" aria-hidden="true">${tip}</span></button>`;
+    const tip = `<span class="card-tag-tip" aria-hidden="true">Edit tags (T)${tags.length ? `: ${esc(tags.join(', '))}` : ''}</span>`;
+    if (!tags.length) return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span>${tip}</button>`;
+    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}">${icon('tag', 'i i-xs')}${tags.length}${tip}</button>`;
 }
 
 function createImageCard(img, idx) {

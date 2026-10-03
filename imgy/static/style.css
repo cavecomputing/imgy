@@ -591,31 +591,31 @@ button.chip { cursor: pointer; }
 .card-tag-btn { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; margin-right: -6px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); cursor: pointer; }
 .card-tag-btn:hover { background: var(--bg-inset); color: var(--fg); }
 .image-grid.selection-mode .card-tag-btn { pointer-events: none; }
-/* the tag list, above the footer and inside the card: the button stays unpositioned so the card is its containing block */
+/* the tooltip, above the footer and inside the card (the button stays unpositioned so the card is its containing block).
+   Like a native one it waits half a second to show and goes the moment the pointer leaves. */
 .card-tag-tip {
     position: absolute;
     right: 8px;
     bottom: 42px;
     z-index: 4;
-    display: none;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 4px;
+    visibility: hidden;
+    opacity: 0;
     max-width: calc(100% - 16px);
-    pointer-events: none;
-}
-.card-tag-tip span {
-    padding: 3px 7px;
-    border-radius: 5px;
-    background: var(--on-image-bg);
-    border: 1px solid var(--on-image-line);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lift);
     font-family: var(--font-mono);
     font-size: 11px;
-    line-height: 1.2;
-    color: var(--on-image);
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    color: var(--fg);
+    pointer-events: none;
 }
 @media (hover: hover) {
-    .card-tag-btn:hover .card-tag-tip { display: flex; }
+    .card-tag-btn:hover .card-tag-tip { visibility: visible; opacity: 1; transition: opacity 0.12s 0.5s, visibility 0s 0.5s; }
 }
 .card-foot .cc-badge { padding: 1px 7px 1px 6px; font-size: 10px; }
 

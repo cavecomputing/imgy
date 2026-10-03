@@ -969,6 +969,8 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     padding: 28px 76px 52px; /* the bottom leaves room for the key hints */
     overflow: hidden;
     touch-action: none;
+    -webkit-user-select: none; /* dragging pans a zoomed image; don't let it select the image too */
+    user-select: none;
 }
 .lightbox-content img {
     max-width: 100%;

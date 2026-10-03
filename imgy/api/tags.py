@@ -1,10 +1,10 @@
-"""Tag CRUD for single images, many images, and the global tag list."""
+"""Tags on files, and the global tag list."""
 from flask import Blueprint, abort, request
 
 from ..catalog import invalidate_images_cache
 from ..config import MAX_BULK_FILES, MAX_BULK_TAGS
 from ..db import NOT_TRASHED, STANDALONE_TAG_FILENAME, active_tag_names, get_db
-from .common import active_file, active_files, json_body
+from .common import active_files, json_body
 from .settings import rename_tag_in_groups
 
 bp = Blueprint('tags', __name__)
@@ -38,29 +38,6 @@ def list_tags():
         return active_tag_names(conn)
 
 
-@bp.get('/tags/<path:filename>')
-def image_tags(filename):
-    filename, _path = active_file(filename, must_exist=False)
-    with get_db() as conn:
-        return [row['tag'] for row in conn.execute('SELECT tag FROM tags WHERE filename = ?', (filename,))]
-
-
-@bp.post('/tags')
-def add_tag():
-    data = json_body()
-    filename, tag = data.get('filename'), data.get('tag', '').strip().lower()
-    if not filename or not tag:
-        abort(400, 'Filename and tag required')
-    filename, _path = active_file(filename)
-    if not validate_tag(tag):
-        abort(400, 'Invalid tag name')
-    with get_db() as conn:
-        conn.execute('INSERT OR IGNORE INTO tags (filename, tag) VALUES (?, ?)', (filename, tag))
-        conn.commit()
-    invalidate_images_cache()
-    return {'success': True}
-
-
 @bp.post('/tags/create')
 def create_tag():
     """Create a tag that is not attached to any image yet."""
@@ -74,16 +51,6 @@ def create_tag():
         conn.commit()
     invalidate_images_cache()
     return {'success': True, 'tag': tag}
-
-
-@bp.delete('/tags/<path:filename>/<tag>')
-def remove_tag(filename, tag):
-    filename, _path = active_file(filename, must_exist=False)
-    with get_db() as conn:
-        conn.execute('DELETE FROM tags WHERE filename = ? AND tag = ?', (filename, tag))
-        conn.commit()
-    invalidate_images_cache()
-    return {'success': True}
 
 
 @bp.delete('/tags/remove-all')

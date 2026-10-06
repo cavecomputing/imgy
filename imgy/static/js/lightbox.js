@@ -10,7 +10,7 @@ import { closeLightboxTagFlyup, openLightboxTagFlyup, toggleLightboxTagFlyup } f
 import { toggleTagFilter } from './filters.js';
 import { clearCardFocus } from './navigation.js';
 import { llmQueueAdd, llmQueueSyncLightbox } from './llm.js';
-import { getLlmSettings } from './settings.js';
+import { getLlmSettings, isLlmConfigured } from './settings.js';
 
 const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'WebP', bmp: 'BMP' };
 
@@ -131,6 +131,13 @@ export function updateLightboxContent() {
 }
 
 function renderLightboxLlmText() {
+    const ready = isLlmConfigured();
+    Elements.llmPanelBtn.lastChild.textContent = ready ? 'Auto-tag this file' : 'Set up auto-tagging';
+    Elements.llmPanelBtn.nextElementSibling.classList.toggle('hidden', !ready); // "or type ? in tags"
+    if (!ready) {
+        Elements.lightboxLlmText.innerHTML = 'Auto-tagging needs a vision model, such as <code>gemma3</code> in Ollama. Choose one in Settings and test the connection.';
+        return;
+    }
     const s = getLlmSettings();
     const model = `<code>${esc(s.model)}</code>`;
     let text;
@@ -364,6 +371,7 @@ export function initLightbox() {
     Elements.llmAnalyzeBtn.addEventListener('click', autoTag);
     Elements.llmPanelBtn.addEventListener('click', autoTag);
     Elements.lightboxLlmTab.addEventListener('click', autoTag);
+    Elements.shortcutsModal.addEventListener('close', renderLightboxLlmText); // auto-tagging may be set up now
     Elements.lightboxHeaderDeleteBtn.addEventListener('click', trash);
     Elements.lightboxDeleteTab.addEventListener('click', trash);
     Elements.lightboxTagBtn.addEventListener('click', toggleLightboxTagFlyup);

@@ -8,7 +8,7 @@ import { api } from './api.js';
 import { applyFilters } from './data.js';
 import { addTags, applyRenameLocally } from './actions.js';
 import { refreshLightboxAfterTagEdit, renderActiveQuickTagPanel } from './flyup.js';
-import { getLlmSettings } from './settings.js';
+import { getLlmSettings, isLlmConfigured, toggleShortcutsModal } from './settings.js';
 
 export function getLlmActionSummary(settings = getLlmSettings()) {
     const actions = [];
@@ -63,6 +63,11 @@ async function llmProcessOne(img) {
 
 export function llmQueueAdd(filename) {
     if (isVideo(filename)) { showToast('Auto-tagging doesn’t work on videos'); return; }
+    // Until a model is set up, the default endpoint would only fail: open its settings instead
+    if (!isLlmConfigured()) {
+        if (!Elements.shortcutsModal.open) toggleShortcutsModal('llm');
+        return;
+    }
     if (LlmQueue.items.some(i => i.filename === filename && (i.status === 'queued' || i.status === 'processing'))) return;
     LlmQueue.items.push({ filename, status: 'queued' });
     llmQueueUpdateUI();
@@ -123,7 +128,8 @@ async function llmQueueProcess() {
     } else if (okCount) {
         showToast(`Auto-tagged ${formatCount(okCount, 'file')}, ${errCount} failed: ${lastError}`);
     } else if (errCount) {
-        showToast(errCount > 1 ? `Auto-tag failed on ${formatCount(errCount, 'file')}: ${lastError}` : `Auto-tag failed: ${lastError}`);
+        const fix = lastError === 'the file is gone' ? '' : '. Check Settings › Auto-tagging';
+        showToast((errCount > 1 ? `Auto-tag failed on ${formatCount(errCount, 'file')}: ${lastError}` : `Auto-tag failed: ${lastError}`) + fix);
     }
 }
 

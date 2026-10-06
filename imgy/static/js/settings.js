@@ -75,6 +75,11 @@ export function getLlmSettings() {
     };
 }
 
+/** True once an endpoint, model or key has been saved, or a connection test has passed. */
+export function isLlmConfigured() {
+    return ['llmProvider', 'llmApiUrl', 'llmModel', 'llmApiSecret'].some(key => State.settings[key]);
+}
+
 function getLlmSettingsFromControls() {
     const provider = getProviderControl();
     const apiUrlInput = document.getElementById('llmApiUrl');
@@ -336,8 +341,12 @@ export function initLlmSettings() {
             });
             clearTimeout(timeout);
             const data = await resp.json();
-            if (resp.ok) showTestSuccess(data.model || testSettings.model);
-            else showTestError(data.error || 'Connection failed');
+            if (resp.ok) {
+                showTestSuccess(data.model || testSettings.model);
+                saveSetting('llmProvider', testSettings.provider); // counts as set up, even on the defaults
+            } else {
+                showTestError(data.error || 'Connection failed');
+            }
         } catch (err) {
             clearTimeout(timeout);
             showTestError(err.name === 'AbortError' ? `No answer after ${CONFIG.LLM_TEST_TIMEOUT_MS / 1000} seconds` : err.message);

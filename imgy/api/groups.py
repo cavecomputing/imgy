@@ -27,6 +27,8 @@ def create_group():
         for group_id in existing:
             members.update(row['filename'] for row in conn.execute(
                 'SELECT filename FROM image_groups WHERE group_id = ?', (group_id,)))
+        if len(members) > MAX_GROUP_SIZE:
+            abort(400, TOO_MANY)
         conn.executemany('DELETE FROM image_groups WHERE group_id = ?', [(g,) for g in existing])
         conn.executemany('DELETE FROM image_groups WHERE filename = ?', [(f,) for f in members])
         group_id = str(uuid.uuid4())[:8]

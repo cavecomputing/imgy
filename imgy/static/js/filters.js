@@ -229,7 +229,7 @@ function renderSuggestions() {
     const list = Elements.tagSuggestionList;
     const rawTerm = Elements.tagSearch.value;
     const modeInfo = getFilterModeInfo(rawTerm);
-    const { term, isGlobalDelete, isExcludeMode, isCreateMode } = parseLastToken(rawTerm);
+    const { lastToken, term, isGlobalDelete, isExcludeMode, isCreateMode } = parseLastToken(rawTerm);
 
     const isOrphaned = t => !(State.tagCounts[t] > 0);
     const orphanedTags = State.allTags.filter(isOrphaned);
@@ -277,6 +277,23 @@ function renderSuggestions() {
         return;
     }
 
+    // 'old>new' renames a tag everywhere: say what Enter would do
+    if (modeInfo.mode === 'rename') {
+        const [oldName, newName] = lastToken.split('>').map(s => s.trim().toLowerCase());
+        appendSuggestionHeader(list, modeInfo);
+        if (!State.allTags.includes(oldName)) {
+            list.appendChild(noteRow(oldName ? `<span>No tag named “${esc(oldName)}”.</span>` : '<span>Type the tag to rename before <code>&gt;</code>.</span>', !!oldName));
+        } else if (!newName || newName === oldName) {
+            list.appendChild(noteRow(`<span>Type the new name for “${esc(oldName)}” after <code>&gt;</code>.</span>`));
+        } else {
+            const merge = State.allTags.includes(newName) ? ` “${esc(newName)}” already exists, so the two merge.` : '';
+            list.appendChild(noteRow(`<span>Enter renames “${esc(oldName)}” to “${esc(newName)}” on ${formatCount(State.tagCounts[oldName] || 0, 'file')}.${merge}</span>`));
+        }
+        State.suggestionMatches = [];
+        showSuggestions();
+        return;
+    }
+
     let candidates = State.allTags.filter(t => (!term || t.toLowerCase().includes(term)) && !State.activeTags.has(t) && !State.excludeTags.has(t));
     if (State.showOrphanedOnly) candidates = candidates.filter(isOrphaned);
     const { ordered, dividerAt } = orderCandidates(candidates, term);
@@ -289,7 +306,7 @@ function renderSuggestions() {
         State.suggestionIndex = -1;
         if (!term && !State.showOrphanedOnly) { hideSuggestions(); return; }
         appendSuggestionHeader(list, modeInfo);
-        const hint = !isCreateMode && !isGlobalDelete && term ? ` Type <code>+${esc(term)}</code> to create it.` : '';
+        const hint = modeInfo.mode === 'include' && term ? ` Type <code>+${esc(term)}</code> to create it.` : '';
         list.insertAdjacentHTML('beforeend', `<div class="no-results">No tag matches “${esc(term)}”.${hint}</div>`);
         showSuggestions();
         return;
@@ -460,6 +477,7 @@ async function applyFilterExpression() {
     if (term === '++') { showToast('"++" only works in the bulk tag editor'); resetTagSearch(); return; }
     if (term.includes('>')) {
         const [oldN, newN] = term.split('>').map(s => s.trim().toLowerCase());
+        if (oldN && !State.allTags.includes(oldN)) { showToast(`No tag named "${oldN}"`); return; }
         if (oldN && newN) {
             await api.post('/api/tags/rename', { old_tag: oldN, new_tag: newN });
             renameTagInFilters(oldN, newN);

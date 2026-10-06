@@ -1,6 +1,6 @@
 /** Loads images and tags from the server and applies the active filters. */
 import { CONFIG } from './config.js';
-import { incrementTagCount, State } from './state.js';
+import { getCurrentLightboxImage, incrementTagCount, State } from './state.js';
 import { Elements } from './dom.js';
 import { nameContains } from './utils.js';
 import { hideLoading, showError, showLoading, showToast } from './ui.js';
@@ -8,6 +8,7 @@ import { api } from './api.js';
 import { renderImageGrid } from './grid.js';
 import { updateSelectionBar } from './selection.js';
 import { renderFilterBarTags } from './filters.js';
+import { updateLightboxContent } from './lightbox.js';
 import { saveSetting } from './settings.js';
 import { setTrashCount } from './trash.js';
 
@@ -51,6 +52,9 @@ export async function loadData(ready, { onlyIfChanged = false } = {}) {
         lastListing = listing;
         if (onlyIfChanged && unchanged) return;
         const { images, groups } = imagesResp;
+        const lightboxOpen = Elements.lightbox.classList.contains('active');
+        const shownBefore = lightboxOpen && getCurrentLightboxImage()?.filename;
+        const indexBefore = State.currentImageIndex;
         setTrashCount(imagesResp.trash_count);
         State.filenameToGroup = {};
         for (const [gid, members] of Object.entries(groups)) {
@@ -63,7 +67,12 @@ export async function loadData(ready, { onlyIfChanged = false } = {}) {
         images.forEach(img => img.tags?.forEach(t => {
             incrementTagCount(t);
         }));
+        // The tag editor holds the file's old object, which the new list has replaced
+        const editing = State.currentQuickTagImage;
+        if (editing && !State.bulkTagFlyupMode) State.currentQuickTagImage = State.imagesByFilename.get(editing.filename) ?? editing;
         applyFilters();
+        // The viewer's file may be gone, or have moved to another place in the list
+        if (lightboxOpen && (getCurrentLightboxImage()?.filename !== shownBefore || State.currentImageIndex !== indexBefore)) updateLightboxContent();
 
         renderFilterBarTags();
     } catch (err) {

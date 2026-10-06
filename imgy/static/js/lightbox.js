@@ -8,6 +8,7 @@ import { startHeaderInlineRename } from './rename.js';
 import { deleteImage, removeTag, toggleFavorite, updateLocalState } from './actions.js';
 import { closeLightboxTagFlyup, openLightboxTagFlyup, toggleLightboxTagFlyup } from './flyup.js';
 import { toggleTagFilter } from './filters.js';
+import { clearCardFocus } from './navigation.js';
 import { llmQueueAdd, llmQueueSyncLightbox } from './llm.js';
 import { getLlmSettings } from './settings.js';
 
@@ -30,7 +31,7 @@ export function closeLightbox() {
     Elements.lightbox.classList.remove('active');
     document.body.style.overflow = '';
     resetZoom();
-    State.cardFocusActive = false;
+    clearCardFocus(); // the redraw may leave the old outline on a card that keys no longer act on
     applyFilters();
     if (restoreFilename) {
         // focusedCardIndex counts DOM cards, so look the card up by filename

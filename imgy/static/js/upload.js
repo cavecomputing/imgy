@@ -29,7 +29,17 @@ function uploadFileXHR(file, onProgress) {
     });
 }
 
-async function uploadFiles(files) {
+let uploadQueue = Promise.resolve();
+let hideProgressTimer = null;
+
+/** Uploads run one after another, so a second drop waits instead of sharing the first one's progress bar. */
+function uploadFiles(files) {
+    const run = uploadQueue.catch(() => {}).then(() => runUpload(files));
+    uploadQueue = run;
+    return run;
+}
+
+async function runUpload(files) {
     if (!files.length) return;
 
     const skippedClient = files
@@ -50,6 +60,7 @@ async function uploadFiles(files) {
     let failCount = 0;
     const skippedServer = [];
 
+    clearTimeout(hideProgressTimer);
     Elements.uploadProgressBar.style.width = '0%';
     Elements.uploadProgressText.textContent = `Uploading 1 of ${files.length}…`;
     Elements.uploadProgress.classList.remove('hidden');
@@ -94,7 +105,7 @@ async function uploadFiles(files) {
     try {
         await loadData();
     } finally {
-        setTimeout(() => Elements.uploadProgress.classList.add('hidden'), 1500);
+        hideProgressTimer = setTimeout(() => Elements.uploadProgress.classList.add('hidden'), 1500);
     }
 }
 

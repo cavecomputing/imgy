@@ -91,9 +91,11 @@ async function uploadFiles(files) {
         const first = skippedClient[0] || skippedServer[0];
         showToast(first ? `Skipped ${first.filename}: ${first.reason}` : `Skipped ${formatCount(skippedCount, 'file')}`);
     }
-    await loadData();
-
-    setTimeout(() => Elements.uploadProgress.classList.add('hidden'), 1500);
+    try {
+        await loadData();
+    } finally {
+        setTimeout(() => Elements.uploadProgress.classList.add('hidden'), 1500);
+    }
 }
 
 export function initUpload() {
@@ -107,8 +109,9 @@ export function initUpload() {
 
     Elements.uploadBtn.addEventListener('click', () => Elements.imageInput.click());
     Elements.imageInput.addEventListener('change', async (e) => {
-        await uploadFiles(Array.from(e.target.files));
-        Elements.imageInput.value = '';
+        const files = Array.from(e.target.files);
+        Elements.imageInput.value = ''; // so picking the same files again still fires a change
+        await uploadFiles(files);
     });
 
     let internalDrag = false;

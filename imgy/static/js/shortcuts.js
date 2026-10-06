@@ -67,7 +67,7 @@ export function initShortcuts() {
             if (e.key === 'f') { e.preventDefault(); Elements.lightboxFavoriteBtn?.click(); return; }
             if (e.key === 't') { e.preventDefault(); Elements.lightboxTagBtn?.click(); return; }
             if (e.key === 'd' || e.key === 'Delete') { e.preventDefault(); deleteImage(State.currentImageIndex); return; }
-            if (e.key === 'r') { e.preventDefault(); document.getElementById('lightboxHeaderFilename')?.click(); return; }
+            if (e.key === 'r') { e.preventDefault(); Elements.lightboxHeaderFilename.click(); return; }
             if (e.key === '0') { e.preventDefault(); resetZoom(); return; }
             if (e.key === '/') { e.preventDefault(); Elements.lightboxTagBtn?.click(); return; }
         } else {

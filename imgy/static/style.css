@@ -9,11 +9,9 @@
 :root {
     --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --space-1: 6px;
     --space-2: 10px;
     --space-3: 16px;
     --space-4: 24px;
-    --space-5: 36px;
     --radius-sm: 6px;
     --radius: 10px;
     --radius-lg: 14px;

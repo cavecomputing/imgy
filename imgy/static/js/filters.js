@@ -109,7 +109,7 @@ export function toggleTagFilter(t) {
     applyFilters(); renderFilterBarTags();
 }
 
-export function toggleExcludeTag(t) {
+function toggleExcludeTag(t) {
     leaveUntaggedFilter();
     State.excludeTags.has(t) ? State.excludeTags.delete(t) : State.excludeTags.add(t);
     applyFilters(); renderFilterBarTags();

@@ -42,7 +42,6 @@ export const Elements = {
     closeLightboxBtn: byId('closeLightbox'),
     prevImageBtn: byId('prevImage'),
     nextImageBtn: byId('nextImage'),
-    lightboxPanel: byId('lightboxPanel'),
     lightboxTagBarTags: byId('lightboxTagBarTags'),
     lightboxTagFlyup: byId('lightboxTagFlyup'),
     lightboxTagInput: byId('lightboxTagInput'),

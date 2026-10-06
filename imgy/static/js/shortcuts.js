@@ -116,7 +116,7 @@ export function initShortcuts() {
                 deleteSelectedOrFocusedImage();
                 return;
             }
-            if (e.key === 'd' && State.cardFocusActive) {
+            if (e.key === 'd' && (State.cardFocusActive || State.selectedImages.size > 0)) {
                 e.preventDefault();
                 deleteSelectedOrFocusedImage();
                 return;
@@ -137,15 +137,13 @@ export function initShortcuts() {
             if (e.key === 's') { e.preventDefault(); toggleSelectionMode(); return; }
             if (e.key === 'f') {
                 e.preventDefault();
-                if (State.cardFocusActive) {
-                    if (State.selectedImages.size > 0) {
-                        await bulkToggleFavorites();
-                    } else {
-                        const img = getFocusedImage();
-                        if (img) {
-                            const isFav = await toggleFavorite(img.filename);
-                            updateLocalState(img.filename, { is_favorite: isFav });
-                        }
+                if (State.selectedImages.size > 0) {
+                    await bulkToggleFavorites();
+                } else if (State.cardFocusActive) {
+                    const img = getFocusedImage();
+                    if (img) {
+                        const isFav = await toggleFavorite(img.filename);
+                        updateLocalState(img.filename, { is_favorite: isFav });
                     }
                 } else {
                     Elements.favoriteFilterBtn.click();

@@ -55,6 +55,8 @@ export function initShortcuts() {
         }
 
         if (anyModalOpen) return;
+        // Holding the key would trash one file after another
+        if (e.repeat && (e.key === 'd' || e.key === 'Delete')) return;
 
         const inLightbox = Elements.lightbox.classList.contains('active');
         const arrow = VIM_ARROWS[e.key] ?? e.key;

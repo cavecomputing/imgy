@@ -7,29 +7,40 @@ let loadingTimer = null;
 let toastTimer = null;
 let errorTimer = null;
 
+/**
+ * Show or hide a notice. They are manual popovers because an open modal <dialog> and its backdrop
+ * sit in the top layer, which paints over any z-index; showing the popover again lifts it above
+ * a dialog opened after it.
+ */
+function setNotice(el, visible) {
+    el.classList.toggle('hidden', !visible);
+    if (el.matches(':popover-open')) el.hidePopover();
+    if (visible) el.showPopover();
+}
+
 export function showLoading() {
     if (LlmQueue.processing) return;
     clearTimeout(loadingTimer);
-    loadingTimer = setTimeout(() => Elements.loadingEl.classList.remove('hidden'), CONFIG.LOADING_DELAY_MS);
+    loadingTimer = setTimeout(() => setNotice(Elements.loadingEl, true), CONFIG.LOADING_DELAY_MS);
 }
 
 export function hideLoading() {
     clearTimeout(loadingTimer);
-    Elements.loadingEl.classList.add('hidden');
+    setNotice(Elements.loadingEl, false);
 }
 
 export function showError(msg) {
     Elements.errorEl.textContent = msg;
-    Elements.errorEl.classList.remove('hidden');
+    setNotice(Elements.errorEl, true);
     clearTimeout(errorTimer);
-    errorTimer = setTimeout(() => Elements.errorEl.classList.add('hidden'), CONFIG.ERROR_DURATION_MS);
+    errorTimer = setTimeout(() => setNotice(Elements.errorEl, false), CONFIG.ERROR_DURATION_MS);
 }
 
 export function showToast(msg) {
     Elements.toastEl.textContent = msg;
-    Elements.toastEl.classList.remove('hidden');
+    setNotice(Elements.toastEl, true);
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => Elements.toastEl.classList.add('hidden'), CONFIG.TOAST_DURATION_MS);
+    toastTimer = setTimeout(() => setNotice(Elements.toastEl, false), CONFIG.TOAST_DURATION_MS);
 }
 
 export function setPressed(el, pressed) {

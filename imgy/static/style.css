@@ -1321,6 +1321,8 @@ a.cc-btn { text-decoration: none; }
 .tags-count, .tags-actions { text-align: right; }
 
 /* ---------- notices ---------- */
+/* Popovers start from inset: 0 and margin: auto; each notice names the sides it uses. */
+.toast, .error, .loading { inset: auto; margin: 0; }
 .toast {
     position: fixed;
     left: 50%;

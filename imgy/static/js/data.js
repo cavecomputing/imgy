@@ -18,13 +18,18 @@ export async function reloadDataPreservingScroll() {
 }
 
 let loadDataController = null;
+let lastListing = '';
 
 export function abortLoadData() {
     if (loadDataController) loadDataController.abort();
 }
 
-/** Fetch the library and draw it. `ready` is an optional promise to wait for before drawing. */
-export async function loadData(ready) {
+/**
+ * Fetch the library and draw it. `ready` is an optional promise to wait for before drawing.
+ * With `onlyIfChanged`, an answer equal to the last one draws nothing, so a reload nobody
+ * asked for leaves a rename in progress, or an open tag editor, alone.
+ */
+export async function loadData(ready, { onlyIfChanged = false } = {}) {
     // Abort any in-flight loadData request
     if (loadDataController) loadDataController.abort();
     const controller = new AbortController();
@@ -41,6 +46,10 @@ export async function loadData(ready) {
         // If this call was superseded, discard stale results
         await ready;
         if (controller.signal.aborted) return;
+        const listing = JSON.stringify([imagesResp, tags]);
+        const unchanged = listing === lastListing;
+        lastListing = listing;
+        if (onlyIfChanged && unchanged) return;
         const { images, groups } = imagesResp;
         setTrashCount(imagesResp.trash_count);
         State.filenameToGroup = {};

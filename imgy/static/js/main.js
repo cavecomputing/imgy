@@ -1,5 +1,5 @@
 /** Entry point: wires up event listeners, then loads settings and the library. */
-import { abortLoadData, loadData, reloadDataPreservingScroll } from './data.js';
+import { abortLoadData, loadData } from './data.js';
 import { initGrid } from './grid.js';
 import { initReorder } from './reorder.js';
 import { initSelection } from './selection.js';
@@ -33,8 +33,9 @@ async function start() {
     await dataLoaded;
     // Files also arrive from outside (the browser extension, the share sheet, a copied folder),
     // so look again whenever the page comes back in front.
-    window.addEventListener('focus', reloadDataPreservingScroll);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) reloadDataPreservingScroll(); });
+    const refresh = () => loadData(null, { onlyIfChanged: true });
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 }
 
 start();

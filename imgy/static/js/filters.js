@@ -6,7 +6,7 @@ import { esc, formatCount, highlightMatch, nameContains } from './utils.js';
 import { isPhoneLayout, setToggleButtonState, showToast } from './ui.js';
 import { api } from './api.js';
 import { applyFilters, loadData } from './data.js';
-import { parseFilterExpressionTokens, splitTagTokens, tryTabCompletion } from './tags.js';
+import { parseFilterExpressionTokens, pickSuggestion, splitTagTokens, tryTabCompletion } from './tags.js';
 import { getLlmActionSummary } from './llm.js';
 
 const DESKTOP_PLACEHOLDER = 'Filter by tag   -exclude   +create   old>new';
@@ -328,14 +328,7 @@ function renderSuggestions() {
             <span class="tag-count-badge${count === 0 ? ' orphaned' : ''}" title="${formatCount(count, 'file')}">${count}</span>
         `;
         item.addEventListener('click', (e) => {
-            if (e.target.closest('.suggestion-tools')) return;
-            if (isGlobalDelete) {
-                deleteTagGlobally(t);
-                return;
-            }
-            if (isExcludeMode) toggleExcludeTag(t);
-            else toggleTagFilter(t);
-            resetTagSearch({ clearOrphanedOnly: true });
+            if (!e.target.closest('.suggestion-tools')) chooseSuggestion(t);
         });
         item.querySelector('.suggestion-rename').addEventListener('click', () => renameTagGlobally(t));
         item.querySelector('.suggestion-delete').addEventListener('click', () => deleteTagGlobally(t));
@@ -370,11 +363,30 @@ function renderSuggestions() {
     showSuggestions();
 }
 
+/** What clicking a suggestion does: show the tag's files, hide them after a -, or delete the tag after a --. */
+function chooseSuggestion(tag) {
+    const { isGlobalDelete, isExcludeMode } = parseLastToken(Elements.tagSearch.value);
+    if (isGlobalDelete) {
+        deleteTagGlobally(tag);
+        return;
+    }
+    if (isExcludeMode) toggleExcludeTag(tag);
+    else toggleTagFilter(tag);
+    resetTagSearch({ clearOrphanedOnly: true });
+}
+
 /** Put a suggestion in place of the token being typed, keeping its - / -- / + prefix. */
 function replaceLastToken(tag, { trailingSpace = false } = {}) {
     const toks = Elements.tagSearch.value.trimStart().split(/\s+/);
     toks[toks.length - 1] = parseLastToken(Elements.tagSearch.value).prefix + tag;
     Elements.tagSearch.value = toks.join(' ') + (trailingSpace ? ' ' : '');
+}
+
+/** The suggestion Enter takes for a tag to show or hide that is typed in part (never one to create or delete). */
+function enterPick() {
+    const { lastToken, isGlobalDelete, isCreateMode, term } = parseLastToken(Elements.tagSearch.value);
+    if (isGlobalDelete || isCreateMode || lastToken.includes('>')) return null;
+    return pickSuggestion(term, State.suggestionMatches);
 }
 
 async function applyFilterExpression() {
@@ -598,9 +610,15 @@ export function initFilters() {
             });
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            // A highlighted suggestion stands in for the token being typed
-            const highlighted = suggestionsVisible && State.suggestionIndex > -1 ? matches[State.suggestionIndex] : null;
-            if (highlighted) replaceLastToken(highlighted);
+            // Match what is typed now, not what was typed when the suggestions were last drawn
+            clearTimeout(suggestDebounceTimer);
+            renderSuggestions();
+            // A highlighted suggestion stands in for the token being typed, and so does the one a
+            // tag typed in part picks: a phone has no Tab or arrow keys to choose it with
+            const pick = State.suggestionIndex > -1 ? State.suggestionMatches[State.suggestionIndex] : enterPick();
+            // On its own it does what clicking it does, which keeps a tag with spaces in it whole
+            if (pick && !/\s/.test(Elements.tagSearch.value.trim())) { chooseSuggestion(pick); return; }
+            if (pick) replaceLastToken(pick);
             await applyFilterExpression();
         } else if (e.key === 'Delete' && suggestionsVisible) {
             e.preventDefault();

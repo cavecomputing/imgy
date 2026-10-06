@@ -6,7 +6,7 @@ import { setToggleButtonState, showToast, withLoading } from './ui.js';
 import { api } from './api.js';
 import { applyFilters, reloadDataPreservingScroll } from './data.js';
 import { updateLocalState } from './actions.js';
-import { collectTagMutations, splitTagTokens } from './tags.js';
+import { collectTagMutations } from './tags.js';
 import { closeGalleryTagFlyup, isGalleryTagFlyupOpen, openBulkTagFlyup } from './flyup.js';
 import { renderFilterBarTags } from './filters.js';
 import { renderLibraryCount } from './grid.js';
@@ -86,11 +86,8 @@ export function clearSelection() {
     updateSelectionBar();
 }
 
-export async function processBulkTagsFromInput(tagsStr) {
-    if (!tagsStr || State.selectedImages.size === 0) return;
-
-    const tokens = splitTagTokens(tagsStr);
-    if (tokens.length === 0) return;
+export async function processBulkTagsFromInput(tokens) {
+    if (tokens.length === 0 || State.selectedImages.size === 0) return;
 
     const filenames = getSelectedFilenames();
 

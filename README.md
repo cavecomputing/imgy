@@ -107,8 +107,9 @@ It ignores case, treats spaces, underscores and hyphens alike, and also matches 
 folder, so `@.mp4` shows every MP4.
 
 The tag editors preview what each expression will do before you press `Enter`. `Tab` completes the
-tag you are typing, and `Enter` applies the expression, or the suggestion you highlighted with the
-arrow keys. Destructive filter-bar actions ask for confirmation.
+tag you are typing, and `Enter` applies the expression. A tag to add, remove, show or hide that you
+typed only part of stands for the first suggestion when that starts with it, or for the only one;
+the arrow keys highlight another. Destructive filter-bar actions ask for confirmation.
 
 ## Auto-tagging (optional)
 

@@ -6,7 +6,7 @@ import { esc, formatCount, getDisplayFilename, highlightMatch, isVideo } from '.
 import { showToast } from './ui.js';
 import { processBulkTagsFromInput, updateSelectionBar } from './selection.js';
 import { addTags, removeTag } from './actions.js';
-import { collectTagMutations, getCommonTags, planTagExpression, splitTagTokens, tryTabCompletion } from './tags.js';
+import { collectTagMutations, getCommonTags, pickSuggestion, planTagExpression, splitTagTokens, tryTabCompletion } from './tags.js';
 import { toggleTagFilter } from './filters.js';
 import { renderLightboxTagBar } from './lightbox.js';
 import { llmQueueAdd } from './llm.js';
@@ -136,6 +136,21 @@ function getEditorFiles() {
     return State.bulkTagFlyupMode ? getImagesByFilenames(img._bulkFilenames || []) : [img];
 }
 
+/** The suggestion Enter takes: the highlighted one, or the one a tag typed in part picks (never a +new one). */
+function enterPick() {
+    if (State.quickTagIndex > -1) return State.quickTagMatches[State.quickTagIndex];
+    const { term, isAdd } = getQuickTagLastToken();
+    return isAdd ? null : pickSuggestion(term, State.quickTagMatches);
+}
+
+/** The tokens Enter applies, with the suggestion Enter takes in place of the last one, kept whole if it has spaces. */
+function enterTokens() {
+    const tokens = splitTagTokens(ActiveFlyup.input.value, State.bulkTagFlyupMode ? /[\s,]+/ : /\s+/);
+    const pick = enterPick();
+    if (pick) tokens[tokens.length - 1] = (getQuickTagLastToken().isRemove ? '-' : '') + pick;
+    return tokens;
+}
+
 function currentPlan() {
     const bulk = State.bulkTagFlyupMode;
     const files = getEditorFiles();
@@ -145,7 +160,7 @@ function currentPlan() {
     if (s.doTags && s.doRename) verbs = `tag and rename ${it}`;
     else if (s.doTags) verbs = `tag ${it}`;
     else if (s.doRename) verbs = `rename ${it}`;
-    return planTagExpression(ActiveFlyup.input?.value || '', { bulk, files, llm: { model: s.model, verbs } });
+    return planTagExpression(enterTokens(), { bulk, files, llm: { model: s.model, verbs } });
 }
 
 /** The preview under the input: what Enter would do with each token. */
@@ -158,10 +173,10 @@ function renderQuickTagHint(plan) {
 
 export function renderActiveQuickTagPanel() {
     if (!State.currentQuickTagImage) return;
+    renderQuickTagSuggestions(); // first: the preview shows the suggestion Enter would take
     const plan = currentPlan();
     renderQuickTagHint(plan);
     renderQuickTagCurrent(plan);
-    renderQuickTagSuggestions();
 }
 
 function resetQuickTagInput({ focus = false, lightboxRefresh = false } = {}) {
@@ -231,12 +246,12 @@ function getQuickTagLastToken() {
 }
 
 /** Put a tag in place of the token being typed, keeping its - or + prefix. */
-function replaceQuickTagLastToken(tag, { trailingSpace = true } = {}) {
+function replaceQuickTagLastToken(tag) {
     const tokens = ActiveFlyup.input.value.split(/\s+/);
     const last = tokens[tokens.length - 1] || '';
     const prefix = last.startsWith('-') ? '-' : last.startsWith('+') ? '+' : '';
     tokens[tokens.length - 1] = prefix + tag;
-    ActiveFlyup.input.value = tokens.join(' ') + (trailingSpace ? ' ' : '');
+    ActiveFlyup.input.value = tokens.join(' ') + ' ';
 }
 
 function quickTagInsertSuggestion(tag) {
@@ -406,9 +421,9 @@ export function initFlyups() {
         renderActiveQuickTagPanel();
     }
 
-    async function handleQuickTagBulkMode(rawQVal, img) {
+    async function handleQuickTagBulkMode(tokens, img) {
         try {
-            await processBulkTagsFromInput(rawQVal.trim());
+            await processBulkTagsFromInput(tokens);
         } catch (err) {
             console.error('Bulk tag operation failed:', err);
         } finally {
@@ -470,13 +485,13 @@ export function initFlyups() {
             e.preventDefault();
             if (matches.length > 0) {
                 State.quickTagIndex = (State.quickTagIndex + 1) % matches.length;
-                renderQuickTagSuggestions();
+                renderActiveQuickTagPanel();
             }
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (matches.length > 0) {
                 State.quickTagIndex = (State.quickTagIndex - 1 + matches.length) % matches.length;
-                renderQuickTagSuggestions();
+                renderActiveQuickTagPanel();
             }
         } else if (e.key === 'Tab') {
             e.preventDefault();
@@ -497,12 +512,9 @@ export function initFlyups() {
             const img = State.currentQuickTagImage;
             if (!img) return;
 
-            // A highlighted suggestion stands in for the token being typed
-            const highlighted = State.quickTagIndex > -1 ? matches[State.quickTagIndex] : null;
-            if (highlighted) replaceQuickTagLastToken(highlighted, { trailingSpace: false });
-
-            const rawQVal = ActiveFlyup.input.value;
-            const tokens = splitTagTokens(rawQVal, /\s+/);
+            // A highlighted suggestion stands in for the token being typed, and so does the one a
+            // tag typed in part picks: a phone has no Tab or arrow keys to choose it with
+            const tokens = enterTokens();
             if (!State.bulkTagFlyupMode && tokens.includes('=')) { showToast('"=" only works on a selection'); return; }
             if (!State.bulkTagFlyupMode && tokens.includes('++')) { showToast('"++" only works on a selection'); return; }
             if (tokens.includes('?') && tokens.length > 1) { showToast('"?" must be the only token'); return; }
@@ -510,7 +522,7 @@ export function initFlyups() {
             if (tokens.length === 0) return;
 
             if (State.bulkTagFlyupMode) {
-                await handleQuickTagBulkMode(rawQVal, img);
+                await handleQuickTagBulkMode(tokens, img);
             } else {
                 await handleQuickTagSingleImage(tokens, img);
             }

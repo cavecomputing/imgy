@@ -81,6 +81,16 @@ export function parseFilterExpressionTokens(tokens) {
     return { toDelete, toFilter, toExclude, toRename, toCreate };
 }
 
+/**
+ * The suggestion Enter takes for a tag typed in part: the first one when it starts with what was
+ * typed, or the only one. Null for a whole tag name, so Enter still applies exactly what was typed.
+ */
+export function pickSuggestion(term, matches) {
+    if (!term || State.allTags.includes(term)) return null;
+    const [first] = matches;
+    return first && (matches.length === 1 || first.toLowerCase().startsWith(term)) ? first : null;
+}
+
 export function tryTabCompletion(rawValue, matches, opts) {
     if (rawValue !== rawValue.trimEnd()) return false;
     if (matches.length === 0) return false;
@@ -138,17 +148,16 @@ export function getCommonTags(limit = 8, exclude = []) {
 const strong = (text) => `<strong>${esc(text)}</strong>`;
 
 /**
- * What Enter would do with a tag editor expression, for the preview under the input.
+ * What Enter would do with a tag editor expression's tokens, for the preview under the input.
  * `ctx.files` holds the files the editor works on (one, or the bulk selection) and
  * `ctx.llm` describes auto-tagging ({ model, verbs }). Returns { rows, adds, removes }:
  * one row per token ({ code, cls: ''|'add'|'rm'|'warn', html, alert }), plus the tags the
  * expression would add or remove so the current-tag chips can show the change.
  */
-export function planTagExpression(raw, ctx) {
+export function planTagExpression(tokens, ctx) {
     const bulk = !!ctx.bulk;
     const files = ctx.files || [];
     const n = files.length;
-    const tokens = splitTagTokens(raw, bulk ? /[\s,]+/ : /\s+/);
     const rows = [];
     const adds = new Set();
     const removes = new Set();

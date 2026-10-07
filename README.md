@@ -24,6 +24,7 @@ OpenAI-style chat API works.
 - Filter by tags, exclusions, file names, favorites, or untagged files
 - **Settings › Tags** lists every tag with its file count and deletes one or many at once
 - Lightbox with zoom, pan, pinch, and swipe; plays common video formats
+- Replace a file with a new version (an upscaled copy, say) from the lightbox; it keeps its name, tags, favorite, group, and place
 - Bulk selection: tag, favorite, group, download as ZIP, or move to trash
 - Drag files or groups into your own order (press and hold on a phone); **Settings › Appearance** switches back to newest first
 - Trash with restore, inline rename, drag-and-drop upload

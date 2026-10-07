@@ -1,4 +1,4 @@
-/** Single-file actions: favorite, tag, untag, and move to trash. */
+/** Single-file actions: favorite, tag, untag, replace, and move to trash. */
 import { decrementTagCount, getCurrentLightboxImage, incrementTagCount, LlmQueue, State } from './state.js';
 import { Elements } from './dom.js';
 import { getDisplayFilename, getExtension, getImageBaseName } from './utils.js';
@@ -129,6 +129,25 @@ export async function removeTag(filename, tag) {
         if (hadTag) decrementTagCount(tag);
     }
     applyFilters();
+}
+
+/** Swap a file's contents for `file`, keeping its name (bar the extension), tags, favorite, and place. */
+export async function replaceImage(filename, file) {
+    await withLoading(async () => {
+        const form = new FormData();
+        form.append('filename', filename);
+        form.append('image', file);
+        const data = await api.postForm('/api/images/replace', form);
+        applyRenameLocally(filename, data);
+        const item = State.imagesByFilename.get(data.new_filename);
+        if (item) Object.assign(item, { width: data.width, height: data.height, size: data.size });
+        const thumb = document.querySelector(`.image-card[data-filename="${CSS.escape(data.new_filename)}"] .card-media img`);
+        if (thumb) Object.assign(thumb, { src: data.thumbnail_url, width: data.width, height: data.height });
+        if (Elements.lightbox.classList.contains('active') && getCurrentLightboxImage()?.filename === data.new_filename) {
+            updateLightboxContent();
+        }
+        showToast(`Replaced ${getDisplayFilename(data.new_filename)}`);
+    });
 }
 
 export async function deleteImage(idx) {

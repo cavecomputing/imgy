@@ -9,7 +9,7 @@ async function request(url, options = {}) {
     try {
         const response = await fetch(url, {
             ...options,
-            headers: options.body ? { 'Content-Type': 'application/json' } : {}
+            headers: typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {}
         });
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
@@ -27,4 +27,6 @@ export const api = {
     get: (url, options) => request(url, options),
     post: (url, body) => request(url, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }),
     delete: (url) => request(url, { method: 'DELETE' }),
+    /** POST a FormData as multipart, for file uploads. */
+    postForm: (url, form) => request(url, { method: 'POST', body: form }),
 };

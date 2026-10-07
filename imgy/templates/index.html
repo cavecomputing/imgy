@@ -188,6 +188,9 @@
                 <a id="lightboxDownloadBtn" class="icon-btn" download title="Download" aria-label="Download">
                     <svg class="i" aria-hidden="true"><use href="#i-download"/></svg>
                 </a>
+                <button id="lightboxReplaceBtn" class="icon-btn" type="button" title="Replace with another file, keeping the name and tags" aria-label="Replace with another file">
+                    <svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>
+                </button>
                 <button id="lightboxHeaderDeleteBtn" class="icon-btn icon-btn--warn" type="button" title="Move to trash (D)" aria-label="Move to trash">
                     <svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>
                 </button>
@@ -242,6 +245,7 @@
                     <button id="lightboxTagTab" class="lb-tab" type="button"><svg class="i" aria-hidden="true"><use href="#i-tag"/></svg>Tags</button>
                     <button id="lightboxLlmTab" class="lb-tab llm-analyze-btn" type="button"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg>Auto-tag</button>
                     <a id="lightboxDownloadTab" class="lb-tab" download><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Save</a>
+                    <button id="lightboxReplaceTab" class="lb-tab" type="button"><svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>Replace</button>
                     <button id="lightboxDeleteTab" class="lb-tab lb-tab--warn" type="button"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Trash</button>
                 </div>
             </aside>
@@ -257,6 +261,7 @@
     <div id="toast" class="toast hidden" role="status" aria-live="polite" popover="manual"></div>
 
     <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.mp4,.webm,.mov,.mkv,.avi,.m4v" multiple hidden>
+    <input type="file" id="replaceInput" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.mp4,.webm,.mov,.mkv,.avi,.m4v" hidden>
 
     <dialog id="trashModal" class="dlg trash-dlg" aria-labelledby="trashTitle">
         <div class="dlg-head">

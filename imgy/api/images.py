@@ -1,4 +1,4 @@
-"""Listing, renaming, reordering, trashing, uploading, and exporting media files."""
+"""Listing, renaming, reordering, trashing, uploading, replacing, and exporting media files."""
 import contextlib
 import io
 import logging
@@ -107,7 +107,55 @@ def rename_image():
         conn.commit()
     delete_thumbnail(old_filename)
     invalidate_images_cache()
-    return {'success': True, 'new_filename': new_filename, **media_urls(new_filename)}
+    return {'success': True, 'new_filename': new_filename, **media_urls(new_filename, new_path.stat().st_mtime)}
+
+
+@bp.post('/images/replace')
+def replace_image():
+    """Swap a file's contents for an uploaded file. Tags, favorite, group and place stay with it.
+
+    The name stays too, except that the extension follows the new file (a PNG upscaled to a JPEG).
+    """
+    file = request.files.get('image')
+    if not file:
+        abort(400, 'No file uploaded')
+    if not allowed_file(file.filename or ''):
+        abort(400, 'Unsupported file type')
+    filename, old_path = active_file(request.form.get('filename'))
+    suffix = Path(file.filename).suffix
+    if suffix.lower() == old_path.suffix.lower():
+        suffix = old_path.suffix
+    new_filename, new_path = str(Path(filename).with_suffix(suffix)), old_path.with_suffix(suffix)
+    if new_path != old_path and new_path.exists():
+        abort(409, 'A file with that name already exists')
+
+    # Written beside the file under a name listings skip, then moved over it in one step.
+    fd, tmp_name = tempfile.mkstemp(dir=old_path.parent, prefix='.replace-')
+    os.fchmod(fd, 0o644)
+    os.close(fd)
+    tmp_path = Path(tmp_name)
+    try:
+        file.save(tmp_path)
+        width, height = read_dimensions(tmp_path, new_filename)
+        if width is None:
+            abort(400, 'Could not read the new file')
+        os.replace(tmp_path, new_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+    if new_path != old_path:
+        old_path.unlink()
+
+    with get_db() as conn:
+        if new_filename != filename:
+            clear_filename(conn, new_filename)
+            rename_filename(conn, filename, new_filename, include_groups=True)
+        conn.execute('UPDATE image_metadata SET width = ?, height = ? WHERE filename = ?', (width, height, new_filename))
+        conn.commit()
+    delete_thumbnail(filename)
+    invalidate_images_cache()
+    st = new_path.stat()
+    return {'success': True, 'new_filename': new_filename, **media_urls(new_filename, st.st_mtime),
+            'width': width, 'height': height, 'size': st.st_size}
 
 
 @bp.post('/images/reorder')

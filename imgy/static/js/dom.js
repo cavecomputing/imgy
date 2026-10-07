@@ -39,6 +39,8 @@ export const Elements = {
     lightboxTagBtn: byId('lightboxTagBtn'),
     lightboxFavoriteBtn: byId('lightboxFavoriteBtn'),
     lightboxDownloadBtn: byId('lightboxDownloadBtn'),
+    lightboxReplaceBtn: byId('lightboxReplaceBtn'),
+    replaceInput: byId('replaceInput'),
     llmAnalyzeBtn: byId('llmAnalyzeBtn'),
     resetZoomBtn: byId('resetZoom'),
     closeLightboxBtn: byId('closeLightbox'),
@@ -57,6 +59,7 @@ export const Elements = {
     lightboxTagTab: byId('lightboxTagTab'),
     lightboxLlmTab: byId('lightboxLlmTab'),
     lightboxDownloadTab: byId('lightboxDownloadTab'),
+    lightboxReplaceTab: byId('lightboxReplaceTab'),
     lightboxDeleteTab: byId('lightboxDeleteTab'),
 
     // Gallery tag editor (one file or the bulk selection)

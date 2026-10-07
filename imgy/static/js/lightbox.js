@@ -5,7 +5,7 @@ import { esc, formatCount, formatFileSize, formatShortDate, getDisplayFilename, 
 import { setToggleButtonState, showToast } from './ui.js';
 import { applyFilters } from './data.js';
 import { startHeaderInlineRename } from './rename.js';
-import { deleteImage, removeTag, toggleFavorite, updateLocalState } from './actions.js';
+import { deleteImage, removeTag, replaceImage, toggleFavorite, updateLocalState } from './actions.js';
 import { closeLightboxTagFlyup, openLightboxTagFlyup, toggleLightboxTagFlyup } from './flyup.js';
 import { toggleTagFilter } from './filters.js';
 import { clearCardFocus } from './navigation.js';
@@ -380,6 +380,15 @@ export function initLightbox() {
     Elements.lightboxTagTab.addEventListener('click', toggleLightboxTagFlyup);
     Elements.lightboxFavoriteBtn.addEventListener('click', favorite);
     Elements.lightboxFavoriteTab.addEventListener('click', favorite);
+    const pickReplacement = () => Elements.replaceInput.click();
+    Elements.lightboxReplaceBtn.addEventListener('click', pickReplacement);
+    Elements.lightboxReplaceTab.addEventListener('click', pickReplacement);
+    Elements.replaceInput.addEventListener('change', () => {
+        const file = Elements.replaceInput.files[0];
+        Elements.replaceInput.value = ''; // so picking the same file again still fires a change
+        const img = getCurrentLightboxImage();
+        if (file && img) replaceImage(img.filename, file);
+    });
 
     Elements.lightboxContent.addEventListener('wheel', (e) => {
         if (!Elements.lightbox.classList.contains('active')) return;

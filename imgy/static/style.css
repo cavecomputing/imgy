@@ -1479,8 +1479,7 @@ body.drag-over::after {
         position: sticky;
         bottom: 0;
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 2px;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         margin-top: 10px;
         padding: 6px 0 calc(10px + env(safe-area-inset-bottom));
         background: var(--bg-surface);

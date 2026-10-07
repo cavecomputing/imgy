@@ -795,7 +795,11 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 .tag-flyup-gallery.bulk-mode .flyup-thumb { display: none; }
 .flyup-eyebrow { flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent-text); }
 .flyup-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fg-muted); }
-.flyup-close { display: none; } /* phones have no Esc key, so they get this instead of its hint */
+/* The Esc hint is the close button; phones have no Esc key, so they swap it for the X */
+.flyup-close { width: auto; height: auto; border: 0; }
+.flyup-close svg.i { display: none; }
+.flyup-close:hover:not(:disabled) { background: transparent; }
+.flyup-close:hover .kbd { border-color: var(--fg-subtle); color: var(--fg); }
 .flyup-body { display: flex; flex-direction: column; gap: 12px; padding: 14px; overflow-y: auto; min-height: 0; }
 .flyup-input {
     display: flex;
@@ -1580,7 +1584,8 @@ body.drag-over::after {
     }
     .tag-flyup-gallery:not(.bulk-mode) { bottom: max(calc(76px + var(--shell-gap) + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px)); }
     .chip-add .kbd, .flyup-head .kbd { display: none; }
-    .flyup-close { display: inline-grid; margin: -6px -13px -6px 0; } /* the glyph lines up with the input's edge; the margins keep the header's height */
+    .flyup-close { margin: -6px -13px -6px 0; } /* the glyph lines up with the input's edge; the margins keep the header's height */
+    .flyup-close svg.i { display: block; }
     .flyup-input input { font-size: 16px; }
 
     .toast, .error, .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }

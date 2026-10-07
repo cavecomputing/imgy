@@ -668,7 +668,7 @@ button.chip { cursor: pointer; }
 }
 .card-check svg.i { width: 14px; height: 14px; stroke-width: 3; }
 .image-grid.selection-mode .card-check { display: grid; }
-.image-grid.selection-mode .card-play { display: none; }
+.image-grid.selection-mode .card-play { top: auto; bottom: 8px; } /* the check circle takes its corner */
 .image-card.selected .card-check { background: var(--accent); border-color: var(--accent); color: var(--btn-fg); }
 
 /* auto-tag progress on a card */
@@ -717,6 +717,7 @@ button.chip { cursor: pointer; }
 .image-group-grid .card-foot,
 .image-group-grid .card-actions { display: none; }
 .image-group-grid .card-play { top: 4px; left: 4px; height: 20px; padding: 0 6px; }
+.image-grid.selection-mode .image-group-grid .card-play { bottom: 4px; }
 
 /* dragging a card or group: a floating copy follows the pointer, the original stays as a dashed slot */
 .drag-slot { background: var(--bg-inset); border-style: dashed; border-color: var(--fg-subtle); box-shadow: none; }

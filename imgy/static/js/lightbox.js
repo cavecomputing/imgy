@@ -228,8 +228,10 @@ export function renderLightboxTagBar(tags, filename) {
         chip.className = 'chip';
         chip.innerHTML = `<button class="chip-label" type="button" title="Show files tagged ${esc(t)}">${esc(t)}</button><button class="chip-x" type="button" title="Remove" aria-label="Remove tag ${esc(t)}"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>`;
         chip.querySelector('.chip-label').addEventListener('click', () => {
+            const showing = !State.activeTags.has(t);
             toggleTagFilter(t);
             closeLightbox();
+            showToast(showing ? `Showing files tagged "${t}"` : `Removed the "${t}" filter`);
         });
         chip.querySelector('.chip-x').addEventListener('click', () => removeTag(filename, t));
         container.appendChild(chip);

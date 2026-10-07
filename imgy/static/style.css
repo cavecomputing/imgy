@@ -43,6 +43,7 @@
     --fg-muted: #665c54;
     --fg-subtle: #7c6f64;
     --accent: #b57614;
+    --accent-text: #855209; /* the accent on small text: --accent is 3.3:1 on the surface, this 5.8:1 */
     --accent-alt: #79740e;
     --accent-cool: #076678;
     --accent-warm: #af3a03;
@@ -69,6 +70,7 @@
     --fg-muted: #a89984;
     --fg-subtle: #7c6f64;
     --accent: #fabd2f;
+    --accent-text: #fabd2f;
     --accent-alt: #b8bb26;
     --accent-cool: #83a598;
     --accent-warm: #fe8019;
@@ -116,6 +118,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 a { color: var(--accent-cool); }
 code { font-family: var(--font-mono); }
+.cc-eyebrow { color: var(--accent-text); }
 .hidden { display: none !important; }
 .spacer { flex: 1 1 auto; }
 .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
@@ -379,7 +382,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
 }
 button.chip { cursor: pointer; }
 .chip-label { padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
-.chip-label:hover { color: var(--accent); }
+.chip-label:hover { color: var(--accent-text); }
 .chip b { font-weight: 700; color: var(--accent-warm); }
 .chip-name b { color: var(--accent-cool); }
 .chip-x {
@@ -400,7 +403,7 @@ button.chip { cursor: pointer; }
 .chip-more:hover { color: var(--fg); }
 .chip-clear:hover { color: var(--fg); }
 .chip-pick { padding: 0 8px; }
-.chip-pick:hover { border-color: var(--fg-subtle); color: var(--accent); }
+.chip-pick:hover { border-color: var(--fg-subtle); color: var(--accent-text); }
 .chip-add { border-style: dashed; background: transparent; color: var(--fg-muted); padding: 0 4px 0 8px; cursor: pointer; }
 .chip-add:hover { color: var(--fg); border-color: var(--fg-subtle); }
 .chip-n { color: var(--fg-muted); }
@@ -452,7 +455,7 @@ button.chip { cursor: pointer; }
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-text);
 }
 .mode-label.exclude, .mode-label.delete { color: var(--accent-warm); }
 .mode-label.create { color: var(--accent-aqua); }
@@ -477,7 +480,7 @@ button.chip { cursor: pointer; }
 }
 .suggestion-item:hover, .suggestion-item.active { background: var(--bg-inset); }
 .suggestion-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.suggestion-label mark { background: none; color: var(--accent); font-weight: 700; }
+.suggestion-label mark { background: none; color: var(--accent-text); font-weight: 700; }
 .suggestion-item.exclude-mode .suggestion-label::before { content: "not "; color: var(--accent-warm); font-weight: 700; }
 .suggestion-item.delete-mode .suggestion-label { color: var(--accent-warm); text-decoration: line-through; }
 .suggestion-item.create-mode .suggestion-label { color: var(--accent-aqua); }
@@ -571,7 +574,7 @@ button.chip { cursor: pointer; }
     line-height: 1;
 }
 .card-title-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fg); cursor: text; }
-.card-title-text:hover { color: var(--accent); }
+.card-title-text:hover { color: var(--accent-text); }
 .card-ext { flex: none; color: var(--fg-muted); }
 .inline-rename-input {
     flex: 1 1 auto;
@@ -783,7 +786,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 .flyup-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border); min-width: 0; }
 .flyup-thumb { width: 32px; height: 32px; flex: none; border-radius: 5px; object-fit: cover; background: var(--bg-inset); }
 .tag-flyup-gallery.bulk-mode .flyup-thumb { display: none; }
-.flyup-eyebrow { flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+.flyup-eyebrow { flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent-text); }
 .flyup-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fg-muted); }
 .flyup-close { display: none; } /* phones have no Esc key, so they get this instead of its hint */
 .flyup-body { display: flex; flex-direction: column; gap: 12px; padding: 14px; overflow-y: auto; min-height: 0; }
@@ -832,7 +835,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-text);
 }
 .flyup-section-title small { font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--fg-muted); }
 .flyup-empty { font-size: 12px; color: var(--fg-muted); }
@@ -855,7 +858,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 }
 .mini:hover { border-color: var(--fg-subtle); }
 .mini:disabled { opacity: 0.45; cursor: default; border-color: var(--border); }
-.mini code { font-weight: 700; color: var(--accent); }
+.mini code { font-weight: 700; color: var(--accent-text); }
 .mini.warn code { color: var(--accent-warm); }
 .match-list { display: flex; flex-direction: column; gap: 2px; margin: 0 -6px; }
 .match-item {
@@ -871,7 +874,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 }
 .match-item:hover, .match-item.active { background: var(--bg-inset); }
 .match-item.delete-mode span:first-child { color: var(--accent-warm); }
-.match-item mark { background: none; color: var(--accent); font-weight: 700; }
+.match-item mark { background: none; color: var(--accent-text); font-weight: 700; }
 .flyup-foot { padding: 10px 14px; background: var(--bg-raised); border-top: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); }
 
 /* the lightbox editor sits inside the details panel */
@@ -925,7 +928,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     color: var(--fg);
 }
 .editable-header-filename { min-width: 0; overflow: hidden; text-overflow: ellipsis; cursor: text; }
-.editable-header-filename:hover { color: var(--accent); }
+.editable-header-filename:hover { color: var(--accent-text); }
 .lb-ext { flex: none; font-weight: 400; color: var(--fg-muted); }
 .header-rename-input {
     min-width: 80px;

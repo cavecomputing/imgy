@@ -161,6 +161,9 @@ function renderEmptyState() {
         if (State.nameTerms.size > 0) parts.push([...State.nameTerms].map(t => `name “${esc(t)}”`).join(', '));
         title = `No files match ${parts.join(', ')}`;
         detail = 'Remove a filter or try a different tag.';
+    } else if (State.showFavoritesOnly && State.showUntaggedOnly && State.images.some(img => img.is_favorite)) {
+        title = 'No untagged favorites';
+        detail = 'Every favorite has tags. Turn off Untagged to see them.';
     } else if (State.showFavoritesOnly) {
         title = 'No favorites yet';
         detail = 'Star a file to collect it here.';

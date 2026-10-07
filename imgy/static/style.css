@@ -152,7 +152,9 @@ svg.i-fill { fill: currentColor; stroke: none; }
 
 ::selection { background: var(--accent); color: var(--btn-fg); }
 
-* { scrollbar-width: thin; scrollbar-color: var(--bg-inset) transparent; }
+/* --fg-subtle stands out on every ground in both themes (3:1 or better); --bg-inset all but
+   vanished. Firefox and Chromium 121+ read these; Safari keeps its own scroll bars. */
+* { scrollbar-width: thin; scrollbar-color: var(--fg-subtle) transparent; }
 
 /* keyboard hints */
 .kbd, kbd {

@@ -164,7 +164,7 @@ export function llmQueueSyncLightbox() {
     const img = getCurrentLightboxImage();
     const busy = !!img && LlmQueue.items.some(i => i.filename === img.filename && (i.status === 'queued' || i.status === 'processing'));
     const unsupported = !!img && isVideo(img.filename);
-    for (const btn of [Elements.llmAnalyzeBtn, Elements.llmPanelBtn, Elements.lightboxLlmTab]) {
+    for (const btn of [Elements.llmAnalyzeBtn, Elements.lightboxLlmTab]) {
         btn.classList.toggle('loading', busy);
         btn.disabled = busy || unsupported;
     }

@@ -10,7 +10,6 @@ import { closeLightboxTagFlyup, openLightboxTagFlyup, toggleLightboxTagFlyup } f
 import { toggleTagFilter } from './filters.js';
 import { clearCardFocus } from './navigation.js';
 import { llmQueueAdd, llmQueueSyncLightbox } from './llm.js';
-import { getLlmSettings, isLlmConfigured } from './settings.js';
 
 const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'WebP', bmp: 'BMP' };
 
@@ -119,34 +118,13 @@ export function updateLightboxContent() {
 
     // The LLM only reads images
     Elements.llmAnalyzeBtn.classList.toggle('hidden', videoMode);
-    Elements.lightboxLlmSection.classList.toggle('hidden', videoMode);
     Elements.lightboxLlmTab.title = videoMode ? 'Videos can’t be auto-tagged' : 'Auto-tag with the vision LLM';
 
     renderLightboxTagBar(img.tags || [], img.filename);
-    renderLightboxLlmText();
     renderLightboxMeta(img);
     renderLightboxExif(img.filename);
     resetZoom();
     llmQueueSyncLightbox();
-}
-
-function renderLightboxLlmText() {
-    const ready = isLlmConfigured();
-    Elements.llmPanelBtn.lastChild.textContent = ready ? 'Auto-tag this file' : 'Set up auto-tagging';
-    Elements.llmPanelBtn.nextElementSibling.classList.toggle('hidden', !ready); // "or type ? in tags"
-    if (!ready) {
-        Elements.lightboxLlmText.innerHTML = 'Auto-tagging needs a vision model, such as <code>gemma3</code> in Ollama. Choose one in Settings and test the connection.';
-        return;
-    }
-    const s = getLlmSettings();
-    const model = `<code>${esc(s.model)}</code>`;
-    let text;
-    if (s.doTags && s.doRename) text = `Asks ${model} for a file name and tags and applies them right away.`;
-    else if (s.doTags) text = `Asks ${model} for tags and adds them right away.`;
-    else if (s.doRename) text = `Asks ${model} for a file name and renames the file right away.`;
-    else text = `Renaming and tagging are both off in Settings, so ${model}’s answer won’t change anything.`;
-    if (s.doTags) text += ' Once the library has tags, it only picks from those.';
-    Elements.lightboxLlmText.innerHTML = text;
 }
 
 function describeType(filename) {
@@ -371,9 +349,7 @@ export function initLightbox() {
         updateLocalState(img.filename, { is_favorite: isFav });
     };
     Elements.llmAnalyzeBtn.addEventListener('click', autoTag);
-    Elements.llmPanelBtn.addEventListener('click', autoTag);
     Elements.lightboxLlmTab.addEventListener('click', autoTag);
-    Elements.shortcutsModal.addEventListener('close', renderLightboxLlmText); // auto-tagging may be set up now
     Elements.lightboxHeaderDeleteBtn.addEventListener('click', trash);
     Elements.lightboxDeleteTab.addEventListener('click', trash);
     Elements.lightboxTagBtn.addEventListener('click', toggleLightboxTagFlyup);

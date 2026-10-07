@@ -510,8 +510,12 @@ function showSettingsSection(section) {
     Elements.shortcutsModal.querySelectorAll('.settings-tab[data-section]').forEach(tab => {
         const active = tab.dataset.section === section;
         tab.classList.toggle('active', active);
-        if (active) tab.setAttribute('aria-current', 'page');
-        else tab.removeAttribute('aria-current');
+        if (active) {
+            tab.setAttribute('aria-current', 'page');
+            tab.scrollIntoView({ block: 'nearest', inline: 'nearest' }); // phones scroll the tabs sideways
+        } else {
+            tab.removeAttribute('aria-current');
+        }
     });
     if (section === 'storage') loadStorageStats();
     if (section === 'tags') showTags();
@@ -523,9 +527,9 @@ export function toggleShortcutsModal(section) {
         closeShortcutsModal();
         return;
     }
-    showSettingsSection(typeof section === 'string' ? section : currentSection);
     showGalleryOrder(); // dragging files in the gallery can switch it while the dialog is closed
     Elements.shortcutsModal.showModal();
+    showSettingsSection(typeof section === 'string' ? section : currentSection); // once shown, so its tab can scroll into view
     reloadTagGroups();
 }
 
@@ -540,6 +544,11 @@ export function initSettingsModal() {
     Elements.shortcutsModal.querySelectorAll('.settings-tab[data-section]').forEach(tab => {
         tab.addEventListener('click', () => showSettingsSection(tab.dataset.section));
     });
+    // Phones scroll the tabs sideways: fade the edge while more of them are past it
+    const nav = Elements.shortcutsModal.querySelector('.settings-nav');
+    const markMoreTabs = () => nav.classList.toggle('more', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1);
+    nav.addEventListener('scroll', markMoreTabs, { passive: true });
+    new ResizeObserver(markMoreTabs).observe(nav);
     document.getElementById('resetThumbnailsBtn').addEventListener('click', resetThumbnails);
     document.getElementById('extensionAddress').textContent = location.origin;
     document.querySelectorAll('input[name="galleryOrder"]').forEach(radio => {

@@ -1591,8 +1591,10 @@ body.drag-over::after {
     .dlg-foot { flex-wrap: wrap; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
     .dlg-foot-note { order: 3; flex-basis: 100%; }
     .settings-shell { flex-direction: column; }
-    .settings-nav { width: 100%; flex-direction: row; gap: 4px; padding: 8px 56px 8px 10px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+    .settings-nav { width: 100%; flex-direction: row; gap: 4px; padding: 8px 56px 8px 10px; scroll-padding-inline: 10px 56px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); scrollbar-width: none; }
     .settings-nav::-webkit-scrollbar { display: none; }
+    /* more tabs past the right edge: fade it, keeping the bottom border whole */
+    .settings-nav.more { mask: linear-gradient(to left, transparent, #000 48px) top / 100% calc(100% - 1px) no-repeat, linear-gradient(#000 0 0) bottom / 100% 1px no-repeat; }
     .settings-brand, .settings-nav .spacer, .settings-credit, .settings-link { display: none; }
     .settings-tab { white-space: nowrap; }
     .settings-close { top: 6px; right: 6px; }

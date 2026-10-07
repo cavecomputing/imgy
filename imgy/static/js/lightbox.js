@@ -9,7 +9,6 @@ import { deleteImage, removeTag, replaceImage, toggleFavorite, updateLocalState 
 import { closeLightboxTagFlyup, openLightboxTagFlyup, toggleLightboxTagFlyup } from './flyup.js';
 import { toggleTagFilter } from './filters.js';
 import { clearCardFocus } from './navigation.js';
-import { llmQueueAdd, llmQueueSyncLightbox } from './llm.js';
 
 const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'WebP', bmp: 'BMP' };
 
@@ -116,15 +115,10 @@ export function updateLightboxContent() {
         link.download = getDisplayFilename(img.filename);
     }
 
-    // The LLM only reads images
-    Elements.llmAnalyzeBtn.classList.toggle('hidden', videoMode);
-    Elements.lightboxLlmTab.title = videoMode ? 'Videos can’t be auto-tagged' : 'Auto-tag with the vision LLM';
-
     renderLightboxTagBar(img.tags || [], img.filename);
     renderLightboxMeta(img);
     renderLightboxExif(img.filename);
     resetZoom();
-    llmQueueSyncLightbox();
 }
 
 function describeType(filename) {
@@ -337,10 +331,6 @@ export function initLightbox() {
     Elements.lightboxHeaderFilename.addEventListener('click', startRename);
     Elements.lightboxHeaderFilename.addEventListener('keydown', e => { if (e.key === 'Enter') startRename(); });
 
-    const autoTag = () => {
-        const img = getCurrentLightboxImage();
-        if (img) llmQueueAdd(img.filename);
-    };
     const trash = () => deleteImage(State.currentImageIndex);
     const favorite = async () => {
         const img = getCurrentLightboxImage();
@@ -348,8 +338,6 @@ export function initLightbox() {
         const isFav = await toggleFavorite(img.filename);
         updateLocalState(img.filename, { is_favorite: isFav });
     };
-    Elements.llmAnalyzeBtn.addEventListener('click', autoTag);
-    Elements.lightboxLlmTab.addEventListener('click', autoTag);
     Elements.lightboxHeaderDeleteBtn.addEventListener('click', trash);
     Elements.lightboxDeleteTab.addEventListener('click', trash);
     Elements.lightboxTagBtn.addEventListener('click', toggleLightboxTagFlyup);

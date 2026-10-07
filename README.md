@@ -120,8 +120,8 @@ with vision support. Videos are not supported.
 1. Run a vision model, for example with [Ollama](https://ollama.com/): `ollama pull gemma3`.
 2. Open **Settings** (the sliders button in the top bar), go to **Auto-tagging**, choose the
    provider, endpoint, and model, and click **Test connection**. OpenRouter needs an API key.
-3. Type `?` in a tag editor, or click **Auto-tag** in the lightbox. Suggestions are applied right
-   away; the **Rename the file** and **Add tags** checkboxes control which.
+3. Type `?` in a tag editor. Suggestions are applied right away; the **Rename the file** and
+   **Add tags** checkboxes control which.
 
 Once your library has tags, the model may only pick from existing tags. **Exclusive tag groups**
 limit it to one tag from a set (for example `day`, `night`).

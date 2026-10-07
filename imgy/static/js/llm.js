@@ -1,6 +1,6 @@
 /** Queue that sends images to the configured LLM and applies the suggested filename and tags. */
 import { CONFIG } from './config.js';
-import { getCurrentLightboxImage, LlmQueue, State } from './state.js';
+import { LlmQueue, State } from './state.js';
 import { Elements } from './dom.js';
 import { formatCount, getImageBaseName, isVideo } from './utils.js';
 import { showToast } from './ui.js';
@@ -71,7 +71,6 @@ export function llmQueueAdd(filename) {
     if (LlmQueue.items.some(i => i.filename === filename && (i.status === 'queued' || i.status === 'processing'))) return;
     LlmQueue.items.push({ filename, status: 'queued' });
     llmQueueUpdateUI();
-    llmQueueSyncLightbox();
     if (!LlmQueue.processing) llmQueueProcess();
 }
 
@@ -86,7 +85,6 @@ async function llmQueueProcess() {
 
         item.status = 'processing';
         llmQueueUpdateUI();
-        llmQueueSyncLightbox();
 
         const img = State.imagesByFilename.get(item.filename);
         if (!img) {
@@ -94,7 +92,6 @@ async function llmQueueProcess() {
             errCount++;
             lastError = 'the file is gone';
             llmQueueUpdateUI();
-            llmQueueSyncLightbox();
             continue;
         }
 
@@ -109,7 +106,6 @@ async function llmQueueProcess() {
         }
 
         llmQueueUpdateUI();
-        llmQueueSyncLightbox();
 
         // Brief delay then remove overlay
         await new Promise(r => setTimeout(r, CONFIG.LLM_QUEUE_DELAY_MS));
@@ -120,7 +116,6 @@ async function llmQueueProcess() {
     LlmQueue.processing = false;
     // Clean up completed items
     LlmQueue.items = LlmQueue.items.filter(i => i.status === 'queued' || i.status === 'processing');
-    llmQueueSyncLightbox();
     applyFilters();
 
     if (okCount && !errCount) {
@@ -156,16 +151,5 @@ export function llmQueueUpdateUI() {
             overlay.classList.toggle('llm-done', item.status === 'done');
             overlay.classList.toggle('llm-error', item.status === 'error');
         }
-    }
-}
-
-/** Show the lightbox's auto-tag buttons as busy while the current file is queued. */
-export function llmQueueSyncLightbox() {
-    const img = getCurrentLightboxImage();
-    const busy = !!img && LlmQueue.items.some(i => i.filename === img.filename && (i.status === 'queued' || i.status === 'processing'));
-    const unsupported = !!img && isVideo(img.filename);
-    for (const btn of [Elements.llmAnalyzeBtn, Elements.lightboxLlmTab]) {
-        btn.classList.toggle('loading', busy);
-        btn.disabled = busy || unsupported;
     }
 }

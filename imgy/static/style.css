@@ -1502,6 +1502,8 @@ body.drag-over::after {
     .lb-tab--warn { color: var(--accent-warm); }
     .lb-tab:disabled { opacity: 0.45; }
     .zoom-reset { bottom: 12px; right: 12px; }
+    /* the sheet's tags fill the bottom, so notices show under the viewer's top row */
+    #lightbox.active ~ .toast, #lightbox.active ~ .error { top: calc(var(--topbar-h) + 10px); bottom: auto; }
 }
 
 @media (max-width: 900px) and (pointer: coarse) {

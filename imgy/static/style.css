@@ -592,6 +592,7 @@ button.chip { cursor: pointer; }
 .card-tag-btn { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; margin-right: -6px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; font-family: var(--font-mono); font-size: 12px; line-height: 1; color: var(--fg-muted); cursor: pointer; }
 .card-tag-btn:hover { background: var(--bg-inset); color: var(--fg); }
 .image-grid.selection-mode .card-tag-btn { pointer-events: none; }
+.card-untagged svg.i { display: none; color: var(--accent-warm); } /* stands in for the badge on phones */
 /* the tag button's tooltip: placed by initTagTip() in grid.js */
 .tag-tip {
     position: fixed;
@@ -1558,7 +1559,8 @@ body.drag-over::after {
     .card-foot { height: 30px; gap: 6px; padding: 0 8px; }
     .card-title, .card-tag-btn { font-size: 11px; }
     .card-star { width: 13px; height: 13px; }
-    .card-foot .cc-badge { letter-spacing: 0.04em; }
+    .card-untagged svg.i { display: block; }
+    .card-untagged .cc-badge { display: none; }
     .card-actions { display: none; }
 
     .selection-bar {

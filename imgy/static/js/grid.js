@@ -23,7 +23,7 @@ const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><
 let renderedCount = 0; // the grid holds cards for the first renderedCount of State.filteredImages
 
 function createCardFootMeta(tags = []) {
-    if (!tags.length) return '<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags"><span class="cc-badge cc-badge--warn">Untagged</span></button>';
+    if (!tags.length) return `<button class="card-tag-btn tag-btn card-untagged" type="button" aria-label="Edit tags">${icon('tag-off', 'i i-xs')}<span class="cc-badge cc-badge--warn">Untagged</span></button>`;
     return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}" data-tip="${esc(tags.join(', '))}">${icon('tag', 'i i-xs')}${tags.length}</button>`;
 }
 

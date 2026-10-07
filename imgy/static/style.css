@@ -396,6 +396,8 @@ button.chip { cursor: pointer; }
 .chip-x:hover, button.chip:hover .chip-x { background: var(--bg-raised); color: var(--fg); }
 .chip-x svg.i { width: 12px; height: 12px; }
 .chip-clear { padding: 0 8px; border-style: dashed; color: var(--fg-muted); background: transparent; }
+.chip-more { padding: 0 8px; font-weight: 700; color: var(--fg-muted); }
+.chip-more:hover { color: var(--fg); }
 .chip-clear:hover { color: var(--fg); }
 .chip-pick { padding: 0 8px; }
 .chip-pick:hover { border-color: var(--fg-subtle); color: var(--accent); }
@@ -459,6 +461,7 @@ button.chip { cursor: pointer; }
 
 /* filter suggestions */
 .filter-pop { top: calc(100% + 6px); left: -1px; width: min(560px, calc(100vw - 32px)); }
+.filter-pop-chips { padding: 12px 16px; border-bottom: 1px solid var(--border); }
 .filter-pop-list { position: relative; max-height: min(420px, calc(100vh - 220px)); overflow-y: auto; padding-bottom: 6px; }
 .suggestion-item {
     display: flex;

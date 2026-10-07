@@ -9,6 +9,8 @@ export const Elements = {
     tagSuggestions: byId('tagSuggestions'),
     tagSuggestionList: byId('tagSuggestionList'),
     activeTagsContainer: byId('activeTags'),
+    moreFiltersBtn: byId('moreFilters'),
+    filterPopChips: byId('filterPopChips'),
     uploadBtn: byId('uploadBtn'),
     imageInput: byId('imageInput'),
     untaggedFilterBtn: byId('untaggedFilterBtn'),

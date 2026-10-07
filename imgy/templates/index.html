@@ -61,10 +61,12 @@
         <div class="topbar-filter">
             <div class="cmd" id="filterBar" role="search">
                 <svg class="i i-sm cmd-icon" aria-hidden="true"><use href="#i-search"/></svg>
+                <button id="moreFilters" class="chip chip-more hidden" type="button"></button>
                 <div id="activeTags" class="cmd-chips"></div>
                 <input type="text" id="tagSearch" class="cmd-input" placeholder="Filter by tag   -exclude   +create   old>new" aria-label="Filter by tag or file name" autocomplete="off" autocapitalize="none" spellcheck="false">
                 <kbd class="kbd cmd-kbd" title="Focus the filter">/</kbd>
                 <div id="tagSuggestions" class="pop filter-pop hidden">
+                    <div id="filterPopChips" class="chips filter-pop-chips hidden"></div>
                     <div id="tagSuggestionList" class="filter-pop-list"></div>
                     <div class="pop-foot">
                         <div class="keys"><span><code>-tag</code> hide</span><span><code>@name</code> file name</span><span><code>+tag</code> create</span><span><code>old&gt;new</code> rename</span><span><code>--tag</code> delete everywhere</span></div>

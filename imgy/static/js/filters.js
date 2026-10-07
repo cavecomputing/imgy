@@ -70,12 +70,39 @@ function createFilterChip(text, qualifier, onRemove) {
     return chip;
 }
 
-export function renderFilterBarTags() {
-    const container = Elements.activeTagsContainer;
-    container.innerHTML = '';
+function appendFilterChips(container) {
     State.activeTags.forEach(t => container.appendChild(createFilterChip(t, '', () => toggleTagFilter(t))));
     State.excludeTags.forEach(t => container.appendChild(createFilterChip(t, 'not', () => toggleExcludeTag(t))));
     State.nameTerms.forEach(t => container.appendChild(createFilterChip(t, 'name', () => toggleNameTerm(t))));
+}
+
+/**
+ * Fold the oldest chips the bar has no room for into the "+N" chip in front of them. While some
+ * are folded, the suggestions list every filter above the tags.
+ */
+function foldFilterChips() {
+    const container = Elements.activeTagsContainer;
+    const more = Elements.moreFiltersBtn;
+    const chips = [...container.children].filter(chip => !chip.classList.contains('chip-clear'));
+    chips.forEach(chip => chip.classList.remove('hidden'));
+    more.classList.add('hidden');
+    let folded = 0;
+    while (folded < chips.length && container.scrollWidth > container.clientWidth) {
+        chips[folded++].classList.add('hidden');
+        more.classList.remove('hidden');
+        more.textContent = `+${folded}`;
+        more.title = chips.slice(0, folded).map(chip => chip.textContent).join(', ');
+        more.setAttribute('aria-label', `Show all filters, ${folded} more`);
+    }
+    Elements.filterPopChips.classList.toggle('hidden', !folded);
+}
+
+export function renderFilterBarTags() {
+    const container = Elements.activeTagsContainer;
+    container.innerHTML = '';
+    appendFilterChips(container);
+    Elements.filterPopChips.innerHTML = '';
+    appendFilterChips(Elements.filterPopChips);
     if (State.activeTags.size + State.excludeTags.size + State.nameTerms.size >= 2) {
         const clear = document.createElement('button');
         clear.type = 'button';
@@ -92,9 +119,12 @@ export function renderFilterBarTags() {
         });
         container.appendChild(clear);
     }
-    // Keep the newest chip in view when the bar is too narrow for all of them
+    foldFilterChips();
+    // Keep the end in view when the bar is too narrow even for "+N" and Clear
     container.scrollLeft = container.scrollWidth;
     updateFilterPlaceholder();
+    // Suggestions leave out tags already in use, so they change with the filters
+    if (!Elements.tagSuggestions.classList.contains('hidden')) renderSuggestions();
 }
 
 function leaveUntaggedFilter() {
@@ -557,6 +587,10 @@ export function initFilters() {
         if (State.showUntaggedOnly) { State.activeTags.clear(); State.excludeTags.clear(); }
         applyFilters(); renderFilterBarTags();
     });
+
+    // "+N" opens the suggestions, which list every filter while some are folded
+    Elements.moreFiltersBtn.addEventListener('click', () => Elements.tagSearch.focus());
+    new ResizeObserver(foldFilterChips).observe(document.getElementById('filterBar'));
 
     // Clicking the bar around the chips focuses the input
     document.getElementById('filterBar').addEventListener('mousedown', (e) => {

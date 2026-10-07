@@ -1326,12 +1326,14 @@ a.cc-btn { text-decoration: none; }
     animation: notice-in 180ms ease-out;
 }
 .selection-bar:not(.hidden) ~ .toast,
+.selection-bar:not(.hidden) ~ .error,
 .selection-bar:not(.hidden) ~ .upload-progress { bottom: 90px; }
 /* The gallery tag editor sits at the bottom, so its results show up top */
-.tag-flyup-gallery.active ~ .toast { top: calc(var(--topbar-h) + 10px); bottom: auto; }
+.tag-flyup-gallery.active ~ .toast, .tag-flyup-gallery.active ~ .error { top: calc(var(--topbar-h) + 10px); bottom: auto; }
+/* where toasts show, so all feedback comes from one place */
 .error {
     position: fixed;
-    top: calc(var(--topbar-h) + 10px);
+    bottom: 24px;
     left: 50%;
     z-index: 2100;
     max-width: min(560px, calc(100vw - 32px));
@@ -1348,6 +1350,7 @@ a.cc-btn { text-decoration: none; }
     font-size: 13px;
     line-height: 1.5;
     color: var(--fg);
+    animation: notice-in 180ms ease-out;
 }
 .error::before {
     content: "Error";
@@ -1571,10 +1574,11 @@ body.drag-over::after {
     .flyup-close { display: inline-grid; margin: -6px -13px -6px 0; } /* the glyph lines up with the input's edge; the margins keep the header's height */
     .flyup-input input { font-size: 16px; }
 
-    .toast, .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }
+    .toast, .error, .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }
     .selection-bar:not(.hidden) ~ .toast,
+    .selection-bar:not(.hidden) ~ .error,
     .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(80px + var(--shell-gap) + env(safe-area-inset-bottom)); }
-    .tag-flyup-gallery.active ~ .toast { top: calc(env(safe-area-inset-top) + var(--shell-gap) + 10px); bottom: auto; }
+    .tag-flyup-gallery.active ~ .toast, .tag-flyup-gallery.active ~ .error { top: calc(env(safe-area-inset-top) + var(--shell-gap) + 10px); bottom: auto; }
 
     /* a dialog fills the window inside the frame, which shows through the backdrop */
     dialog.dlg { width: calc(100vw - 2 * var(--shell-gap)); max-width: none; height: calc(100dvh - 2 * var(--shell-gap)); max-height: none; margin: var(--shell-gap); box-shadow: none; }

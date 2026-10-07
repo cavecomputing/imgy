@@ -1623,6 +1623,16 @@ body.drag-over::after {
     .trash-actions .cc-btn span { display: none; }
 }
 
+/* an installed app's window is its own frame: no gap and no ring */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    :root { --shell-gap: 0px; }
+    body::before, .lightbox::after { display: none; }
+    .lightbox { border-radius: 0; }
+}
+@media (max-width: 768px) and (display-mode: standalone), (max-width: 768px) and (display-mode: fullscreen) {
+    dialog.dlg { border: 0; border-radius: 0; }
+}
+
 /* touch screens with room for the overlays: keep card actions visible */
 @media (hover: none) and (min-width: 769px) {
     .image-grid:not(.selection-mode) .card-actions { opacity: 1; pointer-events: auto; }

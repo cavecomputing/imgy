@@ -882,6 +882,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 /* the lightbox editor sits inside the details panel */
 .tag-flyup-lightbox { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; font-family: var(--font-mono); line-height: 1.2; }
 .tag-flyup-lightbox .flyup-suggestions { max-height: 280px; overflow-y: auto; padding-right: 2px; }
+.lb-sec-tags:has(> .tag-flyup-lightbox:not(.hidden)) .chip-add { display: none; } /* the open input takes its place */
 
 /* ---------- lightbox ---------- */
 .lightbox {

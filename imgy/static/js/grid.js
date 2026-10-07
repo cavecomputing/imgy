@@ -1,7 +1,6 @@
 /** Gallery grid: image cards, groups, the masonry layout, and the library count above it. */
 import { State } from './state.js';
 import { Elements } from './dom.js';
-import { CONFIG } from './config.js';
 import { esc, formatCount, getDisplayFilename, getExtension, getImageBaseName, isVideo } from './utils.js';
 import { showToast } from './ui.js';
 import { api } from './api.js';
@@ -14,7 +13,6 @@ import { openGalleryTagFlyup } from './flyup.js';
 import { openLightbox } from './lightbox.js';
 import { llmQueueUpdateUI } from './llm.js';
 
-const TIP_GAP = 6;        // px between the tag button's tooltip and the button, and between it and the window edge
 const BATCH = 60;         // files drawn at a time, so a big library opens as fast as a small one
 const PRELOAD_PX = 1500;  // the next batch is drawn when the end of the grid is this close to the bottom of the window
 
@@ -24,7 +22,7 @@ let renderedCount = 0; // the grid holds cards for the first renderedCount of St
 
 function createCardFootMeta(tags = []) {
     if (!tags.length) return `<button class="card-tag-btn tag-btn card-untagged" type="button" aria-label="Edit tags">${icon('tag-off', 'i i-xs')}<span class="cc-badge cc-badge--warn">Untagged</span></button>`;
-    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}" data-tip="${esc(tags.join(', '))}">${icon('tag', 'i i-xs')}${tags.length}</button>`;
+    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}">${icon('tag', 'i i-xs')}${tags.length}</button>`;
 }
 
 function createImageCard(img, idx) {
@@ -310,37 +308,7 @@ async function handleCardClick(e, img, card) {
     if (!e.target.closest('.card-action-btn')) openLightbox(idx);
 }
 
-/** A tooltip for the tag button, drawn by hand so it can stay inside the window: below the button, above it near the bottom edge. */
-function initTagTip() {
-    const tip = document.createElement('div');
-    tip.className = 'tag-tip';
-    document.body.append(tip);
-    let timer;
-    const hide = () => { clearTimeout(timer); tip.classList.remove('shown'); };
-    const show = (btn) => {
-        tip.textContent = btn.dataset.tip;
-        tip.style.left = '0'; // measured from the left edge, where it has all the room it can use
-        const at = btn.getBoundingClientRect();
-        const { width, height } = tip.getBoundingClientRect();
-        const below = at.bottom + TIP_GAP + height <= window.innerHeight - TIP_GAP;
-        tip.style.top = `${below ? at.bottom + TIP_GAP : at.top - TIP_GAP - height}px`;
-        tip.style.left = `${Math.max(TIP_GAP, Math.min(at.right - width, window.innerWidth - width - TIP_GAP))}px`;
-        tip.classList.add('shown');
-    };
-    Elements.imageGrid.addEventListener('mouseover', (e) => {
-        const btn = e.target.closest('.card-tag-btn[data-tip]');
-        if (!btn || btn.contains(e.relatedTarget) || !matchMedia('(hover: hover)').matches) return;
-        timer = setTimeout(() => btn.isConnected && show(btn), CONFIG.TOOLTIP_DELAY_MS);
-    });
-    Elements.imageGrid.addEventListener('mouseout', (e) => {
-        if (e.target.closest('.card-tag-btn') && !e.target.closest('.card-tag-btn').contains(e.relatedTarget)) hide();
-    });
-    Elements.imageGrid.addEventListener('pointerdown', hide);
-    window.addEventListener('scroll', hide, { capture: true, passive: true });
-}
-
 export function initGrid() {
-    initTagTip();
     // A card's buttons show for keyboard focus on one of them. This class does what
     // :has(.card-action-btn:focus-visible) did, which slowed every redraw down.
     Elements.imageGrid.addEventListener('focusin', (e) => {

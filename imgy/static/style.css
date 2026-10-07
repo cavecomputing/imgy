@@ -593,25 +593,6 @@ button.chip { cursor: pointer; }
 .card-tag-btn:hover { background: var(--bg-inset); color: var(--fg); }
 .image-grid.selection-mode .card-tag-btn { pointer-events: none; }
 .card-untagged svg.i { display: none; color: var(--accent-warm); } /* stands in for the badge on phones */
-/* the tag button's tooltip: placed by initTagTip() in grid.js */
-.tag-tip {
-    position: fixed;
-    z-index: 1000;
-    visibility: hidden;
-    max-width: min(320px, calc(100vw - 12px));
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-lift);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-    color: var(--fg);
-    pointer-events: none;
-}
-.tag-tip.shown { visibility: visible; }
 .card-foot .cc-badge { padding: 1px 7px 1px 6px; font-size: 10px; }
 
 .card-actions {

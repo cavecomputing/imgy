@@ -46,10 +46,10 @@
     --accent-text: #855209; /* the accent on small text: --accent is 3.3:1 on the surface, this 5.8:1 */
     --accent-alt: #79740e;
     --accent-cool: #076678;
-    --accent-warm: #af3a03;
+    --accent-warm: #a63703; /* Gruvbox #af3a03 darkened: small text on inset rows is 4.4:1 with that, 4.8:1 with this */
     --accent-rose: #8f3f71;
     --accent-aqua: #427b58;
-    --btn-bg: #79740e;
+    --btn-bg: #6d680d; /* --accent-alt darkened: the button text is 4.3:1 on #79740e, 5.1:1 here and 4.5:1 on hover */
     --btn-fg: #fbf1c7;
     --shadow: 0 1px 2px rgba(60, 56, 54, 0.10), 0 8px 24px rgba(60, 56, 54, 0.07);
     --shadow-card: 0 1px 2px rgba(60, 56, 54, 0.07), 0 4px 12px rgba(60, 56, 54, 0.07);

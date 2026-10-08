@@ -365,7 +365,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
     font-size: 13px;
     color: var(--fg);
 }
-.cmd-input::placeholder { color: var(--fg-subtle); opacity: 1; }
+.cmd-input::placeholder { color: var(--fg-muted); opacity: 1; }
 .cmd:focus-within .cmd-kbd { visibility: hidden; }
 
 /* chips: a filter, a tag on a file. An exclude chip reads "not tag". */
@@ -826,7 +826,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     font-size: 13px;
     color: var(--fg);
 }
-.flyup-input input::placeholder { color: var(--fg-subtle); opacity: 1; }
+.flyup-input input::placeholder { color: var(--fg-muted); opacity: 1; }
 .flyup-plan:empty { display: none; }
 .plan { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 14px; align-items: baseline; font-size: 13px; line-height: 1.4; }
 .plan code { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--accent-cool); }
@@ -1153,7 +1153,7 @@ a.cc-btn { text-decoration: none; }
     outline: none;
 }
 .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.text-input::placeholder { color: var(--fg-subtle); opacity: 1; }
+.text-input::placeholder { color: var(--fg-muted); opacity: 1; }
 .text-input--addr { color: var(--accent-cool); }
 .text-input--short { max-width: 280px; }
 .text-input--mid { max-width: 420px; }
@@ -1222,7 +1222,7 @@ a.cc-btn { text-decoration: none; }
 }
 .tag-group-name:hover { border-color: var(--border); }
 .tag-group-name:focus { border-color: var(--accent); }
-.tag-group-name::placeholder { color: var(--fg-subtle); }
+.tag-group-name::placeholder { color: var(--fg-muted); }
 .tag-group-delete, .tag-group-pill-x {
     display: grid;
     place-items: center;
@@ -1267,7 +1267,7 @@ a.cc-btn { text-decoration: none; }
     outline: none;
 }
 .tag-group-add-input:focus { border-style: solid; border-color: var(--accent); }
-.tag-group-add-input::placeholder { color: var(--fg-subtle); }
+.tag-group-add-input::placeholder { color: var(--fg-muted); }
 .tag-group-suggestions {
     position: absolute;
     top: calc(100% + 4px);

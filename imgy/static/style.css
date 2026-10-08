@@ -28,6 +28,7 @@
     --on-image-ring: rgba(235, 219, 178, 0.9);
     --on-image-scrim: rgba(29, 32, 33, 0.45);
     --on-image-busy: #fabd2f;
+    --on-image-focus: #fabd2f;
     --on-image-done: #8ec07c;
     --on-image-warn: #fe8019;
     --star: #fabd2f;
@@ -632,6 +633,7 @@ button.chip { cursor: pointer; }
     text-decoration: none;
 }
 .card-action-btn:hover { background: var(--on-image-hover); }
+.card-action-btn:focus-visible { outline-color: var(--on-image-focus); }
 .card-action-btn.delete-btn:hover { color: var(--on-image-warn); }
 .image-card.is-fav .star-btn svg.i { fill: var(--star); stroke: var(--star); }
 /* the buttons follow the pointer, or keyboard focus on one of them (Tab, which initGrid marks as .shown) */

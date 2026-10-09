@@ -243,7 +243,7 @@ function applyTransform() {
     State.zoom.translateX = tx; State.zoom.translateY = ty;
     Elements.lightbox.classList.toggle('zoomed-view', scale > 1);
     Elements.resetZoomBtn.classList.toggle('visible', scale !== 1 || tx !== 0 || ty !== 0);
-    Elements.lightboxImage.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+    Elements.lightboxImage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
 }
 
 // Deferred version for event handlers (panning, pinch) that fire outside rAF.

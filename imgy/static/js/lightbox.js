@@ -256,9 +256,14 @@ function updateTransform() {
     });
 }
 
+// Zoom at least 10x, and far enough that a big image's own pixels can reach 4 screen pixels
+function maxZoom() {
+    return Math.max(10, 4 * Elements.lightboxImage.naturalWidth / (State.dimensions.imgWidth || Infinity));
+}
+
 function zoomToward(newScale, focalX, focalY) {
     const oldScale = State.zoom.scale;
-    newScale = Math.min(Math.max(1, newScale), 10);
+    newScale = Math.min(Math.max(1, newScale), maxZoom());
     if (newScale === oldScale) return;
     const rect = Elements.lightboxContent.getBoundingClientRect();
     const cx = focalX - rect.left - rect.width / 2;
@@ -273,7 +278,7 @@ function zoomToward(newScale, focalX, focalY) {
 function startSmoothZoom(factor, focalX, focalY) {
     const sz = State.zoom;
     if (!sz._smoothTarget) sz._smoothTarget = sz.scale;
-    sz._smoothTarget = Math.min(Math.max(1, sz._smoothTarget * factor), 10);
+    sz._smoothTarget = Math.min(Math.max(1, sz._smoothTarget * factor), maxZoom());
     sz._focalX = focalX;
     sz._focalY = focalY;
     if (sz._smoothRAF) return;

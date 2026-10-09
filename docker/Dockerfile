@@ -2,10 +2,8 @@
 # compose.yml sets that up; to build by hand: docker build -f docker/Dockerfile .
 FROM python:3.14-slim
 
-# Pillow build libraries, gosu for dropping privileges, ffmpeg for video thumbnails
+# gosu for dropping privileges, ffmpeg for video thumbnails
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libjpeg62-turbo-dev \
-    zlib1g-dev \
     gosu \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*

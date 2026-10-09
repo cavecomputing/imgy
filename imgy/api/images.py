@@ -19,7 +19,7 @@ from werkzeug.utils import secure_filename
 from ..catalog import images_gzip, images_json, invalidate_images_cache, media_urls
 from ..config import MAX_BULK_FILES, UPLOAD_FOLDER
 from ..db import TRASH_PREFIX, clear_filename, get_db, rename_filename
-from ..media import ALLOWED_EXTENSIONS, allowed_file, is_video, normalize_active_filename, read_dimensions
+from ..media import ALLOWED_EXTENSIONS, IMAGE_FORMATS, allowed_file, is_video, normalize_active_filename, read_dimensions
 from ..thumbnails import delete_thumbnail
 from ..trash import move_to_trash
 from .common import active_file, active_files, json_body
@@ -264,7 +264,7 @@ def get_exif(filename):
     if not path.exists() or is_video(filename):
         return {}
     try:
-        with Image.open(path) as img:
+        with Image.open(path, formats=IMAGE_FORMATS) as img:
             raw = img.getexif()
             # Camera settings and the capture date live in the Exif sub-IFD, not IFD0.
             exif = {**raw, **raw.get_ifd(ExifTags.IFD.Exif)}

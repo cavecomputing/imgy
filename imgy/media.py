@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'}
 VIDEO_EXTENSIONS = {'.mp4', '.webm', '.mov', '.mkv', '.avi', '.m4v'}
 ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
+# The only decoders Pillow may use, whatever a file's name says (JPEG also opens camera MPO
+# files). Without the limit a renamed PSD, EPS or PDF reaches Pillow's riskier parsers.
+IMAGE_FORMATS = ('PNG', 'JPEG', 'GIF', 'WEBP', 'BMP')
 
 
 class InvalidPath(ValueError):
@@ -139,7 +142,7 @@ def read_dimensions(path, rel_path):
     try:
         if is_video(rel_path):
             return video_dimensions(path)
-        with Image.open(path) as img:
+        with Image.open(path, formats=IMAGE_FORMATS) as img:
             w, h = img.size
             # PNG's getexif() decodes the image unless the EXIF chunk precedes the pixel data.
             exif = img.getexif() if img.format != 'PNG' or 'exif' in img.info else {}

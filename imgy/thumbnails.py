@@ -9,8 +9,8 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 from .config import THUMBNAIL_FOLDER
-from .media import (allowed_file, is_video, normalize_active_filename, normalize_trash_filename,
-                    relative_to_base, resolved_base, safe_path)
+from .media import (IMAGE_FORMATS, allowed_file, is_video, normalize_active_filename,
+                    normalize_trash_filename, relative_to_base, resolved_base, safe_path)
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ def get_or_create_thumbnail(rel_path):
 
 
 def _image_thumbnail(source_path, dest):
-    with Image.open(source_path) as img:
+    with Image.open(source_path, formats=IMAGE_FORMATS) as img:
         img = ImageOps.exif_transpose(img)
         if img.mode.startswith('I'):  # 16/32-bit grayscale, which JPEG can't store
             img = img.convert('I').point(lambda v: v / 256).convert('L')

@@ -59,7 +59,7 @@ function createImageCard(img, idx) {
 
     // Re-measure once the thumbnail settles. A broken one draws at a different height than
     // the shape reserved for it, so it needs this as much as one that loads.
-    const remeasure = () => setRowSpans([card.closest('.image-group') || card]);
+    const remeasure = () => remeasureSoon(card.closest('.image-group') || card);
     const thumb = card.querySelector('img');
     thumb.addEventListener('load', remeasure);
     thumb.addEventListener('error', remeasure);
@@ -118,6 +118,14 @@ function setRowSpans(items) {
         const { height, margin } = sizes[i];
         if (height > 0) item.style.gridRowEnd = `span ${Math.ceil((height + margin) / rowHeight)}`;
     });
+}
+
+// Cards whose thumbnails settled, measured together before the next frame. Each measurement lays
+// out the whole grid, and a batch's thumbnails all arrive at about the same time.
+const settled = new Set();
+function remeasureSoon(item) {
+    if (!settled.size) requestAnimationFrame(() => { setRowSpans([...settled]); settled.clear(); });
+    settled.add(item);
 }
 
 export function resizeAllMasonryItems() {

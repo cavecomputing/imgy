@@ -41,7 +41,20 @@ def serve_image(filename):
         filename, _path = normalize_active_filename(filename, require_exists=True)
     except (ValueError, FileNotFoundError):
         return jsonify({'error': 'File not found'}), 404
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    return _versioned(send_from_directory(UPLOAD_FOLDER, filename))
+
+
+def _versioned(response):
+    """Let browsers keep a file for good when its URL names a version (media_urls() adds ?v=).
+
+    Private, so a caching proxy or CDN in front never keeps a copy for others (IMGY_PASSWORD).
+    """
+    if request.args.get('v'):
+        response.cache_control.no_cache = None
+        response.cache_control.private = True
+        response.cache_control.max_age = 31536000
+        response.cache_control.immutable = True
+    return response
 
 
 @bp.get('/thumbnails/<path:filename>')
@@ -49,4 +62,4 @@ def serve_thumbnail(filename):
     t_rel = get_or_create_thumbnail(filename)
     if not t_rel:
         return jsonify({'error': 'Thumbnail not available'}), 404
-    return send_from_directory(THUMBNAIL_FOLDER, t_rel, mimetype='image/jpeg')
+    return _versioned(send_from_directory(THUMBNAIL_FOLDER, t_rel, mimetype='image/jpeg'))

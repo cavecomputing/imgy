@@ -107,7 +107,7 @@ def rename_image():
         conn.commit()
     delete_thumbnail(old_filename)
     invalidate_images_cache()
-    return {'success': True, 'new_filename': new_filename, **media_urls(new_filename, new_path.stat().st_mtime)}
+    return {'success': True, 'new_filename': new_filename, **media_urls(new_filename, new_path.stat())}
 
 
 @bp.post('/images/replace')
@@ -154,7 +154,7 @@ def replace_image():
     delete_thumbnail(filename)
     invalidate_images_cache()
     st = new_path.stat()
-    return {'success': True, 'new_filename': new_filename, **media_urls(new_filename, st.st_mtime),
+    return {'success': True, 'new_filename': new_filename, **media_urls(new_filename, st),
             'width': width, 'height': height, 'size': st.st_size}
 
 

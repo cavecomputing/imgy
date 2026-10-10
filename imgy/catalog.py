@@ -79,13 +79,14 @@ def images_gzip():
     return packed
 
 
-def media_urls(rel_path, mtime):
+def media_urls(rel_path, st):
     """Percent-encoded URLs for a media file, so names with '#', '?' or '%' still load.
 
-    The modification time in the query makes browsers fetch a file again once it is replaced.
+    The modification time and size in the query name this version of the file, so browsers keep
+    it for good (views.py) and fetch it again once it is replaced.
     """
-    version = f'?v={int(mtime * 1000)}'
-    return {'url': f'/images/{quote(rel_path)}{version}', 'thumbnail_url': f'/thumbnails/{quote(rel_path)}{version}'}
+    path = f'{quote(rel_path)}?v={int(st.st_mtime * 1000)}-{st.st_size}'
+    return {'url': f'/images/{path}', 'thumbnail_url': f'/thumbnails/{path}'}
 
 
 def _build_listing():
@@ -114,7 +115,7 @@ def _build_listing():
 
         images.append({
             'filename': rel_path,
-            **media_urls(rel_path, st.st_mtime),
+            **media_urls(rel_path, st),
             'tags': tags.get(rel_path, []),
             'is_favorite': rel_path in favorites,
             'modified': created_at,

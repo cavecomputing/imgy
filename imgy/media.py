@@ -25,12 +25,14 @@ class InvalidPath(ValueError):
     """A user-supplied path that escapes its root or does not name a media file."""
 
 
+# os.path rather than Path: the listing asks both of every file on each rebuild, and building
+# 20,000 Path objects was a third of a 10,000-file rebuild.
 def allowed_file(filename):
-    return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
+    return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def is_video(filename):
-    return Path(filename).suffix.lower() in VIDEO_EXTENSIONS
+    return os.path.splitext(filename)[1].lower() in VIDEO_EXTENSIONS
 
 
 @functools.cache

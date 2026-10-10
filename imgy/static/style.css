@@ -1052,7 +1052,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 .lb-details code { word-break: break-all; }
 .lb-help { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--fg-muted); }
 .lb-help:empty { display: none; }
-.lb-empty { font-family: var(--font-mono); font-size: 12px; color: var(--fg-muted); }
+.lb-empty { align-self: center; font-family: var(--font-mono); font-size: 12px; line-height: 12px; color: var(--fg-muted); } /* on one line with + Add's text */
 
 /* ---------- dialogs ---------- */
 dialog.dlg {

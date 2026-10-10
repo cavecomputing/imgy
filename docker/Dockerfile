@@ -33,4 +33,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/')" || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--worker-class", "gthread", "--threads", "8", "--timeout", "120", "app:app"]
+# --preload sets up the database once, before the workers fork. Four workers switching a new
+# database to WAL at the same moment can fail with "database is locked".
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--worker-class", "gthread", "--threads", "8", "--timeout", "120", "--preload", "app:app"]

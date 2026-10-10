@@ -57,7 +57,7 @@ buries the real diff under noise.
 ```bash
 uv sync                                               # install the locked dependencies into .venv
 uv run app.py                                         # dev server on 127.0.0.1:5000 (DATA_DIR defaults to ./data)
-uv run gunicorn --bind 127.0.0.1:5000 --workers 4 --worker-class gthread --threads 8 --timeout 120 app:app
+uv run gunicorn --bind 127.0.0.1:5000 --workers 4 --worker-class gthread --threads 8 --timeout 120 --preload app:app
 docker compose -f docker/compose.yml up --build -d    # serves 127.0.0.1:5000
 
 uv run python -m compileall -q app.py imgy            # backend syntax check

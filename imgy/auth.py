@@ -34,6 +34,16 @@ PASSWORD_HEADER = 'X-Imgy-Password'
 # someone is guessing, a new device may have to try a few times.
 WRONG_PASSWORD_WAIT = 1  # seconds
 class SessionInterface(SecureCookieSessionInterface):
+    def save_session(self, app, session, response):
+        """Leave the cookie and its Vary: Cookie off files the browser keeps for good (views._versioned).
+
+        Every response renews the cookie with a fresh timestamp, so Vary: Cookie would make the browser
+        download every thumbnail again on each visit. The file is the same for anyone signed in, and
+        it only reached the browser through require_login().
+        """
+        if not response.cache_control.immutable:
+            super().save_session(app, session, response)
+
     def get_cookie_secure(self, app):
         """Mark the cookie Secure whenever the browser reached Imgy over HTTPS.
 

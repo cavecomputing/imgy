@@ -1550,7 +1550,7 @@ body.drag-over::after {
     .topbar-filter::before { content: ""; order: 0; }
     .cmd { max-width: none; height: 44px; }
     .cmd-input { font-size: 16px; } /* under 16px, iOS zooms the page when the field takes focus */
-    .cmd-kbd, .keys-hw { display: none; }
+    .cmd-kbd, .keys-hw, li.keys-hw { display: none; } /* li: as specific as .cc-check li's display: flex */
     .upload-btn { width: 44px; height: 44px; }
     .filter-pop { top: auto; bottom: calc(100% + 8px); width: calc(100vw - 32px - 2 * var(--shell-gap)); }
     .filter-pop-list { max-height: min(360px, calc(100vh - 260px)); }

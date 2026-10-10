@@ -33,6 +33,8 @@ PASSWORD_HEADER = 'X-Imgy-Password'
 # database because gunicorn runs several worker processes. Signed-in devices aren't affected; while
 # someone is guessing, a new device may have to try a few times.
 WRONG_PASSWORD_WAIT = 1  # seconds
+
+
 class SessionInterface(SecureCookieSessionInterface):
     def save_session(self, app, session, response):
         """Leave the cookie and its Vary: Cookie off files the browser keeps for good (views._versioned).

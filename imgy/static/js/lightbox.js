@@ -91,6 +91,8 @@ export function updateLightboxContent() {
 
     const targetUrl = img.url;
     const videoMode = isVideo(img.filename);
+    // Fetched ahead while the last file was shown, so it can go straight up without the thumbnail
+    const preloaded = loaders.some(loader => loader.getAttribute('src') === targetUrl && loader.complete && loader.naturalWidth);
     stopBackgroundLoads();
 
     // Remove any existing video element
@@ -125,9 +127,9 @@ export function updateLightboxContent() {
             Elements.lightboxImage.style.aspectRatio = '';
         }
 
-        // 1. Show thumbnail as fast placeholder
-        Elements.lightboxImage.classList.add('switching');
-        Elements.lightboxImage.src = img.thumbnail_url;
+        // 1. Show thumbnail as fast placeholder, unless the original is already here
+        Elements.lightboxImage.classList.toggle('switching', !preloaded);
+        Elements.lightboxImage.src = preloaded ? targetUrl : img.thumbnail_url;
 
         // 2. Preload full image in background, then the files next to it
         const fullImg = loadInBackground(targetUrl);

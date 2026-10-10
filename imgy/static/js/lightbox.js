@@ -17,6 +17,13 @@ const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'W
 // Moving on or closing stops them, so nothing keeps downloading or holds memory for the viewer.
 let loaders = [];
 
+// A finger down on the image that may turn out to be a tap, and the last tap, so a double tap can
+// reset the zoom. The second tap must start within DOUBLE_TAP_MS of the first and DOUBLE_TAP_PX of it.
+let tapStart = null;
+let lastTap = null;
+const DOUBLE_TAP_MS = 300;
+const DOUBLE_TAP_PX = 40;
+
 function loadInBackground(url) {
     const loader = new Image();
     loader.src = url;
@@ -360,6 +367,7 @@ export function initLightbox() {
     Elements.prevImageBtn.addEventListener('click', () => navigateImage(-1));
     Elements.nextImageBtn.addEventListener('click', () => navigateImage(1));
     Elements.resetZoomBtn.addEventListener('click', resetZoom);
+    Elements.lightboxImage.addEventListener('dblclick', () => { if (State.zoom.scale > 1) resetZoom(); });
 
     const startRename = () => {
         const img = getCurrentLightboxImage();
@@ -431,6 +439,8 @@ export function initLightbox() {
     Elements.lightboxContent.addEventListener('touchstart', (e) => {
         if (e.touches.length === 1) {
             State.zoom.swipeStartX = e.touches[0].clientX;
+            const t = e.touches[0];
+            tapStart = e.target === Elements.lightboxImage ? { x: t.clientX, y: t.clientY, time: e.timeStamp } : null;
             if (State.zoom.scale > 1) {
                 State.zoom.isDragging = true;
                 State.zoom.startX = e.touches[0].clientX - State.zoom.translateX;
@@ -438,6 +448,7 @@ export function initLightbox() {
                 Elements.lightboxImage.classList.add('dragging');
             }
         } else if (e.touches.length === 2) {
+            tapStart = lastTap = null; // a pinch is not a tap
             State.zoom.isDragging = false;
             Elements.lightboxImage.classList.add('dragging');
             updateCachedDimensions();
@@ -473,6 +484,15 @@ export function initLightbox() {
     }, { passive: true });
 
     Elements.lightboxContent.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0 && tapStart) {
+            const t = e.changedTouches[0];
+            const isTap = e.timeStamp - tapStart.time < DOUBLE_TAP_MS && Math.hypot(t.clientX - tapStart.x, t.clientY - tapStart.y) < 10;
+            const isDoubleTap = isTap && lastTap && tapStart.time - lastTap.time < DOUBLE_TAP_MS
+                && Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < DOUBLE_TAP_PX;
+            if (isDoubleTap && State.zoom.scale > 1) resetZoom();
+            lastTap = isTap && !isDoubleTap ? { x: t.clientX, y: t.clientY, time: e.timeStamp } : null;
+            tapStart = null;
+        }
         if (e.changedTouches.length === 1 && State.zoom.scale === 1) {
             const deltaX = e.changedTouches[0].clientX - State.zoom.swipeStartX;
             if (Math.abs(deltaX) > 50) {

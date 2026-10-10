@@ -15,6 +15,8 @@
             const theme = saved === 'light' || saved === 'dark' ? saved
                 : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
             document.documentElement.setAttribute('data-theme', theme);
+            // and the phone's status bar to match, which appearance.js does in the gallery
+            if (theme === 'light') document.querySelector('meta[name="theme-color"]').content = '#fbf1c7';
         } catch { /* storage blocked: keep the default */ }
     </script>
     <link rel="stylesheet" href="/static/cavecomputing.css">

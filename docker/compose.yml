@@ -15,5 +15,6 @@ services:
     environment:
       - DATA_DIR=/data
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
+      - IMGY_PASSWORD=${IMGY_PASSWORD:-}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}

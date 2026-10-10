@@ -294,7 +294,11 @@
                             <li>The database only holds tags, favorites, groups, your custom order and settings.</li>
                             <li class="keys-hw">Press <kbd class="kbd kbd-sm">?</kbd> anywhere to see every keyboard shortcut.</li>
                         </ul>
-                        <div class="cc-callout cc-callout--warn"><span class="cc-callout__label">Heads up</span><span>Imgy has no login. Anyone who can reach this server can view, change and delete your files. Keep it on localhost or a trusted network.</span></div>
+                        {% if has_password %}
+                        <form method="post" action="/logout"><button class="cc-btn cc-btn--ghost" type="submit">Sign out</button></form>
+                        {% else %}
+                        <div class="cc-callout cc-callout--warn"><span class="cc-callout__label">Heads up</span><span>Imgy has no password. Anyone who can reach this server can view, change and delete your files. Keep it on localhost or a trusted network, or set <code>IMGY_PASSWORD</code>.</span></div>
+                        {% endif %}
                     </div>
                 </section>
 
@@ -361,7 +365,7 @@
                             <label class="field-label" for="llmApiSecret">API key</label>
                             <div>
                                 <input type="password" id="llmApiSecret" class="text-input text-input--mid" placeholder="API key or Bearer token" autocomplete="off">
-                                <div class="cc-callout cc-callout--warn field-callout"><span class="cc-callout__label">Heads up</span><span>Imgy has no login. Anyone who can reach this server can read the key from settings.</span></div>
+                                {% if not has_password %}<div class="cc-callout cc-callout--warn field-callout"><span class="cc-callout__label">Heads up</span><span>Imgy has no password. Anyone who can reach this server can read the key from settings.</span></div>{% endif %}
                             </div>
                         </div>
                         <div class="field">
@@ -497,7 +501,7 @@
                         <ul class="cc-check settings-facts">
                             <li><span>Download the extension and click <b>Add</b> when Firefox asks. If it says it blocked this site from installing software, click <b>Allow</b> and download again.</span></li>
                             <li><span>Right-click an image and choose <b>Set tags and upload to Imgy</b>.</span></li>
-                            <li><span>Open the extension's preferences (Add-ons, then Imgy, then Preferences) and save this address once: <code id="extensionAddress"></code></span></li>
+                            <li><span>Open the extension's preferences (Add-ons, then Imgy, then Preferences) and save this address once: <code id="extensionAddress"></code>{% if has_password %}, and Imgy's password with it{% endif %}</span></li>
                         </ul>
                         <a class="cc-btn cc-btn--primary" href="/static/imgy.xpi">Download for Firefox</a>
                     </div>

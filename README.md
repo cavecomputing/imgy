@@ -33,11 +33,12 @@ OpenAI-style chat API works.
 - Firefox extension (**Settings › Extension**): right-click any image on the web, set tags, and upload it to Imgy
 - Installs as an app on a phone or computer when it is served over HTTPS (or from `localhost`), and on Android appears in the share sheet so you can send photos and videos straight in
 - Gruvbox dark and light themes, with a phone layout that keeps the filter in reach of your thumb
+- An optional password (`IMGY_PASSWORD`), remembered on each device you sign in from
 
 > [!WARNING]
-> There is no login. Anyone who can reach Imgy can view, change, and delete your files, and can read
-> the LLM API key from the settings. Keep it on `localhost` or a network you trust, or put it behind
-> an authenticating reverse proxy.
+> Without a password there is no login. Anyone who can reach Imgy can view, change, and delete your
+> files, and can read the LLM API key from the settings. Keep it on `localhost` or a network you
+> trust, or [set a password](#password).
 
 ## Quick start
 
@@ -143,6 +144,27 @@ uv run app.py
 
 With Docker, run `git pull` and then `docker compose up --build -d` from `docker/`.
 
+## Password
+
+Imgy is open to anyone who can reach it until you set `IMGY_PASSWORD`. With it set, every page, file
+and API call needs a signed-in device:
+
+```bash
+IMGY_PASSWORD=pick-one uv run app.py
+```
+
+With Docker, put it in `docker/.env` (`echo 'IMGY_PASSWORD=pick-one' > docker/.env`) and run
+`docker compose up --build -d` again.
+
+- **Keep this device signed in** lasts 400 days; without it, the sign-in ends with the browser.
+  **Settings › About › Sign out** signs a device out.
+- Changing the password signs every device out.
+- After a wrong password, every sign-in waits a second, so guessing is slow.
+- The Firefox extension (1.3.0 or later) takes the password in its preferences, next to the address.
+- The Android share sheet works on a phone that is signed in to the installed app.
+
+Over plain HTTP the password crosses the network unencrypted, so use HTTPS beyond your own machine.
+
 ## Using it from another device
 
 Imgy listens only on `localhost` by default, and the Docker compose file publishes on `127.0.0.1`
@@ -163,6 +185,7 @@ On Android, the installed app then shows up in the share sheet. iOS doesn't supp
 |---|---|---|
 | `DATA_DIR` | `./data` | Where media and the database are stored |
 | `PUID` / `PGID` | `1000` | File owner inside the Docker container |
+| `IMGY_PASSWORD` | unset | The password that signs a device in; unset or empty means no login ([Password](#password)) |
 | `ALLOWED_HOSTS` | `*` | Host names or IPv4 addresses the app answers to besides `localhost`, comma-separated (for example `photos.lan,192.168.1.20`). A leading dot allows subdomains, and `*` allows any host |
 
 Imgy answers to any host name by default. Setting `ALLOWED_HOSTS` makes it refuse every other name,

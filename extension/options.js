@@ -1,24 +1,33 @@
-// Where the extension sends images. Saved once; every upload uses it.
+// Where the extension sends images, and the password if Imgy has one. Saved once; every upload uses them.
 const form = document.getElementById('form');
 const serverInput = document.getElementById('server');
+const passwordInput = document.getElementById('password');
 const status = document.getElementById('status');
 const themeButton = document.getElementById('theme');
 
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const server = serverInput.value.trim().replace(/\/+$/, '');
-    await browser.storage.local.set({ server });
+    const password = passwordInput.value;
+    await browser.storage.local.set({ server, password });
     serverInput.value = server;
     status.classList.remove('error');
     status.textContent = 'Saved.';
-    const reachable = await fetch(`${server}/api/tags`).then(response => response.ok, () => false);
-    if (!reachable) {
+    // Imgy reads the password percent-encoded, since a header can't carry every character.
+    const headers = password ? { 'X-Imgy-Password': encodeURIComponent(password) } : {};
+    const answer = await fetch(`${server}/api/tags`, { headers }).then(response => response.status, () => 0);
+    if (answer !== 200) {
         status.classList.add('error');
-        status.textContent = 'Saved, but Imgy did not answer at that address.';
+        status.textContent = answer === 401 ? 'Saved, but Imgy refused the password.'
+            : answer === 429 ? 'Saved, but Imgy is holding off sign-ins after a wrong password. Save again in a moment.'
+            : 'Saved, but Imgy did not answer at that address.';
     }
 });
 
-browser.storage.local.get('server').then(({ server }) => { serverInput.value = server || ''; });
+browser.storage.local.get(['server', 'password']).then(({ server, password }) => {
+    serverInput.value = server || '';
+    passwordInput.value = password || '';
+});
 
 function showTheme() {
     const theme = document.documentElement.dataset.theme || 'dark';

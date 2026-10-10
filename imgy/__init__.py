@@ -4,9 +4,10 @@ import mimetypes
 from urllib.parse import urlsplit
 
 from flask import Flask, abort, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import api, views
-from .config import ALLOWED_HOSTS, MAX_UPLOAD_BYTES, THUMBNAIL_FOLDER, TRASH_FOLDER, UPLOAD_FOLDER
+from . import api, auth, views
+from .config import ALLOWED_HOSTS, MAX_UPLOAD_BYTES, PASSWORD, THUMBNAIL_FOLDER, TRASH_FOLDER, UPLOAD_FOLDER
 from .db import init_db
 
 
@@ -28,12 +29,25 @@ def create_app():
         folder.mkdir(parents=True, exist_ok=True)
     init_db()
 
+    if PASSWORD:
+        # A reverse proxy tells us the browser used HTTPS; that decides whether the cookie is Secure.
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=0, x_proto=1)
+        app.session_interface = auth.SessionInterface()
+        app.config.update(
+            # Cookies ignore the port, so a plain "session" would collide with other apps on the same host.
+            SESSION_COOKIE_NAME='imgy_session',
+            SESSION_COOKIE_SAMESITE='Lax',
+            PERMANENT_SESSION_LIFETIME=auth.REMEMBER_FOR,
+        )
+        app.secret_key = auth.signing_key()
+        app.register_blueprint(auth.bp)
+
     app.register_blueprint(views.bp)
     app.register_blueprint(api.bp)
 
     @app.before_request
     def reject_cross_site_requests():
-        """There is no login, so refuse changes sent by another site's page in the same browser.
+        """Refuse changes sent by another site's page in the same browser (with no password, the only guard).
 
         Browsers send Sec-Fetch-Site to localhost and HTTPS servers. Over plain HTTP elsewhere they
         send only Origin, which must then match the host and port exactly (another port on the
@@ -51,5 +65,9 @@ def create_app():
         if site in ('cross-site', 'same-site') \
                 or (site is None and origin is not None and urlsplit(origin).netloc != request.host):
             abort(403, 'Cross-site request blocked')
+
+    # After the cross-site guard, so another site can't post a sign-in either.
+    if PASSWORD:
+        app.before_request(auth.require_login)
 
     return app

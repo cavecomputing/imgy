@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sign in · Imgy</title>
+    <meta name="theme-color" content="#282828">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <script>
+        // The same theme as the gallery, before the first paint (see index.html).
+        try {
+            const saved = localStorage.getItem('theme');
+            const theme = saved === 'light' || saved === 'dark' ? saved
+                : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            document.documentElement.setAttribute('data-theme', theme);
+        } catch { /* storage blocked: keep the default */ }
+    </script>
+    <link rel="stylesheet" href="/static/cavecomputing.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <svg class="sprite" aria-hidden="true" focusable="false">
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+    </svg>
+    <main class="signin">
+        <form method="post">
+            <div class="brand"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>imgy</div>
+            <p>Enter the password to open your library.</p>
+            {% if error %}<p class="signin-error" role="alert">{{ error }}</p>{% endif %}
+            <label class="field-label" for="password">Password</label>
+            <input class="text-input" id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+            <label class="signin-check"><input type="checkbox" name="remember" checked> Keep this device signed in</label>
+            <button class="cc-btn cc-btn--primary" type="submit">Sign in</button>
+        </form>
+    </main>
+</body>
+</html>

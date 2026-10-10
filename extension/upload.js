@@ -13,6 +13,7 @@ const extensionOfType = {
     'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/webp': '.webp', 'image/bmp': '.bmp',
 };
 let server = '';
+let headers = {}; // the password, when Imgy has one (see options.js)
 let knownTags = [];
 
 function setStatus(text, isError = false) {
@@ -30,7 +31,7 @@ function fileNameFor(blob) {
 
 async function loadKnownTags() {
     try {
-        const response = await fetch(`${server}/api/tags`);
+        const response = await fetch(`${server}/api/tags`, { headers });
         knownTags = response.ok ? await response.json() : [];
     } catch {
         knownTags = [];
@@ -61,8 +62,12 @@ form.addEventListener('submit', async (event) => {
         for (const tag of tagsInput.value.split(',')) {
             if (tag.trim()) body.append('tags', tag.trim());
         }
-        const response = await fetch(`${server}/api/upload`, { method: 'POST', body });
+        const response = await fetch(`${server}/api/upload`, { method: 'POST', body, headers });
         const result = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+            settingsButton.hidden = false;
+            throw new Error('Imgy refused the password. Check it in the extension settings.');
+        }
         if (!response.ok) {
             const skipped = result.skipped?.[0]?.reason;
             throw new Error(result.error || skipped || `Imgy answered ${response.status}`);
@@ -79,6 +84,8 @@ settingsButton.addEventListener('click', () => browser.runtime.openOptionsPage()
 
 (async () => {
     preview.src = src;
+    const { password } = await browser.storage.local.get('password');
+    if (password) headers = { 'X-Imgy-Password': encodeURIComponent(password) };
     ({ server = '' } = await browser.storage.local.get('server'));
     if (server) {
         loadKnownTags();

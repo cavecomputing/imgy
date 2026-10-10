@@ -51,7 +51,9 @@ def rename_tag_in_groups(conn, old_tag, new_tag):
 @bp.get('/settings')
 def get_settings():
     with get_db() as conn:
-        return {row['key']: row['value'] for row in conn.execute('SELECT key, value FROM settings')}
+        # The sign-in's own rows (auth.py) never leave the server: secret_key signs the cookie.
+        rows = conn.execute("SELECT key, value FROM settings WHERE key NOT IN ('secret_key', 'next_sign_in')")
+        return {row['key']: row['value'] for row in rows}
 
 
 @bp.put('/settings')

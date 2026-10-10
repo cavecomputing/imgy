@@ -11,6 +11,7 @@ async function request(url, options = {}) {
             ...options,
             headers: typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {}
         });
+        if (response.status === 401) location.assign('/login'); // signed out, e.g. the password changed
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
             throw new Error(errData.error || `Error ${response.status}`);

@@ -13,6 +13,9 @@ DATABASE = DATA_DIR / 'database.db'
 # Host names the app answers to besides localhost, comma-separated. Unset, empty, or '*' means any host.
 ALLOWED_HOSTS = [h.strip().lower() for h in (os.getenv('ALLOWED_HOSTS') or '*').split(',') if h.strip()]
 
+# The password that signs a device in. Unset or empty means no login, as before.
+PASSWORD = os.getenv('IMGY_PASSWORD', '')
+
 MAX_UPLOAD_BYTES = 500 * 1024 * 1024
 MAX_BULK_FILES = 500
 MAX_BULK_TAGS = 50

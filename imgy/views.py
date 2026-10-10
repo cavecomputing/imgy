@@ -4,7 +4,7 @@ from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
-from .config import THUMBNAIL_FOLDER, UPLOAD_FOLDER
+from .config import PASSWORD, THUMBNAIL_FOLDER, UPLOAD_FOLDER
 from .media import normalize_active_filename
 from .thumbnails import get_or_create_thumbnail
 
@@ -13,7 +13,7 @@ bp = Blueprint('views', __name__)
 
 @bp.get('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', has_password=bool(PASSWORD))
 
 
 @bp.get('/sw.js')

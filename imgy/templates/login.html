@@ -26,15 +26,14 @@
     <svg class="sprite" aria-hidden="true" focusable="false">
         <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
     </svg>
-    <main class="signin">
-        <form method="post">
-            <div class="brand"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>imgy</div>
+    <main class="cc-signin">
+        <form class="cc-settings-card cc-signin__card" method="post">
+            <span class="cc-brand"><svg class="cc-brand__mark" aria-hidden="true"><use href="#i-image"/></svg><span class="cc-wordmark">imgy</span></span>
             <p>Enter the password to open your library.</p>
-            {% if error %}<p class="signin-error" role="alert">{{ error }}</p>{% endif %}
-            <label class="field-label" for="password">Password</label>
-            <input class="text-input" id="password" name="password" type="password" autocomplete="current-password" required autofocus>
-            <label class="signin-check"><input type="checkbox" name="remember" checked> Keep this device signed in</label>
-            <button class="cc-btn cc-btn--primary" type="submit">Sign in</button>
+            {% if error %}<p class="cc-signin__error" role="alert">{{ error }}</p>{% endif %}
+            <div class="cc-field cc-field--stack"><label for="password">Password</label><input class="cc-input" id="password" name="password" type="password" autocomplete="current-password" required autofocus></div>
+            <label class="cc-checkbox"><input type="checkbox" name="remember" checked> Keep this device signed in</label>
+            <button class="cc-btn cc-btn--primary cc-btn--block" type="submit"><span>Sign in</span></button>
         </form>
     </main>
 </body>

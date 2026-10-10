@@ -4,7 +4,8 @@
    --accent-alt for the brand and done states, blue --accent-cool for links and paths,
    orange --accent-warm for warnings and anything destructive.
    The design system's own components (cc-btn, cc-tag, cc-badge, cc-callout, cc-table,
-   cc-eyebrow, cc-section-title, cc-wordmark, cc-check) live in cavecomputing.css. */
+   cc-eyebrow, cc-section-title, cc-wordmark, cc-check, and the sign-in page's SignIn) live in
+   cavecomputing.css. */
 
 :root {
     --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -12,6 +13,11 @@
     --space-2: 10px;
     --space-3: 16px;
     --space-4: 24px;
+    --app-space-1: 4px; /* the design system's app spacing, which its SignIn rules use */
+    --app-space-2: 6px;
+    --app-space-3: 8px;
+    --app-space-4: 12px;
+    --app-space-5: 16px;
     --radius-sm: 6px;
     --radius: 10px;
     --radius-lg: 14px;
@@ -1158,16 +1164,10 @@ a.cc-btn { text-decoration: none; }
 .text-input--short { max-width: 280px; }
 .text-input--mid { max-width: 420px; }
 
-/* ---------- sign-in page (login.html, only when IMGY_PASSWORD is set) ---------- */
-.signin { min-height: calc(100vh - var(--shell-gap)); display: grid; place-items: center; padding: 24px 12px; }
-.signin form { width: min(340px, 100%); display: flex; flex-direction: column; gap: 12px; }
-.signin .brand { margin: 0 0 4px; }
-.signin p { font-size: 14px; color: var(--fg-muted); }
-.signin .signin-error { color: var(--accent-warm); }
-.signin .field-label { padding-top: 4px; }
-.signin .cc-btn { justify-content: center; }
-.signin-check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.signin-check input { accent-color: var(--accent); }
+/* ---------- sign-in page (login.html, only when IMGY_PASSWORD is set): the design system's SignIn ---------- */
+/* Centred inside the frame, which is shell-gap in from every edge; the body has no top padding. */
+.cc-signin { min-height: calc(100vh - 2 * var(--shell-gap)); margin-top: var(--shell-gap); padding: 24px 12px; }
+.cc-signin .cc-brand { color: var(--accent-alt); }
 .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .seg label { position: relative; cursor: pointer; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }

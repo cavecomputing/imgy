@@ -47,3 +47,22 @@
 .cc-badge--info::before{background:var(--accent-cool)}
 .cc-badge--count{padding:2px 7px;min-width:20px;justify-content:center;letter-spacing:0;background:var(--accent-warm);border-color:transparent;color:var(--btn-fg)}
 .cc-badge--count::before{display:none}
+/* The sign-in page: SignIn and the parts of SettingsCard and TopBar it builds on, copied unchanged
+   from version 1791371471-9457. */
+.cc-settings-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:var(--app-space-5);box-shadow:var(--shadow-card);color:var(--fg);font-family:var(--font-sans)}
+.cc-field{display:grid;grid-template-columns:10.5rem minmax(0,1fr);gap:var(--app-space-1) var(--app-space-5);align-items:center;padding:var(--app-space-3) 0}
+.cc-field label{font-size:13px;color:var(--fg)}
+.cc-input{width:100%;box-sizing:border-box;padding:.45em .7em;background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-family:var(--font-sans);font-size:13px}
+.cc-input:focus{outline:none;border-color:var(--accent-text)}
+.cc-brand{display:flex;align-items:center;gap:var(--app-space-3);flex:none;line-height:1}
+.cc-brand__mark{flex:none;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transform:translateY(var(--mark-nudge,0))}
+.cc-signin{min-height:100%;display:grid;place-items:center}
+.cc-signin__card{width:min(360px,100%);display:flex;flex-direction:column;gap:var(--app-space-4)}
+.cc-signin__card p{margin:0;font-size:13px;color:var(--fg-muted)}
+.cc-signin__card .cc-signin__error{color:var(--accent-warm)}
+.cc-signin .cc-brand__mark{width:26px;height:26px}
+.cc-signin .cc-wordmark{font-size:22px}
+.cc-field--stack{grid-template-columns:minmax(0,1fr);gap:var(--app-space-2);padding:0}
+.cc-checkbox{display:flex;gap:var(--app-space-3);align-items:center;font-size:13px}
+.cc-checkbox input{width:15px;height:15px;margin:0;accent-color:var(--accent)}
+.cc-btn--block{width:100%;justify-content:center}

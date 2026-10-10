@@ -12,6 +12,35 @@ import { clearCardFocus } from './navigation.js';
 
 const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'WebP', bmp: 'BMP' };
 
+// Originals downloading in the background: the one on screen and, once it has arrived, the files
+// on either side, so arrowing to them is instant (they stay in the browser's cache afterwards).
+// Moving on or closing stops them, so nothing keeps downloading or holds memory for the viewer.
+let loaders = [];
+
+function loadInBackground(url) {
+    const loader = new Image();
+    loader.src = url;
+    loaders.push(loader);
+    return loader;
+}
+
+function stopBackgroundLoads() {
+    for (const loader of loaders) {
+        loader.onload = loader.onerror = null;
+        loader.removeAttribute('src'); // aborts a download still in flight
+    }
+    loaders = [];
+}
+
+function preloadNeighbours() {
+    const files = State.filteredImages;
+    for (const dir of [1, -1]) {
+        const img = files[(State.currentImageIndex + dir + files.length) % files.length];
+        // Videos stream when played, so only images are fetched ahead
+        if (img !== getCurrentLightboxImage() && !isVideo(img.filename)) loadInBackground(img.url);
+    }
+}
+
 export function openLightbox(idx) {
     State.lightboxScrollY = window.scrollY;
     State.currentImageIndex = idx;
@@ -25,6 +54,8 @@ export function closeLightbox() {
     if (video) { video.pause(); video.remove(); }
     Elements.lightboxExif.textContent = '';
     closeLightboxTagFlyup();
+    stopBackgroundLoads();
+    Elements.lightboxImage.removeAttribute('src'); // lets the browser drop the decoded original
     const restoreFilename = getCurrentLightboxImage()?.filename;
     Elements.lightbox.classList.remove('active');
     document.body.style.overflow = '';
@@ -53,6 +84,7 @@ export function updateLightboxContent() {
 
     const targetUrl = img.url;
     const videoMode = isVideo(img.filename);
+    stopBackgroundLoads();
 
     // Remove any existing video element
     const existingVideo = Elements.lightboxContent.querySelector('video.lightbox-video');
@@ -90,19 +122,19 @@ export function updateLightboxContent() {
         Elements.lightboxImage.classList.add('switching');
         Elements.lightboxImage.src = img.thumbnail_url;
 
-        // 2. Preload full image in background
-        const fullImg = new Image();
+        // 2. Preload full image in background, then the files next to it
+        const fullImg = loadInBackground(targetUrl);
         fullImg.onload = () => {
             const currentImg = State.filteredImages[State.currentImageIndex];
             if (currentImg && currentImg.url === targetUrl) {
                 Elements.lightboxImage.src = targetUrl;
+                preloadNeighbours();
             }
         };
         fullImg.onerror = () => {
             console.error("Failed to load full image:", targetUrl);
             Elements.lightboxImage.classList.remove('switching');
         };
-        fullImg.src = targetUrl;
     }
 
     Elements.lightboxHeaderFilename.textContent = getImageBaseName(img.filename);

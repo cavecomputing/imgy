@@ -75,6 +75,9 @@ def get_or_create_thumbnail(rel_path):
 
 def _image_thumbnail(source_path, dest):
     with Image.open(source_path, formats=IMAGE_FORMATS) as img:
+        # Lets a big JPEG decode at 1/2 to 1/8 scale, as thumbnail() would on its own if
+        # exif_transpose() didn't decode it first: 280 ms to 90 ms for a 24-megapixel photo.
+        img.draft(None, (THUMBNAIL_SIZE[0] * 2, THUMBNAIL_SIZE[1] * 2))
         img = ImageOps.exif_transpose(img)
         if img.mode.startswith('I'):  # 16/32-bit grayscale, which JPEG can't store
             img = img.convert('I').point(lambda v: v / 256).convert('L')

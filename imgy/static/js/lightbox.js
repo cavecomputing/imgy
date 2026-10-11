@@ -12,10 +12,13 @@ import { clearCardFocus } from './navigation.js';
 
 const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'WebP', bmp: 'BMP' };
 
-// Originals downloading in the background: the one on screen and, once it has arrived, the files
-// on either side, so arrowing to them is instant (they stay in the browser's cache afterwards).
-// Moving on or closing stops them, so nothing keeps downloading or holds memory for the viewer.
+// Images loading in the background: the original on screen (and its thumbnail while that stands in)
+// and, once it is up, the originals on either side, downloaded and decoded so arrowing to them shows
+// them at once (they stay in the browser's cache afterwards). Moving on or closing drops them, so
+// the viewer never holds more than three originals.
 let loaders = [];
+const decoded = new WeakSet(); // the neighbours whose original has decoded, so it draws at once
+let shownVersion = 0; // bumped for each file shown and on closing, so a load that finishes late knows it is stale
 
 // A finger down on the image that may turn out to be a tap, and the last tap, so a double tap can
 // reset the zoom. The second tap must start within DOUBLE_TAP_MS of the first and DOUBLE_TAP_PX of it.
@@ -31,12 +34,12 @@ function loadInBackground(url) {
     return loader;
 }
 
-function stopBackgroundLoads() {
+/** Drop every background load but `keep`, aborting downloads still in flight. */
+function stopBackgroundLoads(keep) {
     for (const loader of loaders) {
-        loader.onload = loader.onerror = null;
-        loader.removeAttribute('src'); // aborts a download still in flight
+        if (loader !== keep) loader.removeAttribute('src');
     }
-    loaders = [];
+    loaders = keep ? [keep] : [];
 }
 
 function preloadNeighbours() {
@@ -44,8 +47,33 @@ function preloadNeighbours() {
     for (const dir of [1, -1]) {
         const img = files[(State.currentImageIndex + dir + files.length) % files.length];
         // Videos stream when played, so only images are fetched ahead
-        if (img !== getCurrentLightboxImage() && !isVideo(img.filename)) loadInBackground(img.url);
+        if (img === getCurrentLightboxImage() || isVideo(img.filename)) continue;
+        const loader = loadInBackground(img.url);
+        loader.decode().then(() => decoded.add(loader), () => {}); // decode() waits for the download
     }
+}
+
+/**
+ * Put `src` up for the file `img`, in the file's own size fitted to the viewer, so the thumbnail
+ * standing in for the original fills the same box. It goes up blurred, and the blur fades out when
+ * the original replaces it; anything else goes up as it is, unzoomed, with nothing fading or
+ * zooming over from the last file.
+ */
+function showImage(img, src) {
+    const el = Elements.lightboxImage;
+    const sharpening = src === img.url && el.getAttribute('src') === img.thumbnail_url;
+    const sized = img.width && img.height;
+    el.style.width = sized ? `min(${img.width}px, 100cqw, ${img.width / img.height} * 100cqh)` : '';
+    el.style.aspectRatio = sized ? `${img.width} / ${img.height}` : '';
+    el.style.display = '';
+    el.alt = getImageBaseName(img.filename);
+    el.classList.toggle('switching', src !== img.url);
+    el.src = src;
+    if (sharpening) return;
+    resetZoom();
+    el.style.transition = 'none';
+    getComputedStyle(el).opacity; // applies the changes while transitions are off
+    el.style.transition = '';
 }
 
 export function openLightbox(idx) {
@@ -61,6 +89,7 @@ export function closeLightbox() {
     if (video) { video.pause(); video.remove(); }
     Elements.lightboxExif.textContent = '';
     closeLightboxTagFlyup();
+    shownVersion++;
     stopBackgroundLoads();
     Elements.lightboxImage.removeAttribute('src'); // lets the browser drop the decoded original
     const restoreFilename = getCurrentLightboxImage()?.filename;
@@ -91,9 +120,10 @@ export function updateLightboxContent() {
 
     const targetUrl = img.url;
     const videoMode = isVideo(img.filename);
-    // Fetched ahead while the last file was shown, so it can go straight up without the thumbnail
-    const preloaded = loaders.some(loader => loader.getAttribute('src') === targetUrl && loader.complete && loader.naturalWidth);
-    stopBackgroundLoads();
+    // An original fetched ahead is kept: it goes straight up if decoded, else it is waited for
+    const original = loaders.find(loader => loader.getAttribute('src') === targetUrl);
+    stopBackgroundLoads(original);
+    const version = ++shownVersion;
 
     // Remove any existing video element
     const existingVideo = Elements.lightboxContent.querySelector('video.lightbox-video');
@@ -101,7 +131,9 @@ export function updateLightboxContent() {
 
     if (videoMode) {
         Elements.lightboxImage.style.display = 'none';
+        Elements.lightboxImage.removeAttribute('src'); // drops the last picture while the video plays
         Elements.resetZoomBtn.style.display = 'none';
+        resetZoom();
 
         const video = document.createElement('video');
         video.className = 'lightbox-video';
@@ -112,38 +144,32 @@ export function updateLightboxContent() {
         video.onerror = () => showToast('This video format may not be supported by your browser');
         Elements.lightboxContent.insertBefore(video, Elements.prevImageBtn);
     } else {
-        Elements.lightboxImage.style.display = '';
         Elements.resetZoomBtn.style.display = '';
-        Elements.lightboxImage.alt = getImageBaseName(img.filename);
-
-        // Set dimensions immediately to prevent layout shift
-        if (img.width && img.height) {
-            Elements.lightboxImage.width = img.width;
-            Elements.lightboxImage.height = img.height;
-            Elements.lightboxImage.style.aspectRatio = `${img.width} / ${img.height}`;
+        // The original goes up once it has loaded and decoded, so it draws at once. Until then its
+        // thumbnail stands in, from when that can draw; until then the last file stays up, so no frame
+        // shows an empty box or the last picture squeezed into this file's box.
+        const loader = original ?? loadInBackground(targetUrl);
+        const stillShown = () => version === shownVersion; // not moved on or closed
+        // The neighbours wait for this file's first frame, so their decoding doesn't hold it up
+        const preloadAfterFrame = () => requestAnimationFrame(() => setTimeout(() => { if (stillShown()) preloadNeighbours(); }));
+        if (decoded.has(loader) || Elements.lightboxImage.getAttribute('src') === targetUrl) { // or already up, on a redraw
+            showImage(img, targetUrl);
+            preloadAfterFrame();
         } else {
-            Elements.lightboxImage.removeAttribute('width');
-            Elements.lightboxImage.removeAttribute('height');
-            Elements.lightboxImage.style.aspectRatio = '';
+            const thumbnail = loadInBackground(img.thumbnail_url);
+            let settled = false; // the original is up, or failed to load
+            const showThumbnail = () => { if (stillShown() && !settled) showImage(img, img.thumbnail_url); };
+            if (thumbnail.complete && thumbnail.naturalWidth) showThumbnail();
+            else thumbnail.decode().then(showThumbnail, () => {});
+            loader.decode().catch(() => {}).then(() => {
+                if (!stillShown()) return;
+                settled = true;
+                // An original that didn't load leaves its thumbnail up, unblurred
+                showImage(img, loader.naturalWidth ? targetUrl : img.thumbnail_url);
+                Elements.lightboxImage.classList.remove('switching');
+                preloadAfterFrame();
+            });
         }
-
-        // 1. Show thumbnail as fast placeholder, unless the original is already here
-        Elements.lightboxImage.classList.toggle('switching', !preloaded);
-        Elements.lightboxImage.src = preloaded ? targetUrl : img.thumbnail_url;
-
-        // 2. Preload full image in background, then the files next to it
-        const fullImg = loadInBackground(targetUrl);
-        fullImg.onload = () => {
-            const currentImg = State.filteredImages[State.currentImageIndex];
-            if (currentImg && currentImg.url === targetUrl) {
-                Elements.lightboxImage.src = targetUrl;
-                preloadNeighbours();
-            }
-        };
-        fullImg.onerror = () => {
-            console.error("Failed to load full image:", targetUrl);
-            Elements.lightboxImage.classList.remove('switching');
-        };
     }
 
     Elements.lightboxHeaderFilename.textContent = getImageBaseName(img.filename);
@@ -159,7 +185,6 @@ export function updateLightboxContent() {
     renderLightboxTagBar(img.tags || [], img.filename);
     renderLightboxMeta(img);
     renderLightboxExif(img.filename);
-    resetZoom();
 }
 
 function describeType(filename) {
@@ -516,10 +541,7 @@ export function initLightbox() {
         Elements.lightboxImage.classList.remove('zooming');
     });
 
-    Elements.lightboxImage.addEventListener('load', () => {
-        Elements.lightboxImage.classList.remove('switching');
-        updateCachedDimensions();
-    });
+    Elements.lightboxImage.addEventListener('load', updateCachedDimensions);
 
     window.addEventListener('resize', () => {
         if (Elements.lightbox.classList.contains('active')) {

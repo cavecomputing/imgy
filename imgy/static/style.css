@@ -978,6 +978,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     justify-content: center;
     padding: 28px 76px 52px; /* the bottom leaves room for the key hints */
     overflow: hidden;
+    container-type: size; /* the image sizes itself in cqw and cqh (showImage() in lightbox.js) */
     touch-action: none;
     -webkit-user-select: none; /* dragging pans a zoomed image; don't let it select the image too */
     user-select: none;

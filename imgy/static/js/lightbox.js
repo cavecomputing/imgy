@@ -142,6 +142,8 @@ export function updateLightboxContent() {
         video.src = targetUrl;
         video.poster = img.thumbnail_url;
         video.onerror = () => showToast('This video format may not be supported by your browser');
+        // Once it has a first frame, the files on either side load ahead as they do for an image
+        video.addEventListener('loadeddata', () => { if (version === shownVersion) preloadNeighbours(); }, { once: true });
         Elements.lightboxContent.insertBefore(video, Elements.prevImageBtn);
     } else {
         Elements.resetZoomBtn.style.display = '';

@@ -1,6 +1,6 @@
 """Listing, renaming, reordering, trashing, uploading, replacing, and exporting media files."""
-import contextlib
 import io
+import json
 import logging
 import math
 import mimetypes
@@ -303,33 +303,51 @@ def get_exif(filename):
         return {}
 
 
+class _ZipStream:
+    """A write-only file for zipfile that hands over what has been written so far."""
+
+    def __init__(self):
+        self.pending = bytearray()
+
+    def write(self, data):
+        self.pending += data
+        return len(data)
+
+    def flush(self):
+        pass
+
+    def take(self):
+        data = bytes(self.pending)
+        self.pending.clear()
+        return data
+
+
 @bp.post('/download-zip')
 def download_zip():
-    filenames = active_files(json_body().get('filenames', []), MAX_BULK_FILES, f'Too many files (max {MAX_BULK_FILES})')
+    """Stream a ZIP of the files in the form field `filenames`, a JSON list.
+
+    It is built while it is sent and the browser saves it as it arrives (selection.js posts a form),
+    so neither side holds the whole archive: 500 videos would be gigabytes.
+    """
+    try:
+        filenames = json.loads(request.form.get('filenames', '[]'))
+    except ValueError:
+        abort(400, 'filenames must be a JSON list')
+    filenames = active_files(filenames, MAX_BULK_FILES, f'Too many files (max {MAX_BULK_FILES})')
     if not filenames:
         abort(400, 'No files specified')
 
-    tmp = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
-    tmp.close()
-    try:
-        # Media is already compressed, so deflating it only costs time.
-        with zipfile.ZipFile(tmp.name, 'w', zipfile.ZIP_STORED) as zf:
-            for filename in filenames:
-                zf.write(UPLOAD_FOLDER / filename, filename)
-    except Exception as e:
-        logger.error(f'ZIP creation failed: {e}')
-        with contextlib.suppress(FileNotFoundError):
-            os.unlink(tmp.name)
-        return {'error': 'Failed to create ZIP'}, 500
-
     def stream():
-        try:
-            with open(tmp.name, 'rb') as f:
-                while chunk := f.read(65536):
-                    yield chunk
-        finally:
-            with contextlib.suppress(FileNotFoundError):
-                os.unlink(tmp.name)
+        out = _ZipStream()
+        # Media is already compressed, so deflating it only costs time.
+        with zipfile.ZipFile(out, 'w', zipfile.ZIP_STORED) as zf:
+            for filename in filenames:
+                path = UPLOAD_FOLDER / filename
+                with open(path, 'rb') as source, zf.open(zipfile.ZipInfo.from_file(path, filename), 'w') as entry:
+                    while chunk := source.read(1 << 20):
+                        entry.write(chunk)
+                        yield out.take()
+        yield out.take()
 
     return Response(stream(), mimetype='application/zip',
                     headers={'Content-Disposition': 'attachment; filename="imgy_export.zip"'})

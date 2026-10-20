@@ -2,7 +2,7 @@
 import { decrementTagCount, getImagesByFilenames, getSelectedFilenames, incrementTagCount, State } from './state.js';
 import { Elements } from './dom.js';
 import { formatCount } from './utils.js';
-import { setToggleButtonState, showToast, withLoading } from './ui.js';
+import { setToggleButtonState, showError, showToast, withLoading } from './ui.js';
 import { api } from './api.js';
 import { applyFilters, reloadDataPreservingScroll } from './data.js';
 import { updateLocalState } from './actions.js';
@@ -248,26 +248,29 @@ export async function processBulkTagsFromInput(tokens) {
     });
 }
 
-async function downloadSelectedAsZip() {
+let zipFrame = null;
+
+/**
+ * Download the selection as one ZIP. A form post lets the browser save it to disk as it arrives
+ * (fetch would hold all of it in memory first), aimed at a hidden frame so an error answer doesn't
+ * replace the gallery.
+ */
+function downloadSelectedAsZip() {
     if (State.selectedImages.size === 0) return;
-    const filenames = getSelectedFilenames();
-    showToast(`Preparing ZIP for ${formatCount(filenames.length, 'file')}`);
-    await withLoading(async () => {
-        const res = await fetch('/api/download-zip', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filenames })
+    if (!zipFrame) {
+        zipFrame = Object.assign(document.createElement('iframe'), { name: 'zipDownload', hidden: true });
+        // A download leaves the frame empty; an error leaves its JSON in it
+        zipFrame.addEventListener('load', () => {
+            try { showError(JSON.parse(zipFrame.contentDocument.body.textContent).error); } catch { /* empty */ }
         });
-        if (!res.ok) throw new Error('Download failed');
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'imgy_export.zip';
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('ZIP download started');
-    }).catch(() => showToast('Download failed'));
+        document.body.append(zipFrame);
+    }
+    const form = Object.assign(document.createElement('form'), { method: 'POST', action: '/api/download-zip', target: 'zipDownload' });
+    form.append(Object.assign(document.createElement('input'), { type: 'hidden', name: 'filenames', value: JSON.stringify(getSelectedFilenames()) }));
+    document.body.append(form);
+    form.submit();
+    form.remove();
+    showToast(`Downloading ${formatCount(State.selectedImages.size, 'file')} as a ZIP`);
 }
 
 async function deleteSelectedImages() {

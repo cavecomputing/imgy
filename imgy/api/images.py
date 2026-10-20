@@ -106,6 +106,9 @@ def rename_image():
         rename_filename(conn, old_filename, new_filename, include_groups=True)
         conn.commit()
     delete_thumbnail(old_filename)
+    # A file deleted outside Imgy leaves its thumbnail, which would pass for this one's: the
+    # rename keeps the file's mtime, and a thumbnail newer than its source counts as fresh
+    delete_thumbnail(new_filename)
     invalidate_images_cache()
     return {'success': True, 'new_filename': new_filename, **media_urls(new_filename, new_path.stat())}
 

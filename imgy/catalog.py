@@ -6,6 +6,7 @@ must call invalidate_images_cache(). The cache is per process; a generation file
 DATA_DIR tells other gunicorn workers that their copy is stale.
 """
 import gzip
+import hashlib
 import json
 import logging
 import threading
@@ -22,7 +23,7 @@ CACHE_TTL = 2.0
 _GENERATION_FILE = DATA_DIR / '.images-cache-generation'
 _cache = {'data': None, 'timestamp': 0.0, 'generation': None}
 _lock = threading.Lock()
-_gzipped = (None, b'')  # (listing, its gzip), so each rebuild is compressed once
+_packed = (None, b'', '')  # (listing, its gzip, its ETag), so each rebuild is compressed and hashed once
 
 
 def invalidate_images_cache():
@@ -68,14 +69,19 @@ def images_json():
         return data
 
 
-def images_gzip():
-    """images_json() gzipped: 2.8 MB of JSON for 10,000 files becomes 0.2 MB."""
-    global _gzipped
+def images_packed():
+    """(images_json(), the same gzipped, an ETag for it): 3.8 MB of JSON for 10,000 files gzips to 0.34 MB.
+
+    The ETag lets the browser revalidate instead of downloading an unchanged listing again, and
+    lets the client skip redrawing one it already has.
+    """
+    global _packed
     listing = images_json()
-    source, packed = _gzipped
-    if source is not listing:
-        packed = gzip.compress(listing.encode(), 6)
-        _gzipped = (listing, packed)
+    packed = _packed  # read once: another thread may replace it
+    if packed[0] is not listing:
+        raw = listing.encode()
+        packed = (listing, gzip.compress(raw, 6), hashlib.md5(raw, usedforsecurity=False).hexdigest())
+        _packed = packed
     return packed
 
 

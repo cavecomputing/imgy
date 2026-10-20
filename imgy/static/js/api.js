@@ -5,7 +5,7 @@ import { showError } from './ui.js';
  * Fetch a JSON endpoint. A non-2xx response throws an Error carrying the server's
  * `{"error": ...}` message, which is also shown in the error banner (aborts stay silent).
  */
-async function request(url, options = {}) {
+async function request(url, options = {}, read = response => response.json()) {
     try {
         const response = await fetch(url, {
             ...options,
@@ -16,7 +16,7 @@ async function request(url, options = {}) {
             const errData = await response.json().catch(() => ({}));
             throw new Error(errData.error || `Error ${response.status}`);
         }
-        return await response.json();
+        return await read(response);
     } catch (err) {
         if (err.name === 'AbortError') throw err;
         showError(err.message);
@@ -26,6 +26,8 @@ async function request(url, options = {}) {
 
 export const api = {
     get: (url, options) => request(url, options),
+    /** GET a JSON endpoint as { etag, data }, so a caller can tell an answer it already has. */
+    getTagged: (url, options) => request(url, options, async response => ({ etag: response.headers.get('ETag'), data: await response.json() })),
     post: (url, body) => request(url, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }),
     put: (url, body) => request(url, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (url) => request(url, { method: 'DELETE' }),

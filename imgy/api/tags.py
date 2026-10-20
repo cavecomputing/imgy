@@ -1,5 +1,5 @@
 """Tags on files, and the global tag list."""
-from flask import Blueprint, abort, request
+from flask import Blueprint, abort, jsonify, request
 
 from ..catalog import invalidate_images_cache
 from ..config import MAX_BULK_FILES, MAX_BULK_TAGS
@@ -35,7 +35,10 @@ def request_tags(tags):
 @bp.get('/tags')
 def list_tags():
     with get_db() as conn:
-        return active_tag_names(conn)
+        response = jsonify(active_tag_names(conn))
+    response.add_etag()  # loadData() compares it with the listing's to skip an unchanged reload
+    response.cache_control.no_cache = True
+    return response.make_conditional(request)
 
 
 @bp.post('/tags/create')

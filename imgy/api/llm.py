@@ -1,4 +1,4 @@
-"""LLM auto-tagging. The browser sends the endpoint, model, and secret from its settings."""
+"""LLM auto-tagging. The browser sends the endpoint and model from its settings; the key stays on the server."""
 import json
 import logging
 from urllib.error import HTTPError, URLError
@@ -18,11 +18,24 @@ bp = Blueprint('llm', __name__)
 
 
 def _endpoint(data):
-    """(api_url, model, api_secret) from the request, defaulting to a local Ollama."""
+    """(api_url, model, api_secret) from the request, defaulting to a local Ollama.
+
+    The key is the one Test connection sends before it is saved, else the saved one. The saved key
+    only goes to the host it was saved for, so a request naming another URL can't collect it.
+    """
     api_url = data.get('api_url', llm.DEFAULT_API_URL)
     if not isinstance(api_url, str) or urlparse(api_url).scheme not in ('http', 'https'):
         abort(400, 'The LLM API URL must start with http:// or https://')
-    return api_url, str(data.get('model', llm.DEFAULT_MODEL)), str(data.get('api_secret') or '')
+    api_secret = data.get('api_secret')
+    if not api_secret:
+        with get_db() as conn:
+            saved = {row['key']: row['value'] for row in conn.execute(
+                "SELECT key, value FROM settings WHERE key IN ('llmProvider', 'llmApiUrl', 'llmApiSecret')")}
+        # settings.js sends OpenRouter's fixed address whatever llmApiUrl holds
+        saved_host = 'openrouter.ai' if saved.get('llmProvider') == 'openrouter' \
+            else urlparse(saved.get('llmApiUrl') or llm.DEFAULT_API_URL).netloc
+        api_secret = saved.get('llmApiSecret', '') if urlparse(api_url).netloc == saved_host else ''
+    return api_url, str(data.get('model', llm.DEFAULT_MODEL)), str(api_secret)
 
 
 @bp.post('/llm/test')

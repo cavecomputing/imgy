@@ -28,7 +28,7 @@ async function llmProcessOne(img) {
         const resp = await fetch(`/api/llm/analyze/${encodeURIComponent(img.filename)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ api_url: settings.api_url, model: settings.model, api_secret: settings.api_secret }),
+            body: JSON.stringify({ api_url: settings.api_url, model: settings.model }),
             signal: controller.signal
         });
         clearTimeout(timeout);

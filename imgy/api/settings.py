@@ -51,9 +51,13 @@ def rename_tag_in_groups(conn, old_tag, new_tag):
 @bp.get('/settings')
 def get_settings():
     with get_db() as conn:
-        # The sign-in's own rows (auth.py) never leave the server: secret_key signs the cookie.
+        # The sign-in's own rows (auth.py) never leave the server: secret_key signs the cookie. Nor
+        # does the LLM key (api/llm.py uses it); the browser only learns whether one is saved.
         rows = conn.execute("SELECT key, value FROM settings WHERE key NOT IN ('secret_key', 'next_sign_in')")
-        return {row['key']: row['value'] for row in rows}
+        settings = {row['key']: row['value'] for row in rows}
+    if settings.pop('llmApiSecret', ''):
+        settings['hasLlmApiSecret'] = 'true'
+    return settings
 
 
 @bp.put('/settings')

@@ -37,7 +37,7 @@ OpenAI-style chat API works.
 
 > [!WARNING]
 > Without a password there is no login. Anyone who can reach Imgy can view, change, and delete your
-> files, and can read the LLM API key from the settings. Keep it on `localhost` or a network you
+> files, and can auto-tag with your LLM API key. Keep it on `localhost` or a network you
 > trust, or [set a password](#password).
 
 ## Quick start

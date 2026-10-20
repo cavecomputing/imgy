@@ -71,13 +71,13 @@ export function getLlmSettings() {
         model: provider === 'openrouter' && savedModel === LLM_DEFAULTS.llmModel ? OPENROUTER_DEFAULT_MODEL : savedModel,
         doRename: (s.llmDoRename ?? LLM_DEFAULTS.llmDoRename) !== 'false',
         doTags: (s.llmDoTags ?? LLM_DEFAULTS.llmDoTags) !== 'false',
-        api_secret: s.llmApiSecret || ''
+        hasSecret: s.hasLlmApiSecret === 'true' // the key itself stays on the server
     };
 }
 
 /** True once an endpoint, model or key has been saved, or a connection test has passed. */
 export function isLlmConfigured() {
-    return ['llmProvider', 'llmApiUrl', 'llmModel', 'llmApiSecret'].some(key => State.settings[key]);
+    return ['llmProvider', 'llmApiUrl', 'llmModel', 'hasLlmApiSecret'].some(key => State.settings[key]);
 }
 
 function getLlmSettingsFromControls() {
@@ -249,6 +249,13 @@ export function initLlmSettings() {
     const testStatus = document.getElementById('llmTestStatus');
     if (!urlInput) return;
 
+    // The saved key never comes back from the server, so the box only says whether there is one
+    function showSavedSecret() {
+        if (!secretInput) return;
+        secretInput.value = '';
+        secretInput.placeholder = getLlmSettings().hasSecret ? 'Saved. Type a new key to replace it' : 'API key or Bearer token';
+    }
+
     function updateProviderVisibility(provider) {
         providerHelp.textContent = PROVIDER_HELP[provider] || PROVIDER_HELP.custom;
         if (provider === 'openrouter') {
@@ -269,7 +276,7 @@ export function initLlmSettings() {
     updateProviderVisibility(s.provider);
     urlInput.value = s.api_url;
     modelInput.value = s.model;
-    if (secretInput) secretInput.value = s.api_secret;
+    showSavedSecret();
     renameCheck.checked = s.doRename;
     tagsCheck.checked = s.doTags;
 
@@ -284,18 +291,25 @@ export function initLlmSettings() {
     });
     urlInput.onchange = () => saveSetting('llmApiUrl', urlInput.value.trim());
     modelInput.onchange = () => saveSetting('llmModel', modelInput.value.trim());
-    if (secretInput) secretInput.onchange = () => saveSetting('llmApiSecret', secretInput.value);
+    if (secretInput) secretInput.onchange = () => {
+        if (!secretInput.value) return;
+        saveSetting('llmApiSecret', secretInput.value);
+        delete State.settings.llmApiSecret;
+        State.settings.hasLlmApiSecret = 'true'; // the typed key stays in the box, so Test connection sends it
+    };
     renameCheck.onchange = () => saveSetting('llmDoRename', renameCheck.checked);
     tagsCheck.onchange = () => saveSetting('llmDoTags', tagsCheck.checked);
     resetBtn.onclick = () => {
         Object.assign(State.settings, LLM_DEFAULTS);
+        delete State.settings.llmApiSecret;
+        delete State.settings.hasLlmApiSecret;
         putSettings(LLM_DEFAULTS);
         const defaults = getLlmSettings();
         setProviderControl(defaults.provider);
         updateProviderVisibility(defaults.provider);
         urlInput.value = defaults.api_url;
         modelInput.value = defaults.model;
-        if (secretInput) secretInput.value = '';
+        showSavedSecret();
         renameCheck.checked = defaults.doRename;
         tagsCheck.checked = defaults.doTags;
         clearTestStatus();
@@ -320,7 +334,7 @@ export function initLlmSettings() {
         testBtn.textContent = 'Testing…';
         clearTestStatus();
         const testSettings = getLlmSettingsFromControls();
-        if (testSettings.provider === 'openrouter' && !testSettings.api_secret) {
+        if (testSettings.provider === 'openrouter' && !testSettings.api_secret && !getLlmSettings().hasSecret) {
             showTestError('OpenRouter needs an API key');
             testBtn.disabled = false;
             testBtn.textContent = 'Test connection';

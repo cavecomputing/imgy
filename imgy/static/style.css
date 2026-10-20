@@ -492,6 +492,9 @@ button.chip { cursor: pointer; }
     cursor: pointer;
 }
 .suggestion-item:hover, .suggestion-item.active { background: var(--bg-inset); }
+/* Rows scrolled out of the list skip style and layout: drawing all of them, 6,500 elements at
+   400 tags, made each keystroke a 230 ms task on a phone. Every row is 34px tall. */
+.suggestion-item { content-visibility: auto; contain-intrinsic-size: auto 34px; }
 .suggestion-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suggestion-label mark { background: none; color: var(--accent-text); font-weight: 700; }
 .suggestion-item.exclude-mode .suggestion-label::before { content: "not "; color: var(--accent-warm); font-weight: 700; }

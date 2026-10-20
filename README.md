@@ -189,8 +189,9 @@ On Android, the installed app then shows up in the share sheet. iOS doesn't supp
 | `ALLOWED_HOSTS` | `*` | Host names or IPv4 addresses the app answers to besides `localhost`, comma-separated (for example `photos.lan,192.168.1.20`). A leading dot allows subdomains, and `*` allows any host |
 
 Imgy answers to any host name by default. Setting `ALLOWED_HOSTS` makes it refuse every other name,
-so a website can't point its own domain at your machine and read your library and API key through
-your browser (DNS rebinding).
+so a website can't point its own domain at your machine and, through your browser, read, change and
+delete your library and auto-tag with your API key (DNS rebinding). Setting `IMGY_PASSWORD` stops
+this too, because the sign-in cookie is never sent to the other domain.
 
 Behind a reverse proxy, pass the browser's Host header through unchanged, including the port, and
 list that name if you set `ALLOWED_HOSTS`. Caddy and Traefik do this by default; for nginx add

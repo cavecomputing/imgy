@@ -21,12 +21,15 @@ function setStatus(text, isError = false) {
     status.classList.toggle('error', isError);
 }
 
-/** The file name Imgy gets: the last part of the URL, with an extension from the content type if it has none. */
+/**
+ * The file name Imgy gets: the last part of the URL, with an extension from the content type unless
+ * it already ends in one Imgy takes ("download.php" serving a JPEG becomes "download.php.jpg").
+ */
 function fileNameFor(blob) {
     let name = 'image';
     try { name = decodeURIComponent(new URL(src).pathname.split('/').pop()) || name; } catch {}
     const extension = extensionOfType[blob.type];
-    return /\.[a-z0-9]{2,4}$/i.test(name) || !extension ? name : name + extension;
+    return /\.(png|jpe?g|gif|webp|bmp)$/i.test(name) || !extension ? name : name + extension;
 }
 
 async function loadKnownTags() {

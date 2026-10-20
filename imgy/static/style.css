@@ -540,20 +540,22 @@ button.chip { cursor: pointer; }
 
 /* ---------- gallery ---------- */
 .gallery { padding: 16px 16px 32px; } /* top: clears the focus ring and matches the card gaps */
+/* The grid only sizes the columns: grid.js places each card or group in one, at a top it works
+   out (layoutBlocks), and sets the grid's height. */
 .image-grid {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(var(--gallery-col-width, 232px), 1fr));
-    grid-auto-rows: 4px; /* masonry: each card spans as many rows as its height needs */
+    grid-auto-rows: 4px; /* the empty state spans 60 of these */
     column-gap: 16px;
-    align-items: start;
 }
+.image-grid > :is(.image-card, .image-group):not(.drag-ghost) { position: absolute; left: 0; }
 #gridEnd { height: 1px; } /* grid.js draws more cards when this comes near the window; some browsers skip a target with no area */
 
 .image-card {
     position: relative;
     width: 100%;
     margin-bottom: 16px;
-    grid-row-end: span 60; /* replaced once the card is measured */
     background: var(--bg-raised);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -728,7 +730,7 @@ button.chip { cursor: pointer; }
 .image-group-badge strong { font-weight: 400; color: var(--fg); white-space: nowrap; }
 .image-group-ungroup { margin-left: auto; line-height: 1; } /* like the count: .link-btn's 1.2 sits the text a pixel higher */
 .image-group-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.image-group-grid .image-card { margin: 0; border-radius: var(--radius-sm); box-shadow: none; grid-row-end: auto !important; }
+.image-group-grid .image-card { margin: 0; border-radius: var(--radius-sm); box-shadow: none; }
 .image-group-grid .card-media { border-radius: calc(var(--radius-sm) - 1px); }
 .image-group-grid .card-media img { aspect-ratio: 1; object-fit: cover; }
 .image-group-grid .card-foot,

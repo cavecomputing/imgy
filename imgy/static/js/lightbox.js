@@ -98,11 +98,8 @@ export function closeLightbox() {
     resetZoom();
     clearCardFocus(); // the redraw may leave the old outline on a card that keys no longer act on
     applyFilters();
-    if (restoreFilename) {
-        // focusedCardIndex counts DOM cards, so look the card up by filename
-        const cards = [...Elements.imageGrid.querySelectorAll('.image-card')];
-        State.focusedCardIndex = cards.findIndex(c => c.dataset.filename === restoreFilename);
-    }
+    // Arrow keys carry on from the file that was open (the redraw may have moved it)
+    if (restoreFilename) State.focusedCardIndex = State.filteredImages.findIndex(img => img.filename === restoreFilename);
     if (State.lightboxScrollY != null) {
         window.scrollTo(0, State.lightboxScrollY);
         State.lightboxScrollY = null;

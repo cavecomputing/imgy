@@ -6,34 +6,37 @@ import { deleteImage } from './actions.js';
 
 let scrolledAt = 0; // when focusCard last started scrolling a card into view
 
-function findNearestVisibleCardIndex() {
-    const cards = Elements.imageGrid.querySelectorAll('.image-card');
-    if (!cards.length) return -1;
-    const viewTop = window.scrollY;
-    const viewLeft = window.scrollX;
-    let bestIdx = 0, bestDist = Infinity;
-    cards.forEach((card, i) => {
+/** The card nearest the top of the window, or null when none is drawn. */
+function findNearestVisibleCard() {
+    let best = null, bestDist = Infinity;
+    for (const card of Elements.imageGrid.querySelectorAll('.image-card')) {
         const rect = card.getBoundingClientRect();
-        const absTop = rect.top + window.scrollY;
-        const absLeft = rect.left + window.scrollX;
-        if (absTop + rect.height < viewTop) return;
-        const dist = Math.abs(absTop - viewTop) + Math.abs(absLeft - viewLeft);
-        if (dist < bestDist) { bestDist = dist; bestIdx = i; }
-    });
-    return bestIdx;
+        if (rect.bottom < 0) continue;
+        const dist = Math.abs(rect.top) + Math.abs(rect.left);
+        if (dist < bestDist) { bestDist = dist; best = card; }
+    }
+    return best;
 }
 
-function focusCard(index, { scroll = true } = {}) {
-    const cards = Elements.imageGrid.querySelectorAll('.image-card');
-    if (index < 0 || index >= cards.length) return;
-    cards.forEach(c => c.classList.remove('keyboard-focused'));
+/**
+ * Focus the file at `index` in State.filteredImages. State.focusedCardIndex keeps that index, not
+ * a card: the grid takes cards far from the window out of the page and draws them again later.
+ */
+function focusIndex(index, { scroll = true } = {}) {
+    clearCardFocus();
     State.focusedCardIndex = index;
     State.cardFocusActive = true;
-    cards[index].classList.add('keyboard-focused');
+    const card = getFocusedCard();
+    if (!card) return;
+    card.classList.add('keyboard-focused');
     if (scroll) {
-        cards[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         scrolledAt = performance.now();
     }
+}
+
+function focusCard(card) {
+    if (card) focusIndex(Number(card.dataset.idx));
 }
 
 /**
@@ -41,10 +44,10 @@ function focusCard(index, { scroll = true } = {}) {
  * at `fallbackIndex` (used after deleting the focused card), or clear focus when it is -1.
  */
 export function restoreCardFocus(filename, fallbackIndex = -1) {
-    const cards = [...Elements.imageGrid.querySelectorAll('.image-card')];
-    const match = cards.findIndex(c => c.dataset.filename === filename);
-    if (match !== -1) focusCard(match, { scroll: false });
-    else if (fallbackIndex >= 0 && cards.length) focusCard(Math.min(fallbackIndex, cards.length - 1));
+    const files = State.filteredImages;
+    const match = files.findIndex(img => img.filename === filename);
+    if (match !== -1) focusIndex(match, { scroll: false });
+    else if (fallbackIndex >= 0 && files.length) focusIndex(Math.min(fallbackIndex, files.length - 1));
     else clearCardFocus();
 }
 
@@ -54,25 +57,19 @@ export function clearCardFocus() {
     Elements.imageGrid.querySelectorAll('.keyboard-focused').forEach(c => c.classList.remove('keyboard-focused'));
 }
 
+/** The focused file's card, or null when it isn't drawn. */
 export function getFocusedCard() {
-    const cards = Elements.imageGrid.querySelectorAll('.image-card');
-    return cards[State.focusedCardIndex] || null;
+    if (State.focusedCardIndex < 0) return null;
+    return Elements.imageGrid.querySelector(`.image-card[data-idx="${State.focusedCardIndex}"]:not(.drag-ghost)`);
 }
 
 export function getFocusedFilteredIndex() {
-    const card = getFocusedCard();
-    return card ? parseInt(card.dataset.idx, 10) : -1;
+    return State.focusedCardIndex < State.filteredImages.length ? State.focusedCardIndex : -1;
 }
 
 export function getFocusedImage() {
     const idx = getFocusedFilteredIndex();
     return idx >= 0 ? State.filteredImages[idx] : null;
-}
-
-function focusCardElement(targetCard) {
-    const allCards = Elements.imageGrid.querySelectorAll('.image-card');
-    const targetIdx = Array.from(allCards).indexOf(targetCard);
-    if (targetIdx !== -1) focusCard(targetIdx);
 }
 
 function getRectMetrics(el) {
@@ -184,31 +181,28 @@ function findGroupEntryCard(group, direction, originCard) {
 }
 
 export function navigateGrid(direction) {
-    const allCards = Elements.imageGrid.querySelectorAll('.image-card');
-    if (!allCards.length) return;
-
-    // If no focus or focused card is off-screen, start from nearest visible card
-    if (State.focusedCardIndex === -1 || State.focusedCardIndex >= allCards.length) {
-        focusCard(findNearestVisibleCardIndex());
+    // If no focus or the focused card is off-screen, start from the nearest visible card
+    const currentCard = getFocusedCard();
+    if (!currentCard) {
+        focusCard(findNearestVisibleCard());
         return;
     }
     // Unless it was focused a moment ago, and is off-screen only until the smooth scroll arrives
-    const focusedRect = allCards[State.focusedCardIndex].getBoundingClientRect();
+    const focusedRect = currentCard.getBoundingClientRect();
     const viewH = window.innerHeight;
     const scrollSettled = performance.now() - scrolledAt > CONFIG.FOCUS_SCROLL_MS;
     if (scrollSettled && (focusedRect.bottom < -100 || focusedRect.top > viewH + 100)) {
-        focusCard(findNearestVisibleCardIndex());
+        focusCard(findNearestVisibleCard());
         return;
     }
 
-    const currentCard = allCards[State.focusedCardIndex];
     const group = currentCard.closest('.image-group');
     const groupTarget = group ? findDirectionalElement(currentCard, direction, {
         scope: group,
         requireHorizontalOverlap: true
     }) : null;
     if (groupTarget) {
-        focusCardElement(groupTarget);
+        focusCard(groupTarget);
         return;
     }
 
@@ -216,10 +210,10 @@ export function navigateGrid(direction) {
     if (!target) return;
     if (target.classList.contains('image-group')) {
         const entryCard = findGroupEntryCard(target, direction, currentCard);
-        if (entryCard) focusCardElement(entryCard);
+        if (entryCard) focusCard(entryCard);
         return;
     }
-    focusCardElement(target);
+    focusCard(target);
 }
 
 export function deleteSelectedOrFocusedImage() {

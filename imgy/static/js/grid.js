@@ -6,7 +6,7 @@ import { showToast } from './ui.js';
 import { api } from './api.js';
 import { reloadDataPreservingScroll } from './data.js';
 import { startInlineRename } from './rename.js';
-import { clearCardFocus, getFocusedCard, restoreCardFocus } from './navigation.js';
+import { clearCardFocus, restoreCardFocus } from './navigation.js';
 import { toggleImageSelection } from './selection.js';
 import { deleteImage, toggleFavorite, updateLocalState } from './actions.js';
 import { openGalleryTagFlyup } from './flyup.js';
@@ -15,10 +15,24 @@ import { llmQueueUpdateUI } from './llm.js';
 
 const BATCH = 60;         // files drawn at a time, so a big library opens as fast as a small one
 const PRELOAD_PX = 1500;  // the next batch is drawn when the end of the grid is this close to the bottom of the window
+const KEEP_PX = 1500;     // cards further than this above or below the window are taken out of the page
+const ROW_PX = 4;         // block heights round up to whole rows of this, so equal cards tie and the leftmost column wins
 
 const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
-let renderedCount = 0; // the grid holds cards for the first renderedCount of State.filteredImages
+let renderedCount = 0; // the blocks hold the first renderedCount of State.filteredImages
+// Each top-level card or group, in display order: { files, first (index in State.filteredImages),
+// height (margin included), col, top, el }. Only those near the window have an element (el); the rest keep their
+// place, so a deep gallery costs no more to scroll, hover or redraw than a short one.
+let blocks = [];
+let gridHeight = 0;         // the blocks' height, which layoutBlocks() gives the grid
+const heights = new Map();  // measured block heights, margin included, by blockKey(), for the current column width
+let columnTracks = '';      // the grid's column sizes the heights were measured at
+
+const blockKey = (block) => block.files.map(img => img.thumbnail_url).join('\n');
+const cardsOf = (el) => el.matches('.image-card') ? [el] : [...el.querySelectorAll('.image-card')];
+/** The height an element takes up in its column, its bottom margin included (cards and groups differ on phones). */
+const outerHeight = (el) => el.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(el).marginBottom) || 0);
 
 function createCardFootMeta(tags = []) {
     if (!tags.length) return `<button class="card-tag-btn tag-btn card-untagged" type="button" aria-label="Edit tags">${icon('tag-off', 'i i-xs')}<span class="cc-badge cc-badge--warn">Untagged</span></button>`;
@@ -28,7 +42,8 @@ function createCardFootMeta(tags = []) {
 function createImageCard(img, idx) {
     const card = document.createElement('div');
     const isSelected = State.selectedImages.has(img.filename);
-    card.className = `image-card${img.is_favorite ? ' is-fav' : ''}${isSelected ? ' selected' : ''}`;
+    const isFocused = State.cardFocusActive && idx === State.focusedCardIndex;
+    card.className = `image-card${img.is_favorite ? ' is-fav' : ''}${isSelected ? ' selected' : ''}${isFocused ? ' keyboard-focused' : ''}`;
     card.dataset.filename = img.filename;
     card.dataset.idx = idx;
 
@@ -102,34 +117,139 @@ function createGroupContainer(groupId, members, firstIndex) {
     return groupEl;
 }
 
+/** Give a block its element, placed where layoutBlocks() put it. */
+function createBlock(block) {
+    const { files, first } = block;
+    block.el = files.length > 1 ? createGroupContainer(State.filenameToGroup[files[0].filename], files, first) : createImageCard(files[0], first);
+    block.el.block = block;
+    placeElement(block);
+    return block.el;
+}
+
+function placeElement({ el, col, top }) {
+    el.style.gridColumn = `${col + 1} / span 1`; // an absolutely placed item's auto end would be the grid's edge
+    el.style.top = `${top}px`;
+}
+
+/** Draw the blocks whose height is not known yet and measure them, all sizes read before any is stored. */
+function measureBlocks(fresh) {
+    if (!fresh.length) return;
+    Elements.imageGrid.append(...fresh.map(block => block.el ?? createBlock(block)));
+    const sizes = fresh.map(block => outerHeight(block.el));
+    fresh.forEach((block, i) => heights.set(blockKey(block), sizes[i]));
+}
+
 /**
- * Masonry: each top-level card or group spans as many 4px grid rows as its height plus its
- * bottom margin needs. All sizes are read before any span is written, so a full re-flow
- * costs one layout instead of one per card.
+ * Masonry: each block goes to the top of the shortest column, the leftmost of equals. Its place
+ * depends only on the blocks before it, and tops never decrease along the list.
  */
-function setRowSpans(items) {
-    if (!items.length) return;
-    const rowHeight = parseFloat(window.getComputedStyle(Elements.imageGrid).getPropertyValue('grid-auto-rows')) || 4;
-    const sizes = items.map(item => ({
-        height: item.getBoundingClientRect().height,
-        margin: parseFloat(window.getComputedStyle(item).getPropertyValue('margin-bottom')) || 0
-    }));
-    items.forEach((item, i) => {
-        const { height, margin } = sizes[i];
-        if (height > 0) item.style.gridRowEnd = `span ${Math.ceil((height + margin) / rowHeight)}`;
-    });
+function layoutBlocks() {
+    const grid = Elements.imageGrid;
+    const columns = Math.max(1, window.getComputedStyle(grid).gridTemplateColumns.split(' ').length);
+    const bottoms = new Array(columns).fill(0);
+    for (const block of blocks) {
+        block.col = bottoms.indexOf(Math.min(...bottoms));
+        block.top = bottoms[block.col];
+        bottoms[block.col] += Math.ceil(block.height / ROW_PX) * ROW_PX;
+        if (block.el) placeElement(block);
+    }
+    gridHeight = blocks.length ? Math.max(...bottoms) : 0;
+    grid.style.height = blocks.length ? `${gridHeight}px` : '';
 }
 
-// Cards whose thumbnails settled, measured together before the next frame. Each measurement lays
-// out the whole grid, and a batch's thumbnails all arrive at about the same time.
+/**
+ * Put the blocks within KEEP_PX of the window, or of the keyboard-focused card (arrow keys can
+ * outrun the smooth scroll to it), into the page in display order, and take the others out.
+ * While a card is dragged nothing is taken out, and neither is a block holding focus.
+ */
+function updateWindow() {
+    if (!blocks.length) return;
+    const grid = Elements.imageGrid;
+    const gridTop = grid.getBoundingClientRect().top;
+    const spans = [[-gridTop - KEEP_PX, -gridTop + window.innerHeight + KEEP_PX]];
+    const index = State.cardFocusActive ? State.focusedCardIndex : -1;
+    const focused = blocks.find(block => block.first <= index && index < block.first + block.files.length);
+    if (focused) spans.push([focused.top - KEEP_PX, focused.top + focused.height + KEEP_PX]);
+    const keepAll = document.body.classList.contains('is-reordering');
+    let previous = null;
+    let added = false;
+    for (const block of blocks) {
+        if (spans.some(([from, to]) => block.top < to && block.top + block.height > from)) {
+            if (!block.el) {
+                createBlock(block);
+                previous ? previous.after(block.el) : grid.prepend(block.el);
+                added = true;
+            }
+        } else if (block.el && !keepAll && !block.el.contains(document.activeElement)) {
+            block.el.remove();
+            block.el = null;
+        }
+        if (block.el) previous = block.el;
+    }
+    if (added) llmQueueUpdateUI();
+}
+
+let windowFrame = 0;
+function updateWindowSoon() {
+    if (!windowFrame) windowFrame = requestAnimationFrame(() => { windowFrame = 0; updateWindow(); });
+}
+
+// Blocks whose thumbnails settled, measured together before the next frame. A thumbnail without
+// a known size (some videos) changes its card's height when it arrives.
 const settled = new Set();
-function remeasureSoon(item) {
-    if (!settled.size) requestAnimationFrame(() => { setRowSpans([...settled]); settled.clear(); });
-    settled.add(item);
+function remeasureSoon(el) {
+    if (!settled.size) requestAnimationFrame(() => {
+        const drawn = [...settled].filter(el => el.block?.el === el);
+        settled.clear();
+        const sizes = drawn.map(outerHeight);
+        const changed = drawn.filter((el, i) => sizes[i] && sizes[i] !== el.block.height);
+        drawn.forEach((el, i) => {
+            if (!sizes[i]) return;
+            el.block.height = sizes[i];
+            heights.set(blockKey(el.block), sizes[i]);
+        });
+        if (changed.length) { layoutBlocks(); updateWindow(); }
+    });
+    settled.add(el);
 }
 
+/** Lay the gallery out again when its columns change size: every height is measured again. */
 export function resizeAllMasonryItems() {
-    setRowSpans([...Elements.imageGrid.querySelectorAll(':scope > .image-card, :scope > .image-group')]);
+    const tracks = window.getComputedStyle(Elements.imageGrid).gridTemplateColumns;
+    if (tracks === columnTracks) return;
+    columnTracks = tracks;
+    heights.clear();
+    if (blocks.length) renderImageGrid();
+}
+
+/** Number each drawn card by its place in the blocks, which is its place in State.filteredImages. */
+function renumberCards() {
+    let first = 0;
+    for (const block of blocks) {
+        block.first = first;
+        if (block.el) cardsOf(block.el).forEach((card, i) => { card.dataset.idx = first + i; });
+        first += block.files.length;
+    }
+}
+
+/** After reorder.js moved drawn blocks in the page, give them that order in the layout too. */
+export function syncGridOrder() {
+    const order = [...Elements.imageGrid.children].map(el => el.block).filter(Boolean);
+    let i = 0;
+    blocks = blocks.map(block => block.el ? order[i++] : block);
+    layoutBlocks();
+}
+
+/**
+ * The names of every file the blocks hold, in the order the user dragged them into (a group's
+ * members in the order its drawn cards now have), with the drawn cards renumbered to match.
+ */
+export function drawnOrder() {
+    for (const block of blocks) {
+        if (block.el && block.files.length > 1) block.files = cardsOf(block.el).map(card => State.imagesByFilename.get(card.dataset.filename));
+    }
+    renumberCards();
+    return blocks.flatMap(block => block.files.map(img => img.filename));
 }
 
 function hasActiveFilters() {
@@ -213,48 +333,49 @@ function renderNextBatch() {
 
     // applyFilters keeps each group's visible members next to each other, so a run of
     // two or more cards from the same group becomes one group block
-    const blocks = [];
+    const added = [];
     for (let i = renderedCount; i < end;) {
         const gid = groupOf(i);
         let next = i + 1;
         while (gid && next < end && groupOf(next) === gid) next++;
-        blocks.push(next - i >= 2 ? createGroupContainer(gid, files.slice(i, next), i) : createImageCard(files[i], i));
+        added.push({ files: files.slice(i, next), first: i, height: 0, col: 0, top: 0, el: null });
         i = next;
     }
     renderedCount = end;
-    Elements.imageGrid.append(...blocks);
-    setRowSpans(blocks);
-    llmQueueUpdateUI();
+    blocks.push(...added);
+    measureBlocks(added.filter(block => !heights.has(blockKey(block))));
+    added.forEach(block => { block.height = heights.get(blockKey(block)); });
+    layoutBlocks();
+    updateWindow();
     // observe() reports the end's position right away, so a batch that leaves it in reach brings the next
     gridEndObserver.unobserve(Elements.gridEnd);
     gridEndObserver.observe(Elements.gridEnd);
 }
 
 /**
- * Bring the drawn cards up to date without rebuilding them, when the files shown are the same
- * as `previous` or the same minus some top-level cards (a trashed file, a tag edit that moves
- * a file out of the filter). Only a card's tags can have changed then. Returns false when
- * the grid needs a rebuild: files were added or moved, or a removed card sits in a group.
+ * Bring the blocks up to date without rebuilding them, when the files shown are the same as
+ * `previous` or the same minus some top-level cards (a trashed file, a tag edit that moves a file
+ * out of the filter). Only a card's tags can have changed then. Returns false when the grid needs
+ * a rebuild: files were added or moved, or a removed card sits in a group.
  */
 function updateInPlace(previous) {
     const next = State.filteredImages;
-    if (!next.length || !previous.length) return false;
-    const gone = [];
-    let kept = 0;
-    for (const [i, img] of previous.entries()) {
-        if (img === next[kept]) { kept++; continue; }
-        if (i >= renderedCount) continue; // never drawn
-        const card = Elements.imageGrid.querySelector(`:scope > .image-card[data-filename="${CSS.escape(img.filename)}"]`);
-        if (!card) return false;
-        gone.push(card);
+    if (!next.length || !previous.length || !blocks.length) return false;
+    const shown = new Set(next);
+    const kept = blocks.filter(block => block.files.length > 1 || shown.has(block.files[0]));
+    let i = 0;
+    for (const block of kept) {
+        for (const img of block.files) if (img !== next[i++]) return false;
     }
-    if (kept < next.length) return false;
 
-    gone.forEach(card => card.remove());
-    renderedCount -= gone.length;
-    const indexOf = new Map(next.map((img, i) => [img.filename, i]));
+    const keptSet = new Set(kept);
+    blocks.forEach(block => { if (!keptSet.has(block)) block.el?.remove(); });
+    blocks = kept;
+    renderedCount = i;
+    renumberCards();
+    layoutBlocks();
+    updateWindow();
     for (const card of Elements.imageGrid.querySelectorAll('.image-card')) {
-        card.dataset.idx = indexOf.get(card.dataset.filename);
         const tags = State.imagesByFilename.get(card.dataset.filename)?.tags || [];
         if (card.drawnTags !== tags.join('\n')) refreshCardTags(card, tags);
     }
@@ -267,15 +388,22 @@ export function renderImageGrid(previous = []) {
     const reach = window.scrollY + window.innerHeight + PRELOAD_PX;
     // Remember the keyboard-focused card so the rebuilt grid can focus it again
     const prevFocus = State.cardFocusActive
-        ? { filename: getFocusedCard()?.dataset.filename, index: State.keepFocusPosition ? State.focusedCardIndex : -1 }
+        ? { filename: (previous.length ? previous : State.filteredImages)[State.focusedCardIndex]?.filename, index: State.keepFocusPosition ? State.focusedCardIndex : -1 }
         : null;
     State.keepFocusPosition = false;
     State.focusedCardIndex = -1;
     renderLibraryCount();
+    const grid = Elements.imageGrid;
     if (!updateInPlace(previous)) {
-        Elements.imageGrid.innerHTML = '';
+        // Keep the page as tall as it was while the blocks come back, so the scroll position, which
+        // decides which blocks go into the page, stays where it is
+        grid.style.minHeight = grid.style.height;
+        grid.innerHTML = '';
+        blocks = [];
         renderedCount = 0;
+        layoutBlocks();
         if (!State.filteredImages.length) {
+            grid.style.minHeight = '';
             renderEmptyState();
             if (prevFocus) clearCardFocus();
             return;
@@ -283,7 +411,9 @@ export function renderImageGrid(previous = []) {
         renderNextBatch();
     }
     while (renderedCount < State.filteredImages.length
-        && Elements.imageGrid.getBoundingClientRect().bottom + window.scrollY < reach) renderNextBatch();
+        && grid.getBoundingClientRect().top + window.scrollY + gridHeight < reach) renderNextBatch();
+    grid.style.minHeight = '';
+    updateWindow();
 
     if (prevFocus) restoreCardFocus(prevFocus.filename, prevFocus.index);
 }
@@ -327,12 +457,8 @@ export function initGrid() {
     });
     Elements.imageGrid.addEventListener('focusout', (e) => e.target.closest('.card-actions')?.classList.remove('shown'));
 
-    // Re-flow the masonry layout whenever the grid's width changes. Drawing more cards only makes
-    // it taller, and measuring every card again after each batch would slow a deep scroll down.
-    let width = 0;
-    new ResizeObserver(([entry]) => {
-        if (entry.contentRect.width === width) return;
-        width = entry.contentRect.width;
-        resizeAllMasonryItems();
-    }).observe(Elements.imageGrid);
+    // Lay the blocks out again whenever the grid's width changes, and follow the window with them
+    new ResizeObserver(resizeAllMasonryItems).observe(Elements.imageGrid);
+    window.addEventListener('scroll', updateWindowSoon, { passive: true });
+    window.addEventListener('resize', updateWindowSoon);
 }

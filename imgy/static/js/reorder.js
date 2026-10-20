@@ -3,6 +3,7 @@ import { State } from './state.js';
 import { Elements } from './dom.js';
 import { saveImageOrder } from './data.js';
 import { clearCardFocus } from './navigation.js';
+import { drawnOrder, syncGridOrder } from './grid.js';
 
 const DRAG_DISTANCE = 5;    // px a mouse travels before a press becomes a drag
 const HOLD_MS = 300;        // how long a finger rests on a card to pick it up
@@ -80,6 +81,7 @@ function placeSlot(aim) {
     const others = placeable(container).filter(el => el !== item);
     container.style.minHeight = `${container.offsetHeight}px`; // so moving the slot can't shrink the page under the scroll position
     others.at(-1).after(item);
+    syncGridOrder();
     const places = [...others, item].map(el => el.getBoundingClientRect());
     container.style.minHeight = '';
     const { width, height } = places.at(-1);
@@ -92,6 +94,7 @@ function placeSlot(aim) {
     const scores = places.map(score);
     const nearest = scores.indexOf(Math.min(...scores));
     if (nearest < others.length) others[nearest].before(item);
+    syncGridOrder();
 }
 
 /** Put the slot where the floating copy is now, and note where everything sits for `copyLeftSlot`. */
@@ -142,7 +145,7 @@ function begin() {
     const ghost = item.cloneNode(true);
     ghost.classList.add('drag-ghost');
     ghost.inert = true;
-    Object.assign(ghost.style, { width: `${rect.width}px`, height: `${rect.height}px`, translate: `${rect.left}px ${rect.top}px` });
+    Object.assign(ghost.style, { top: '', width: `${rect.width}px`, height: `${rect.height}px`, translate: `${rect.left}px ${rect.top}px` });
     drag = {
         item, container, ghost, items,
         startItems: items,
@@ -173,17 +176,16 @@ function end(cancelled) {
     window.removeEventListener('keydown', onKey, true);
     document.body.classList.remove('is-reordering');
     if (!cancelled && item.isConnected && copyLeftSlot(copyCenter())) moveSlot(copyCenter()); // released within the pause
-    const moved = !cancelled && startItems.some((el, i) => el !== drag.items[i]); // cards drawn mid-drag are not a move
+    // Cards drawn mid-drag (scrolling brings them into the page) are not a move
+    const moved = !cancelled && drag.items.filter(el => startItems.includes(el)).some((el, i) => el !== startItems[i]);
     let layout = drag.layout;
-    if (cancelled && item.isConnected) layout = slide(drag.items, () => prev ? prev.after(item) : container.prepend(item));
+    if (cancelled && item.isConnected) layout = slide(drag.items, () => { prev ? prev.after(item) : container.prepend(item); syncGridOrder(); });
     drag = null;
     if (!item.isConnected) return ghost.remove();
     settle(ghost, item, layout.find(box => box.el === item));
     if (!moved) return;
-    // The grid already shows the new order: keep it, and renumber the cards to match
-    const cards = [...Elements.imageGrid.querySelectorAll('.image-card:not(.drag-ghost)')];
-    saveImageOrder(cards.map(card => card.dataset.filename));
-    cards.forEach((card, i) => { card.dataset.idx = i; });
+    // The grid already shows the new order: keep it (drawnOrder() renumbers the cards to match)
+    saveImageOrder(drawnOrder());
 }
 
 function onKey(e) {

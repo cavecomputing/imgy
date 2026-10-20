@@ -1,6 +1,6 @@
 /** Timing constants. */
 export const CONFIG = {
-    LLM_TIMEOUT_MS: 90000,
+    LLM_TIMEOUT_MS: 125000, // a little over the server's 120 s wait (api/llm.py), so its answer or error arrives
     TOAST_DURATION_MS: 2500,
     SUGGEST_DEBOUNCE_MS: 80,
     FLYUP_CLOSE_DELAY_MS: 250,

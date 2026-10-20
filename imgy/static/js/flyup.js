@@ -456,9 +456,10 @@ export function initFlyups() {
             removeMissingMessage: tag => `"${tag}" is not on this file`,
             renameMissingMessage: tag => `"${tag}" is not on this file`
         });
+        // Add before removing, so a failed request leaves the file with both tags, not neither
         for (const { oldName, newName } of toRename) {
-            await removeTags([img.filename], [oldName]);
             await addTags(img.filename, [newName]);
+            await removeTags([img.filename], [oldName]);
         }
         if (toAdd.length > 0) {
             await addTags(img.filename, toAdd);

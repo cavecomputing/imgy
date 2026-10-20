@@ -186,12 +186,13 @@ export async function processBulkTagsFromInput(tokens) {
         if (uniqueRemoves.length > 0) {
             await api.post('/api/tags/bulk-remove', { filenames, tags: uniqueRemoves });
         }
-        // Rename: remove old + add new on the selected images that have the old tag
+        // Rename: add new, then remove old, on the selected images that have the old tag, so a
+        // failed request leaves them with both tags, not neither
         for (const [i, { oldName, newName }] of toRename.entries()) {
             const targets = renameTargets[i];
             if (!targets.length) continue;
-            await api.post('/api/tags/bulk-remove', { filenames: targets, tags: [oldName] });
             await api.post('/api/tags/bulk', { filenames: targets, tags: [newName] });
+            await api.post('/api/tags/bulk-remove', { filenames: targets, tags: [oldName] });
         }
         // Update local state instead of reloading
         let addedCount = 0, removedCount = 0, renamedCount = 0;

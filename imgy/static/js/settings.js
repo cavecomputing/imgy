@@ -253,6 +253,26 @@ export function initLlmSettings() {
         secretInput.placeholder = getLlmSettings().hasSecret ? 'Saved. Type a new key to replace it' : 'API key or Bearer token';
     }
 
+    const llmKeyHost = () => { try { return new URL(getLlmSettings().api_url).host; } catch { return ''; } };
+
+    // Save the provider or endpoint. The server drops the saved key when the host it would go to
+    // changes (api/settings.py), so only a key typed in this visit carries over to the new host.
+    function saveEndpoint(key, value) {
+        const host = llmKeyHost();
+        State.settings[key] = value;
+        const changes = { [key]: value };
+        if (llmKeyHost() !== host) {
+            delete State.settings.hasLlmApiSecret;
+            if (secretInput?.value) {
+                changes.llmApiSecret = secretInput.value;
+                State.settings.hasLlmApiSecret = 'true';
+            } else {
+                showSavedSecret();
+            }
+        }
+        putSettings(changes);
+    }
+
     function updateProviderVisibility(provider) {
         providerHelp.textContent = PROVIDER_HELP[provider] || PROVIDER_HELP.custom;
         if (provider === 'openrouter') {
@@ -280,13 +300,13 @@ export function initLlmSettings() {
     providerRadios.forEach(radio => {
         radio.onchange = () => {
             if (!radio.checked) return;
-            saveSetting('llmProvider', radio.value);
+            saveEndpoint('llmProvider', radio.value);
             updateProviderVisibility(radio.value);
             if (radio.value === 'openrouter') saveSetting('llmModel', modelInput.value.trim());
             clearTestStatus();
         };
     });
-    urlInput.onchange = () => saveSetting('llmApiUrl', urlInput.value.trim());
+    urlInput.onchange = () => saveEndpoint('llmApiUrl', urlInput.value.trim());
     modelInput.onchange = () => saveSetting('llmModel', modelInput.value.trim());
     if (secretInput) secretInput.onchange = () => {
         if (!secretInput.value) return;

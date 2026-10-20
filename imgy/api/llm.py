@@ -10,7 +10,7 @@ from .. import llm
 from ..db import active_tag_names, get_db
 from ..media import is_video
 from .common import active_file, json_body
-from .settings import load_tag_groups
+from .settings import llm_key_host, load_tag_groups, saved_llm_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +29,8 @@ def _endpoint(data):
     api_secret = data.get('api_secret')
     if not api_secret:
         with get_db() as conn:
-            saved = {row['key']: row['value'] for row in conn.execute(
-                "SELECT key, value FROM settings WHERE key IN ('llmProvider', 'llmApiUrl', 'llmApiSecret')")}
-        # settings.js sends OpenRouter's fixed address whatever llmApiUrl holds
-        saved_host = 'openrouter.ai' if saved.get('llmProvider') == 'openrouter' \
-            else urlparse(saved.get('llmApiUrl') or llm.DEFAULT_API_URL).netloc
-        api_secret = saved.get('llmApiSecret', '') if urlparse(api_url).netloc == saved_host else ''
+            saved = saved_llm_endpoint(conn)
+        api_secret = saved.get('llmApiSecret', '') if urlparse(api_url).netloc == llm_key_host(saved) else ''
     return api_url, str(data.get('model', llm.DEFAULT_MODEL)), str(api_secret)
 
 

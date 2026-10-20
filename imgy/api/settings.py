@@ -1,9 +1,11 @@
 """App settings (a flat key/value store) and exclusive tag groups for the LLM tagger."""
 import json
+from urllib.parse import urlparse
 
 from flask import Blueprint, abort, request
 
 from ..db import get_db
+from ..llm import DEFAULT_API_URL
 from .common import json_body
 
 bp = Blueprint('settings', __name__)
@@ -13,6 +15,19 @@ bp = Blueprint('settings', __name__)
 ALLOWED_SETTINGS_KEYS = {
     'llmProvider', 'llmApiUrl', 'llmModel', 'llmDoRename', 'llmDoTags', 'llmApiSecret', 'theme', 'galleryOrder',
 }
+
+
+def saved_llm_endpoint(conn):
+    """The saved llmProvider, llmApiUrl and llmApiSecret, leaving out those never set."""
+    return {row['key']: row['value'] for row in conn.execute(
+        "SELECT key, value FROM settings WHERE key IN ('llmProvider', 'llmApiUrl', 'llmApiSecret')")}
+
+
+def llm_key_host(settings):
+    """The host the saved LLM key may be sent to. settings.js sends OpenRouter's fixed address."""
+    if settings.get('llmProvider') == 'openrouter':
+        return 'openrouter.ai'
+    return urlparse(settings.get('llmApiUrl') or DEFAULT_API_URL).netloc
 
 
 def load_tag_groups(conn):
@@ -63,10 +78,15 @@ def get_settings():
 @bp.put('/settings')
 def put_settings():
     """Upsert any allowed keys. Values are stored as text; the frontend coerces types."""
-    updates = [(k, str(v)) for k, v in json_body().items() if k in ALLOWED_SETTINGS_KEYS]
+    updates = {k: str(v) for k, v in json_body().items() if k in ALLOWED_SETTINGS_KEYS}
     if updates:
         with get_db() as conn:
-            conn.executemany('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', updates)
+            saved = saved_llm_endpoint(conn)
+            # The key goes only to the host it was saved for, so pointing the endpoint at another
+            # host drops it, or anyone who can change settings could send it to themselves
+            if 'llmApiSecret' not in updates and llm_key_host({**saved, **updates}) != llm_key_host(saved):
+                updates['llmApiSecret'] = ''
+            conn.executemany('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', updates.items())
             conn.commit()
     return {'status': 'ok'}
 

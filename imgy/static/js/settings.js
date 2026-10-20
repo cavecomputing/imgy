@@ -49,15 +49,12 @@ export async function loadSettings() {
 
 export function saveSetting(key, value) {
     State.settings[key] = String(value);
-    putSettings({ [key]: String(value) }).catch(err => console.error('Failed to save setting:', err));
+    putSettings({ [key]: String(value) });
 }
 
+/** Save settings without waiting. api.put shows a failure in the error banner. */
 function putSettings(values) {
-    return fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values)
-    });
+    api.put('/api/settings', values).catch(() => {});
 }
 
 export function getLlmSettings() {

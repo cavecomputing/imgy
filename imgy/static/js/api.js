@@ -27,6 +27,7 @@ async function request(url, options = {}) {
 export const api = {
     get: (url, options) => request(url, options),
     post: (url, body) => request(url, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }),
+    put: (url, body) => request(url, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (url) => request(url, { method: 'DELETE' }),
     /** POST a FormData as multipart, for file uploads. */
     postForm: (url, form) => request(url, { method: 'POST', body: form }),

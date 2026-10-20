@@ -1,16 +1,22 @@
 """Client for an OpenAI-compatible chat completions API (Ollama, OpenRouter, ...) used to
 suggest a filename and tags for an image."""
 import base64
+import io
 import json
 import logging
-import mimetypes
 import re
 from urllib.request import Request, urlopen
+
+from .thumbnails import image_thumbnail
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_API_URL = 'http://localhost:11434/v1/chat/completions'
 DEFAULT_MODEL = 'gemma3'
+
+# The image is sent as a JPEG fitted within this: vision models scale bigger ones down anyway, hosted
+# APIs cap the upload's size and take only some formats (not BMP), and the cost grows with the bytes.
+IMAGE_SIZE = (1568, 1568)
 
 # First {...} object in the reply, allowing one level of nesting. Models often wrap JSON
 # in markdown fences or add chatter around it.
@@ -81,15 +87,16 @@ def build_prompt(all_tags, tag_groups):
 
 
 def image_payload(model, prompt, image_path):
-    content_type = mimetypes.guess_type(str(image_path))[0] or 'image/jpeg'
-    b64 = base64.b64encode(image_path.read_bytes()).decode()
+    jpeg = io.BytesIO()
+    image_thumbnail(image_path, jpeg, IMAGE_SIZE)
+    b64 = base64.b64encode(jpeg.getvalue()).decode()
     return {
         'model': model,
         'messages': [{
             'role': 'user',
             'content': [
                 {'type': 'text', 'text': prompt},
-                {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64}'}},
+                {'type': 'image_url', 'image_url': {'url': f'data:image/jpeg;base64,{b64}'}},
             ],
         }],
         'temperature': 0.3,

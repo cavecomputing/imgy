@@ -65,7 +65,11 @@ def analyze_image(filename):
     with get_db() as conn:
         all_tags = active_tag_names(conn)
         tag_groups = llm.usable_groups(load_tag_groups(conn), all_tags)
-    payload = llm.image_payload(model, llm.build_prompt(all_tags, tag_groups), source_path)
+    try:
+        payload = llm.image_payload(model, llm.build_prompt(all_tags, tag_groups), source_path)
+    except Exception as e:  # Pillow raises several kinds for a file it can't decode
+        logger.error(f'LLM analyze: could not read {source_path.name}: {e}')
+        abort(400, 'Could not read this image')
 
     logger.info(f'LLM analyze: sending {source_path.name} to {api_url} model={model}')
     try:

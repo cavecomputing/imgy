@@ -62,7 +62,7 @@ def get_or_create_thumbnail(rel_path):
         if is_video(rel_path):
             _video_frame(source_path, tmp_path)
         else:
-            _image_thumbnail(source_path, tmp_path)
+            image_thumbnail(source_path, tmp_path)
         os.replace(tmp_path, thumb_path)
         return t_rel
     except Exception as e:
@@ -73,17 +73,18 @@ def get_or_create_thumbnail(rel_path):
         return None
 
 
-def _image_thumbnail(source_path, dest):
+def image_thumbnail(source_path, dest, size=THUMBNAIL_SIZE):
+    """Write an upright JPEG of the image, fitted within size, to dest (a path or a file object)."""
     with Image.open(source_path, formats=IMAGE_FORMATS) as img:
         # Lets a big JPEG decode at 1/2 to 1/8 scale, as thumbnail() would on its own if
         # exif_transpose() didn't decode it first: 280 ms to 90 ms for a 24-megapixel photo.
-        img.draft(None, (THUMBNAIL_SIZE[0] * 2, THUMBNAIL_SIZE[1] * 2))
+        img.draft(None, (size[0] * 2, size[1] * 2))
         img = ImageOps.exif_transpose(img)
         if img.mode.startswith('I'):  # 16/32-bit grayscale, which JPEG can't store
             img = img.convert('I').point(lambda v: v / 256).convert('L')
         elif img.mode == 'CMYK':
             img = img.convert('RGB')
-        img.thumbnail(THUMBNAIL_SIZE)
+        img.thumbnail(size)
         if img.mode not in ('RGB', 'L'):
             img = img.convert('RGB')
         img.save(dest, 'JPEG', quality=80, optimize=True)

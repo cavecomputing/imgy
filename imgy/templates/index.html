@@ -23,8 +23,9 @@
     <link rel="preload" href="/api/images" as="fetch" crossorigin>
     <link rel="preload" href="/api/tags" as="fetch" crossorigin>
     <link rel="preload" href="/api/settings" as="fetch" crossorigin>
-    <link rel="stylesheet" href="/static/cavecomputing.css">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="{{ assets['/static/cavecomputing.css'] }}">
+    <link rel="stylesheet" href="{{ assets['/static/style.css'] }}">
+    <script type="importmap">{{ {'imports': assets} | tojson }}</script>
 </head>
 <body>
     <svg class="sprite" aria-hidden="true" focusable="false">
@@ -510,6 +511,6 @@
         </div>
     </dialog>
 
-    <script type="module" src="/static/js/main.js"></script>
+    <script type="module" src="{{ assets['/static/js/main.js'] }}"></script>
 </body>
 </html>

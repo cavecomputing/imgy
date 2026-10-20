@@ -13,7 +13,22 @@ bp = Blueprint('views', __name__)
 
 @bp.get('/')
 def index():
-    return render_template('index.html', has_password=bool(PASSWORD))
+    return render_template('index.html', has_password=bool(PASSWORD), assets=_asset_urls())
+
+
+def _asset_urls():
+    """'/static/<file>' -> that URL with ?v=<mtime> for the app's CSS and JS modules.
+
+    Browsers then keep each file for good (_versioned_static) instead of asking for every one of
+    them again on each visit, and fetch a file again once it changes. Read on each page load, so
+    an edit shows up on the next reload. The page's import map applies it to the modules' imports.
+    """
+    static = Path(current_app.static_folder)
+    urls = {}
+    for path in [*static.glob('*.css'), *static.glob('js/*.js')]:
+        url = f'/static/{path.relative_to(static).as_posix()}'
+        urls[url] = f'{url}?v={path.stat().st_mtime_ns}'
+    return urls
 
 
 @bp.get('/sw.js')
@@ -54,6 +69,14 @@ def _versioned(response):
         response.cache_control.private = True
         response.cache_control.max_age = 31536000
         response.cache_control.immutable = True
+    return response
+
+
+@bp.after_app_request
+def _versioned_static(response):
+    """The page names its CSS and JS with ?v= (_asset_urls()), so those are kept for good too."""
+    if request.endpoint == 'static' and response.status_code in (200, 304):
+        return _versioned(response)
     return response
 
 

@@ -41,9 +41,7 @@ def list_tags():
 @bp.post('/tags/create')
 def create_tag():
     """Create a tag that is not attached to any image yet."""
-    tag = json_body().get('tag', '').strip().lower()
-    if not validate_tag(tag):
-        abort(400, 'Tag name required')
+    tag, = request_tags([json_body().get('tag')])
     with get_db() as conn:
         if conn.execute(f'SELECT 1 FROM tags WHERE tag = ? AND {NOT_TRASHED} LIMIT 1', (tag,)).fetchone():
             abort(409, 'Tag already exists')
@@ -75,12 +73,10 @@ def delete_tag():
 def rename_tag():
     """Rename a tag everywhere, merging into the new name where an image already has it."""
     data = json_body()
-    old_tag = data.get('old_tag', '').strip().lower()
-    new_tag = data.get('new_tag', '').strip().lower()
-    if not old_tag or not new_tag or old_tag == new_tag:
+    old_tag, = request_tags([data.get('old_tag')])
+    new_tag, = request_tags([data.get('new_tag')])
+    if old_tag == new_tag:
         abort(400, 'Invalid tag names')
-    if not validate_tag(new_tag):
-        abort(400, 'Invalid tag name')
     with get_db() as conn:
         conn.execute('DELETE FROM tags WHERE tag = ? AND filename IN (SELECT filename FROM tags WHERE tag = ?)',
                      (old_tag, new_tag))

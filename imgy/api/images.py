@@ -191,7 +191,6 @@ def upload():
 
     uploaded = []
     skipped = []
-    rows = []
     for file in files:
         original_filename = file.filename or ''
         if not file:
@@ -208,10 +207,24 @@ def upload():
         with get_db() as conn:
             clear_filename(conn, filepath.name)
             conn.commit()
-        file.save(filepath)
+        try:
+            file.save(filepath)
+        except BaseException:
+            filepath.unlink()  # the empty placeholder _reserve_upload_path made
+            raise
         created_at = time.time()
         w, h = read_dimensions(filepath, filepath.name)
-        rows.append((filepath.name, created_at, w, h))
+        # Write this file's rows now, so a later file that fails to save doesn't lose its tags.
+        # A listing that ran during the upload may already have added a metadata row for it.
+        with get_db() as conn:
+            conn.execute('''
+                INSERT INTO image_metadata (filename, created_at, width, height) VALUES (?, ?, ?, ?)
+                ON CONFLICT(filename) DO UPDATE SET
+                    created_at = excluded.created_at, width = excluded.width, height = excluded.height
+            ''', (filepath.name, created_at, w, h))
+            conn.executemany('INSERT OR IGNORE INTO tags (filename, tag) VALUES (?, ?)',
+                             [(filepath.name, tag) for tag in tags])
+            conn.commit()
         uploaded.append({'filename': filepath.name, 'modified': created_at})
 
     if not uploaded:
@@ -223,16 +236,6 @@ def upload():
             'skipped': skipped,
         }, 400
 
-    with get_db() as conn:
-        # A listing that ran during the upload may already have added a row for the file.
-        conn.executemany('''
-            INSERT INTO image_metadata (filename, created_at, width, height) VALUES (?, ?, ?, ?)
-            ON CONFLICT(filename) DO UPDATE SET
-                created_at = excluded.created_at, width = excluded.width, height = excluded.height
-        ''', rows)
-        conn.executemany('INSERT OR IGNORE INTO tags (filename, tag) VALUES (?, ?)',
-                         [(file['filename'], tag) for file in uploaded for tag in tags])
-        conn.commit()
     invalidate_images_cache()
     return {'success': True, 'count': len(uploaded), 'uploaded': uploaded, 'skipped': skipped}
 

@@ -5,7 +5,7 @@ import { ActiveFlyup, Elements } from './dom.js';
 import { esc, formatCount, getDisplayFilename, highlightMatch, isVideo } from './utils.js';
 import { showToast } from './ui.js';
 import { processBulkTagsFromInput, updateSelectionBar } from './selection.js';
-import { addTags, removeTag } from './actions.js';
+import { addTags, removeTags } from './actions.js';
 import { collectTagMutations, getCommonTags, pickSuggestion, planTagExpression, splitTagTokens, tryTabCompletion } from './tags.js';
 import { toggleTagFilter } from './filters.js';
 import { renderLightboxTagBar } from './lightbox.js';
@@ -264,15 +264,11 @@ function quickTagInsertSuggestion(tag) {
 async function removeQuickTagFromContext(img, tag) {
     if (!img) return;
     if (State.bulkTagFlyupMode) {
-        const filenames = img._bulkFilenames || [];
-        for (const fn of filenames) {
-            const selectedImg = State.imagesByFilename.get(fn);
-            if (selectedImg && selectedImg.tags?.includes(tag)) await removeTag(fn, tag);
-        }
+        await removeTags(img._bulkFilenames || [], [tag]);
         refreshBulkVirtualTags(img);
         updateSelectionBar();
     } else {
-        await removeTag(img.filename, tag);
+        await removeTags([img.filename], [tag]);
     }
     resetQuickTagInput({ focus: true, lightboxRefresh: true });
 }
@@ -447,9 +443,7 @@ export function initFlyups() {
         if (tokens.length === 1 && tokens[0] === '--') {
             const allImgTags = [...(img.tags || [])];
             if (allImgTags.length === 0) { showToast('No tags to remove'); return; }
-            for (const tag of allImgTags) {
-                await removeTag(img.filename, tag);
-            }
+            await removeTags([img.filename], allImgTags);
             resetQuickTagInput({ lightboxRefresh: true });
             showToast(`Removed ${formatCount(allImgTags.length, 'tag')}`);
             return;
@@ -463,16 +457,14 @@ export function initFlyups() {
             renameMissingMessage: tag => `"${tag}" is not on this file`
         });
         for (const { oldName, newName } of toRename) {
-            await removeTag(img.filename, oldName);
+            await removeTags([img.filename], [oldName]);
             await addTags(img.filename, [newName]);
         }
         if (toAdd.length > 0) {
             await addTags(img.filename, toAdd);
         }
-        for (const tag of toRemove) {
-            if (img.tags?.includes(tag)) {
-                await removeTag(img.filename, tag);
-            }
+        if (toRemove.length > 0) {
+            await removeTags([img.filename], toRemove);
         }
         if (toAdd.length === 0 && toRemove.length === 0 && toRename.length === 0) return;
 

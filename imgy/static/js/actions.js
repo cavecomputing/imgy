@@ -118,15 +118,16 @@ export async function addTags(filename, tags) {
     });
 }
 
-export async function removeTag(filename, tag) {
-    // The bulk endpoint takes the tag in the body, so tags containing '/' work
-    await api.post('/api/tags/bulk-remove', { filenames: [filename], tags: [tag] });
-    const img = State.imagesByFilename.get(filename);
-    if (img) {
-        const hadTag = (img.tags || []).includes(tag);
-        const updatedTags = (img.tags || []).filter(t => t !== tag);
-        updateLocalState(filename, { tags: updatedTags });
-        if (hadTag) decrementTagCount(tag);
+/** Remove tags from files in one request. Files without a tag are left as they are. */
+export async function removeTags(filenames, tags) {
+    // The bulk endpoint takes the tags in the body, so tags containing '/' work
+    await api.post('/api/tags/bulk-remove', { filenames, tags });
+    for (const filename of filenames) {
+        const img = State.imagesByFilename.get(filename);
+        if (!img) continue;
+        const current = img.tags || [];
+        current.filter(t => tags.includes(t)).forEach(decrementTagCount);
+        updateLocalState(filename, { tags: current.filter(t => !tags.includes(t)) });
     }
     applyFilters();
 }

@@ -5,7 +5,7 @@ import { esc, formatCount, formatFileSize, formatShortDate, getDisplayFilename, 
 import { setToggleButtonState, showToast } from './ui.js';
 import { applyFilters } from './data.js';
 import { startHeaderInlineRename } from './rename.js';
-import { deleteImage, removeTag, replaceImage, toggleFavorite, updateLocalState } from './actions.js';
+import { deleteImage, removeTags, replaceImage, toggleFavorite, updateLocalState } from './actions.js';
 import { closeLightboxTagFlyup, openLightboxTagFlyup, toggleLightboxTagFlyup } from './flyup.js';
 import { toggleTagFilter } from './filters.js';
 import { clearCardFocus } from './navigation.js';
@@ -273,7 +273,7 @@ export function renderLightboxTagBar(tags, filename) {
             closeLightbox();
             showToast(showing ? `Showing files tagged "${t}"` : `Removed the "${t}" filter`);
         });
-        chip.querySelector('.chip-x').addEventListener('click', () => removeTag(filename, t));
+        chip.querySelector('.chip-x').addEventListener('click', () => removeTags([filename], [t]));
         container.appendChild(chip);
     });
     const add = document.createElement('button');

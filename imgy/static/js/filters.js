@@ -363,7 +363,7 @@ function renderSuggestions() {
             list.appendChild(divider);
         }
         const item = document.createElement('div');
-        item.className = `suggestion-item${idx === State.suggestionIndex ? ' active' : ''}${modeClass}`;
+        item.className = `suggestion-item${modeClass}`;
         item.setAttribute('role', 'option');
         const count = State.tagCounts[t] || 0;
         item.innerHTML = `
@@ -396,9 +396,20 @@ function renderSuggestions() {
         list.appendChild(createItem);
     }
 
-    // Keep the highlighted row in view inside the list (the list is its offsetParent)
-    const activeItem = list.querySelector('.suggestion-item.active');
+    highlightSuggestion();
+    showSuggestions();
+}
+
+/**
+ * Mark the row at State.suggestionIndex and keep it in view inside the list (the list is its
+ * offsetParent). Arrow keys call only this: redrawing every row took 50 ms per press at 400 tags.
+ */
+function highlightSuggestion() {
+    const list = Elements.tagSuggestionList;
+    list.querySelector('.suggestion-item.active')?.classList.remove('active');
+    const activeItem = list.querySelectorAll('.suggestion-item[role="option"]')[State.suggestionIndex];
     if (activeItem) {
+        activeItem.classList.add('active');
         const itemTop = activeItem.offsetTop;
         const itemBottom = itemTop + activeItem.offsetHeight;
         if (itemBottom > list.scrollTop + list.clientHeight) list.scrollTop = itemBottom - list.clientHeight;
@@ -406,8 +417,6 @@ function renderSuggestions() {
     } else if (State.suggestionIndex < 0) {
         list.scrollTop = 0;
     }
-
-    showSuggestions();
 }
 
 /** What clicking a suggestion does: show the tag's files, hide them after a -, or delete the tag after a --. */
@@ -624,27 +633,27 @@ export function initFilters() {
         if (e.key === 'ArrowDown' && suggestionsVisible) {
             e.preventDefault();
             State.suggestionIndex = (State.suggestionIndex + 1) % matches.length;
-            renderSuggestions();
+            highlightSuggestion();
         } else if (e.key === 'ArrowUp' && suggestionsVisible) {
             e.preventDefault();
             State.suggestionIndex = (State.suggestionIndex - 1 + matches.length) % matches.length;
-            renderSuggestions();
+            highlightSuggestion();
         } else if (e.key === 'PageDown' && suggestionsVisible) {
             e.preventDefault();
             State.suggestionIndex = Math.min(from() + pageSize(), matches.length - 1);
-            renderSuggestions();
+            highlightSuggestion();
         } else if (e.key === 'PageUp' && suggestionsVisible) {
             e.preventDefault();
             State.suggestionIndex = Math.max(from() - pageSize(), 0);
-            renderSuggestions();
+            highlightSuggestion();
         } else if (e.key === 'Home' && suggestionsVisible) {
             e.preventDefault();
             State.suggestionIndex = 0;
-            renderSuggestions();
+            highlightSuggestion();
         } else if (e.key === 'End' && suggestionsVisible) {
             e.preventDefault();
             State.suggestionIndex = matches.length - 1;
-            renderSuggestions();
+            highlightSuggestion();
         } else if (e.key === 'Tab') {
             if (!Elements.tagSearch.value.trim()) return; // let Tab move focus as usual
             e.preventDefault();

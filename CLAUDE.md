@@ -167,6 +167,11 @@ The image installs the locked dependencies into `/app/.venv` (on `PATH`) with uv
   or `selection.js` read a token means updating that table.
 - **Settings.** A new setting needs its key in `ALLOWED_SETTINGS_KEYS` (`api/settings.py`) and its
   control in `settings.js` and `index.html`. A new environment variable goes in the README table.
+- **Supported file types.** Adding or dropping a format means changing every list of them:
+  `IMAGE_EXTENSIONS`, `VIDEO_EXTENSIONS` and `IMAGE_FORMATS` in `media.py`, `UPLOAD_EXTENSIONS` and
+  `VIDEO_EXTENSIONS` in `utils.js`, `FILE_TYPES` in `lightbox.js`, both `accept` lists in `index.html`,
+  and in the extension `extensionOfType` and the name check in `fileNameFor()` (`extension/upload.js`,
+  which ships as a new signed build).
 - **Screenshots.** [README.md](README.md) shows two screenshots from [assets/](assets/). A redesign
   of the gallery or the lightbox means retaking them.
 - **The README feature list and layout.** A user-visible feature means checking the README's feature

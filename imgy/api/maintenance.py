@@ -5,8 +5,8 @@ from flask import Blueprint
 
 from ..catalog import invalidate_images_cache
 from ..config import DATABASE, THUMBNAIL_FOLDER, TRASH_FOLDER, UPLOAD_FOLDER
-from ..db import FILENAME_TABLES, NOT_TRASHED, STANDALONE_TAG_FILENAME, TRASH_PREFIX, dissolve_small_groups, get_db
-from ..media import walk_active_files
+from ..db import FILENAME_TABLES, STANDALONE_TAG_FILENAME, TRASH_PREFIX, dissolve_small_groups, get_db
+from ..media import read_dimensions, walk_active_files
 from ..thumbnails import thumb_rel_path_for
 from ..trash import key_prefix
 
@@ -39,15 +39,18 @@ def storage_stats():
 
 @bp.post('/maintenance/reset-thumbnails')
 def reset_thumbnails():
-    """Delete every thumbnail and forget stored dimensions so both are regenerated."""
+    """Delete every thumbnail so it is made again, and read every file's dimensions again."""
     purged = 0
     if THUMBNAIL_FOLDER.exists():
         for p in THUMBNAIL_FOLDER.rglob('*'):
             if p.is_file() and not p.name.startswith('.'):
                 p.unlink()
                 purged += 1
+    # Read here, while the button waits, not left to the next listing: running ffprobe on every
+    # video there would outlast the browser's 15 s wait for the library
+    dimensions = [(*read_dimensions(path, rel_path), rel_path) for path, rel_path, _st in walk_active_files()]
     with get_db() as conn:
-        conn.execute(f'UPDATE image_metadata SET width = NULL, height = NULL WHERE {NOT_TRASHED}')
+        conn.executemany('UPDATE image_metadata SET width = ?, height = ? WHERE filename = ?', dimensions)
         conn.commit()
     invalidate_images_cache()
     return {'success': True, 'thumbnails_purged': purged}

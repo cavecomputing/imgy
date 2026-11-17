@@ -17,7 +17,7 @@ import yt_dlp
 from flask import Blueprint, abort
 
 from ..catalog import invalidate_images_cache
-from ..config import DOWNLOAD_FOLDER, MAX_UPLOAD_BYTES
+from ..config import DOWNLOAD_FOLDER
 from ..db import get_db
 from ..media import allowed_file
 from .common import json_body
@@ -33,8 +33,6 @@ ACTIVE = ('starting', 'downloading', 'processing')
 STALE_SECONDS = 300
 # Finished downloads stay listed this long, so every open page sees how they ended
 SHOW_FINISHED_SECONDS = 60
-# Best quality up to 1080p, preferring H.264 and AAC in MP4, which every browser plays
-FORMAT_SORT = ['res:1080', 'vcodec:h264', 'acodec:aac', 'ext:mp4:m4a']
 
 
 @bp.post('/downloads')
@@ -112,9 +110,9 @@ def _download(download_id, url, tags):
         'outtmpl': '%(title).100B.%(ext)s',
         'noplaylist': True,
         'playlist_items': '1',  # a playlist or a post with several videos gives its first one
-        'format_sort': FORMAT_SORT,
+        # The best quality the site has (yt-dlp's default choice), joined into MP4 so the file keeps
+        # a type Imgy lists. No size cap: a long 4K video can pass the 500 MB upload limit.
         'merge_output_format': 'mp4',
-        'max_filesize': MAX_UPLOAD_BYTES,
         'match_filter': yt_dlp.utils.match_filter_func('!is_live'),
         'updatetime': False,  # the file's date is when it was added, as for an upload
         'progress_hooks': [on_progress],
@@ -129,7 +127,7 @@ def _download(download_id, url, tags):
         entry = (info.get('entries') or [info])[0] if info else None
         path = Path(entry['requested_downloads'][0]['filepath']) if entry and entry.get('requested_downloads') else None
         if not path or not path.exists():
-            raise yt_dlp.utils.DownloadError('Nothing to download. Live streams and videos over 500 MB are skipped.')
+            raise yt_dlp.utils.DownloadError('Nothing to download. Live streams are skipped.')
         if path.suffix == '.unknown_video':  # yt-dlp's name for a direct link that isn't a video
             raise yt_dlp.utils.DownloadError('No video at that link')
         if not allowed_file(path.name):

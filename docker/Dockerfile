@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
+# Deno, the JavaScript runtime yt-dlp needs to download from YouTube (other sites work without it)
+COPY --from=denoland/deno:bin-2.9.8 /deno /usr/local/bin/deno
+
 WORKDIR /app
 
 # Install Python deps from uv.lock first (cache-friendly layer). uv is mounted for this

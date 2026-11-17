@@ -8,11 +8,13 @@ import { api } from './api.js';
 import { applyFilters, loadData } from './data.js';
 import { parseFilterExpressionTokens, pickSuggestion, splitTagTokens, tryTabCompletion } from './tags.js';
 import { getLlmActionSummary } from './llm.js';
+import { startDownload } from './upload.js';
 
 const DESKTOP_PLACEHOLDER = 'Filter by tag   -exclude   +create   old>new';
 const ROW_HEIGHT = 34;
 
 function getFilterModeInfo(rawTerm) {
+    if (splitDownload(rawTerm)) return { mode: 'download', label: 'Download', detail: 'save the video at this link to the library' };
     if (splitNameSearch(rawTerm)) return { mode: 'name', label: 'Name', detail: 'show files whose name contains this' };
     const token = rawTerm.trimStart().split(/\s+/).pop() || '';
     if (token.includes('>')) return { mode: 'rename', label: 'Rename', detail: 'old>new renames a tag on every file' };
@@ -248,6 +250,15 @@ function splitNameSearch(rawTerm) {
     return { before: rawTerm.slice(0, at), term: rawTerm.slice(rawTerm.indexOf('@', at) + 1).trim().toLowerCase() };
 }
 
+/** A link typed or pasted first in the filter bar downloads its video; the words after it are its tags. */
+function splitDownload(rawTerm) {
+    const [url, ...tags] = rawTerm.trim().split(/\s+/);
+    if (!/^https?:\/\/\S+$/i.test(url)) return null;
+    let site;
+    try { site = new URL(url).hostname.replace(/^www\./, ''); } catch { return null; }
+    return { url, site, tags: tags.map(t => t.replace(/^\+/, '').toLowerCase()).filter(Boolean) };
+}
+
 function noteRow(html, warn = false) {
     const note = document.createElement('div');
     note.className = `suggestion-note${warn ? ' warn' : ''}`;
@@ -270,6 +281,19 @@ function renderSuggestions() {
         appendSuggestionHeader(list, { mode: 'llm', label: 'Auto-tag', detail: 'works on files, not on the filter' });
         const llm = getLlmActionSummary();
         list.appendChild(noteRow(`<span>Select files, then type <code>?</code> in the tag editor to ${esc(llm.action)} them.</span><span class="tag-count-badge">${esc(llm.model)}</span>`));
+        State.suggestionMatches = [];
+        showSuggestions();
+        return;
+    }
+
+    // a link downloads the video on that page (yt-dlp, on the server)
+    const download = splitDownload(rawTerm);
+    if (download) {
+        appendSuggestionHeader(list, modeInfo);
+        const tagged = download.tags.length
+            ? `, tagged ${download.tags.map(t => `“${esc(t)}”`).join(', ')}.`
+            : '. Type tags after the link to tag it as it arrives.';
+        list.appendChild(noteRow(`<span>Enter downloads the video from <b>${esc(download.site)}</b> into the library${tagged}</span>`));
         State.suggestionMatches = [];
         showSuggestions();
         return;
@@ -447,6 +471,14 @@ function enterPick() {
 
 async function applyFilterExpression() {
     let rawTerm = Elements.tagSearch.value;
+
+    const download = splitDownload(rawTerm);
+    if (download) {
+        resetTagSearch({ render: false });
+        hideSuggestions();
+        await startDownload(download.url, download.tags);
+        return;
+    }
 
     const nameSearch = splitNameSearch(rawTerm);
     if (nameSearch) {

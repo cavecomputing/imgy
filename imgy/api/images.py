@@ -205,33 +205,7 @@ def upload():
         if not allowed_file(original_filename):
             skipped.append({'filename': original_filename, 'reason': 'Unsupported file type'})
             continue
-        # secure_filename drops non-ASCII characters, which can leave nothing of the name.
-        stem = secure_filename(Path(original_filename).stem) or f'upload_{uuid.uuid4().hex[:8]}'
-        filepath = _reserve_upload_path(f'{stem}{Path(original_filename).suffix}')
-        # Drop rows left by a deleted file with this name now, before the new file shows up in
-        # listings, so nothing added to it while the upload runs is lost.
-        with get_db() as conn:
-            clear_filename(conn, filepath.name)
-            conn.commit()
-        try:
-            file.save(filepath)
-        except BaseException:
-            filepath.unlink()  # the empty placeholder _reserve_upload_path made
-            raise
-        created_at = time.time()
-        w, h = read_dimensions(filepath, filepath.name)
-        # Write this file's rows now, so a later file that fails to save doesn't lose its tags.
-        # A listing that ran during the upload may already have added a metadata row for it.
-        with get_db() as conn:
-            conn.execute('''
-                INSERT INTO image_metadata (filename, created_at, width, height) VALUES (?, ?, ?, ?)
-                ON CONFLICT(filename) DO UPDATE SET
-                    created_at = excluded.created_at, width = excluded.width, height = excluded.height
-            ''', (filepath.name, created_at, w, h))
-            conn.executemany('INSERT OR IGNORE INTO tags (filename, tag) VALUES (?, ?)',
-                             [(filepath.name, tag) for tag in tags])
-            conn.commit()
-        uploaded.append({'filename': filepath.name, 'modified': created_at})
+        uploaded.append(add_to_library(original_filename, file.save, tags))
 
     if not uploaded:
         return {
@@ -244,6 +218,39 @@ def upload():
 
     invalidate_images_cache()
     return {'success': True, 'count': len(uploaded), 'uploaded': uploaded, 'skipped': skipped}
+
+
+def add_to_library(original_filename, save, tags):
+    """Add a new file named after original_filename (made safe and unique) with these tags.
+
+    save(path) writes the bytes. Used by uploads and by URL downloads (api/downloads.py)."""
+    # secure_filename drops non-ASCII characters, which can leave nothing of the name.
+    stem = secure_filename(Path(original_filename).stem) or f'upload_{uuid.uuid4().hex[:8]}'
+    filepath = _reserve_upload_path(f'{stem}{Path(original_filename).suffix}')
+    # Drop rows left by a deleted file with this name now, before the new file shows up in
+    # listings, so nothing added to it while the upload runs is lost.
+    with get_db() as conn:
+        clear_filename(conn, filepath.name)
+        conn.commit()
+    try:
+        save(filepath)
+    except BaseException:
+        filepath.unlink()  # the empty placeholder _reserve_upload_path made
+        raise
+    created_at = time.time()
+    w, h = read_dimensions(filepath, filepath.name)
+    # Write this file's rows now, so a later file that fails to save doesn't lose its tags.
+    # A listing that ran during the upload may already have added a metadata row for it.
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO image_metadata (filename, created_at, width, height) VALUES (?, ?, ?, ?)
+            ON CONFLICT(filename) DO UPDATE SET
+                created_at = excluded.created_at, width = excluded.width, height = excluded.height
+        ''', (filepath.name, created_at, w, h))
+        conn.executemany('INSERT OR IGNORE INTO tags (filename, tag) VALUES (?, ?)',
+                         [(filepath.name, tag) for tag in tags])
+        conn.commit()
+    return {'filename': filepath.name, 'modified': created_at}
 
 
 def _reserve_upload_path(filename):

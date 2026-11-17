@@ -70,7 +70,7 @@
                     <div id="filterPopChips" class="chips filter-pop-chips hidden"></div>
                     <div id="tagSuggestionList" class="filter-pop-list"></div>
                     <div class="pop-foot">
-                        <div class="keys"><span><code>-tag</code> hide</span><span><code>@name</code> file name</span><span><code>+tag</code> create</span><span><code>old&gt;new</code> rename</span><span><code>--tag</code> delete everywhere</span></div>
+                        <div class="keys"><span><code>-tag</code> hide</span><span><code>@name</code> file name</span><span><code>+tag</code> create</span><span><code>old&gt;new</code> rename</span><span><code>--tag</code> delete everywhere</span><span><code>https://…</code> download</span></div>
                         <div class="keys keys-hw"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>Tab</kbd> complete</span><span><kbd>Enter</kbd> apply</span><span><kbd>&#9003;</kbd> drop last filter</span></div>
                     </div>
                 </div>
@@ -243,8 +243,9 @@
 
     <div id="loading" class="loading hidden" role="status" popover="manual">Loading</div>
     <div id="uploadProgress" class="upload-progress hidden" role="status">
-        <div class="upload-progress-label"><span id="uploadProgressText">Uploading</span></div>
+        <div class="upload-progress-label"><span id="uploadProgressText">Uploading</span><button id="uploadProgressCancel" class="upload-progress-cancel hidden" type="button" title="Cancel download" aria-label="Cancel download"><svg class="i i-xs" aria-hidden="true"><use href="#i-x"/></svg></button></div>
         <div class="upload-progress-track"><div id="uploadProgressBar" class="upload-progress-bar"></div></div>
+        <div id="uploadProgressMeta" class="upload-progress-meta hidden"></div>
     </div>
     <div id="error" class="error hidden" role="alert" popover="manual"></div>
     <div id="toast" class="toast hidden" role="status" aria-live="polite" popover="manual"></div>

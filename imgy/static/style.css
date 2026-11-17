@@ -1397,7 +1397,7 @@ a.cc-btn { text-decoration: none; }
     left: 50%;
     bottom: 24px;
     z-index: 2000;
-    width: min(320px, calc(100vw - 32px));
+    width: min(360px, calc(100vw - 32px));
     transform: translateX(-50%);
     padding: 12px 16px;
     background: var(--bg-surface);
@@ -1406,7 +1406,12 @@ a.cc-btn { text-decoration: none; }
     box-shadow: var(--shadow-lift);
     animation: notice-fade 200ms ease-out;
 }
-.upload-progress-label { margin-bottom: 8px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--fg); }
+.upload-progress-label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 600; color: var(--fg); }
+.upload-progress-label span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* a 24px hit area that stays inside the label's 16px line, so the label doesn't grow with it */
+.upload-progress-cancel { display: grid; place-items: center; width: 24px; height: 24px; margin: -4px -6px -4px 0; padding: 0; border: 0; border-radius: var(--radius-sm); background: none; color: var(--fg-muted); cursor: pointer; }
+.upload-progress-cancel:hover { background: var(--bg-inset); color: var(--accent-warm); }
+.upload-progress-meta { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .upload-progress-track { height: 6px; overflow: hidden; border-radius: 999px; background: var(--bg-inset); }
 .upload-progress-bar { width: 0%; height: 100%; border-radius: 999px; background: var(--accent-alt); transition: width 150ms ease; }
 body.drag-over::after {

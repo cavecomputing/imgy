@@ -1,8 +1,9 @@
-/** Uploads from the file picker or drag-and-drop, with a progress bar. */
+/** Uploads from the file picker or drag-and-drop, and downloads from a link, with a progress bar. */
 import { Elements } from './dom.js';
-import { formatCount, isUploadableFile } from './utils.js';
+import { formatCount, formatFileSize, isUploadableFile } from './utils.js';
 import { showError, showToast } from './ui.js';
 import { loadData } from './data.js';
+import { api } from './api.js';
 
 function uploadFileXHR(file, onProgress) {
     return new Promise((resolve, reject) => {
@@ -109,12 +110,85 @@ async function runUpload(files) {
     }
 }
 
+const DOWNLOAD_ACTIVE = new Set(['starting', 'downloading', 'processing']);
+const watchedDownloads = new Set(); // seen running on this page, so it reports how each one ends once
+let downloadPollTimer = null;
+
+/** Ask the server to fetch the video at url with yt-dlp; progress shows in the upload panel. */
+export async function startDownload(url, tags = []) {
+    const { id } = await api.post('/api/downloads', { url, tags });
+    watchedDownloads.add(id);
+    await pollDownloads();
+}
+
+/** Show the running downloads and report the ones that ended, every second while any run. */
+async function pollDownloads() {
+    clearTimeout(downloadPollTimer);
+    const { downloads } = await api.get('/api/downloads');
+    const running = downloads.filter(d => DOWNLOAD_ACTIVE.has(d.status));
+    let added = false;
+    for (const d of downloads) {
+        if (DOWNLOAD_ACTIVE.has(d.status)) { watchedDownloads.add(d.id); continue; }
+        if (!watchedDownloads.delete(d.id)) continue;
+        if (d.status === 'done') { added = true; showToast(`Downloaded ${d.filename}`); }
+        if (d.status === 'failed') showError(`Couldn't download from ${d.site}: ${d.error}`);
+    }
+    showDownloadProgress(running);
+    if (added) await loadData();
+    if (running.length) downloadPollTimer = setTimeout(pollDownloads, 1000);
+}
+
+function showDownloadProgress(running) {
+    const panel = Elements.uploadProgress;
+    if (!running.length) {
+        if (panel.dataset.download) { panel.classList.add('hidden'); delete panel.dataset.download; }
+        Elements.uploadProgressCancel.classList.add('hidden');
+        Elements.uploadProgressMeta.classList.add('hidden');
+        return;
+    }
+    const d = running[0];
+    const pct = d.status === 'processing' ? 100 : d.total ? Math.min(100, (d.downloaded / d.total) * 100) : 0;
+    const step = d.status === 'starting' ? 'looking up the video'
+        : d.status === 'processing' ? 'joining video and audio'
+        : `${d.part ? `${d.part} ` : ''}${formatFileSize(d.downloaded || 0)} of ${d.total ? formatFileSize(d.total) : '?'}`;
+    const others = running.length > 1 ? ` · +${running.length - 1}` : '';
+    Elements.uploadProgressText.textContent = d.title || `Downloading from ${d.site}`;
+    Elements.uploadProgressMeta.textContent = `${d.site} · ${step}${others}`;
+    Elements.uploadProgressBar.style.width = `${pct}%`;
+    Elements.uploadProgressCancel.dataset.id = d.id;
+    Elements.uploadProgressCancel.classList.remove('hidden');
+    Elements.uploadProgressMeta.classList.remove('hidden');
+    panel.dataset.download = d.id;
+    panel.classList.remove('hidden');
+}
+
 export function initUpload() {
+    // Downloads started on another device or before a reload keep running on the server
+    pollDownloads().catch(() => {});
+    Elements.uploadProgressCancel.addEventListener('click', async (e) => {
+        e.currentTarget.blur();
+        await api.delete(`/api/downloads/${Elements.uploadProgressCancel.dataset.id}`);
+        showToast('Download cancelled');
+        await pollDownloads();
+    });
+
+    // Paste a link anywhere outside a text field to put it in the filter bar, which says what Enter will do
+    document.addEventListener('paste', (e) => {
+        if (e.target.closest?.('input, textarea, [contenteditable], dialog')) return;
+        const text = e.clipboardData.getData('text/plain').trim();
+        if (!/^https?:\/\/\S+$/i.test(text)) return;
+        e.preventDefault();
+        Elements.tagSearch.value = text;
+        Elements.tagSearch.focus();
+        Elements.tagSearch.dispatchEvent(new Event('input'));
+    });
+
     // The service worker sends files shared from the phone's share sheet here with the count it uploaded
     const shared = new URLSearchParams(location.search).get('shared');
     if (shared !== null) {
         history.replaceState(null, '', '/');
         if (shared === '0') showError('Could not add the shared files');
+        else if (shared === 'link') showToast('Downloading the shared link');
         else showToast(`Uploaded ${formatCount(Number(shared), 'file')}`);
     }
 

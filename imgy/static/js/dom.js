@@ -26,6 +26,8 @@ export const Elements = {
     uploadProgress: byId('uploadProgress'),
     uploadProgressBar: byId('uploadProgressBar'),
     uploadProgressText: byId('uploadProgressText'),
+    uploadProgressMeta: byId('uploadProgressMeta'),
+    uploadProgressCancel: byId('uploadProgressCancel'),
 
     // Lightbox
     lightbox: byId('lightbox'),

@@ -50,6 +50,19 @@ SCHEMA = '''
     );
     CREATE INDEX IF NOT EXISTS idx_groups_group_id ON image_groups(group_id);
     CREATE INDEX IF NOT EXISTS idx_groups_filename ON image_groups(filename);
+    CREATE TABLE IF NOT EXISTS downloads (
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        site TEXT NOT NULL,
+        status TEXT NOT NULL,
+        title TEXT,
+        part TEXT,
+        downloaded INTEGER,
+        total INTEGER,
+        filename TEXT,
+        error TEXT,
+        updated_at REAL NOT NULL
+    );
 '''
 
 

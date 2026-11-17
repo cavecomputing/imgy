@@ -9,6 +9,8 @@ UPLOAD_FOLDER = DATA_DIR / 'images'
 TRASH_FOLDER = UPLOAD_FOLDER / '.trash'
 THUMBNAIL_FOLDER = UPLOAD_FOLDER / '.thumbnails'
 DATABASE = DATA_DIR / 'database.db'
+# Where yt-dlp works on a URL download before the finished file moves into UPLOAD_FOLDER
+DOWNLOAD_FOLDER = DATA_DIR / 'downloads'
 
 # Host names the app answers to besides localhost, comma-separated. Unset, empty, or '*' means any host.
 ALLOWED_HOSTS = [h.strip().lower() for h in (os.getenv('ALLOWED_HOSTS') or '*').split(',') if h.strip()]

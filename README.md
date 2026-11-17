@@ -28,16 +28,17 @@ OpenAI-style chat API works.
 - Bulk selection: tag, favorite, group, download as ZIP, or move to trash
 - Drag files or groups into your own order (press and hold on a phone); **Settings › Appearance** switches back to newest first
 - Trash with restore, inline rename, drag-and-drop upload
+- Paste a video link (YouTube, Vimeo, Reddit, and the other sites [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports) into the filter bar and Imgy [downloads it](#downloading-from-a-link) into the library
 - Big libraries open fast: the gallery draws its files in batches and keeps drawing ahead of your scroll
 - Press `?` in the app for every keyboard shortcut; `h` `j` `k` `l` move like the arrow keys
 - Firefox extension (**Settings › Extension**): right-click any image on the web, set tags, and upload it to Imgy
-- Installs as an app on a phone or computer when it is served over HTTPS (or from `localhost`), and on Android appears in the share sheet so you can send photos and videos straight in
+- Installs as an app on a phone or computer when it is served over HTTPS (or from `localhost`), and on Android appears in the share sheet so you can send photos, videos and video links straight in
 - Gruvbox dark and light themes, with a phone layout that keeps the filter in reach of your thumb
 - An optional password (`IMGY_PASSWORD`), remembered on each device you sign in from
 
 > [!WARNING]
 > Without a password there is no login. Anyone who can reach Imgy can view, change, and delete your
-> files, and can auto-tag with your LLM API key. Keep it on `localhost` or a network you
+> files, can auto-tag with your LLM API key, and can make the server download from any address. Keep it on `localhost` or a network you
 > trust, or [set a password](#password).
 
 ## Quick start
@@ -74,6 +75,7 @@ data/
 ├── images/            # your media; subfolders are fine
 │   ├── .thumbnails/   # generated thumbnails
 │   └── .trash/        # files moved to trash
+├── downloads/         # link downloads while they run
 └── database.db        # tags, favorites, groups, custom order, settings
 ```
 
@@ -103,6 +105,7 @@ or the filter bar (`/`). Separate several with spaces.
 | `=` | | Give every selected file all their tags | |
 | `++` | | Group the selected files | |
 | `?` | Auto-tag with the LLM | Auto-tag selected files with the LLM | |
+| `https://…` | | | Download the video at the link; words after it are its tags |
 
 `@text` runs to the end of the line, so it can hold spaces; put it last, as in `sunset @beach house`.
 It ignores case, treats spaces, underscores and hyphens alike, and also matches the extension and
@@ -112,6 +115,23 @@ The tag editors preview what each expression will do before you press `Enter`. `
 tag you are typing, and `Enter` applies the expression. A tag to add, remove, show or hide that you
 typed only part of stands for the first suggestion when that starts with it, or for the only one;
 the arrow keys highlight another. Destructive filter-bar actions ask for confirmation.
+
+## Downloading from a link
+
+Paste a link to a page with a video into the filter bar and press `Enter`: the server downloads it
+with [yt-dlp](https://github.com/yt-dlp/yt-dlp) and it appears first in the gallery. Words after the
+link become its tags (`https://youtu.be/… aurora timelapse`). Pressing `Ctrl+V` in the gallery, with
+no text field focused, puts a copied link into the filter bar. On Android, share a link to the
+installed app.
+
+- It takes the best quality the site offers and saves it as MP4 (`ffmpeg` joins the video and audio).
+  4K files can be large, and some browsers can't play every codec a site uses.
+- A playlist, or a post with several videos, gives its first video. Live streams are skipped.
+- The download runs on the server, so closing the tab doesn't stop it; the progress panel's × does.
+- YouTube needs [Deno](https://deno.com/) on the server. The Docker image includes it; without
+  Docker, install it so `deno` is on `PATH`. Other sites work without it.
+- Sites change often and older yt-dlp versions stop working with them. If downloads start failing,
+  run `uv lock --upgrade-package yt-dlp` (or pull a newer Imgy) and restart.
 
 ## Auto-tagging (optional)
 

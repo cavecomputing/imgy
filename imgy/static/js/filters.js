@@ -14,7 +14,7 @@ const DESKTOP_PLACEHOLDER = 'Filter by tag   -exclude   +create   old>new';
 const ROW_HEIGHT = 34;
 
 function getFilterModeInfo(rawTerm) {
-    if (splitDownload(rawTerm)) return { mode: 'download', label: 'Download', detail: 'save the video at this link to the library' };
+    if (splitDownload(rawTerm)) return { mode: 'download', label: 'Download', detail: 'save the image or video at this link to the library' };
     if (splitNameSearch(rawTerm)) return { mode: 'name', label: 'Name', detail: 'show files whose name contains this' };
     const token = rawTerm.trimStart().split(/\s+/).pop() || '';
     if (token.includes('>')) return { mode: 'rename', label: 'Rename', detail: 'old>new renames a tag on every file' };
@@ -250,7 +250,7 @@ function splitNameSearch(rawTerm) {
     return { before: rawTerm.slice(0, at), term: rawTerm.slice(rawTerm.indexOf('@', at) + 1).trim().toLowerCase() };
 }
 
-/** A link typed or pasted first in the filter bar downloads its video; the words after it are its tags. */
+/** A link typed or pasted first in the filter bar downloads its image or video; the words after it are its tags. */
 function splitDownload(rawTerm) {
     const [url, ...tags] = rawTerm.trim().split(/\s+/);
     if (!/^https?:\/\/\S+$/i.test(url)) return null;
@@ -286,14 +286,14 @@ function renderSuggestions() {
         return;
     }
 
-    // a link downloads the video on that page (yt-dlp, on the server)
+    // a link downloads the image or video at it (on the server)
     const download = splitDownload(rawTerm);
     if (download) {
         appendSuggestionHeader(list, modeInfo);
         const tagged = download.tags.length
             ? `, tagged ${download.tags.map(t => `“${esc(t)}”`).join(', ')}.`
             : '. Type tags after the link to tag it as it arrives.';
-        list.appendChild(noteRow(`<span>Enter downloads the video from <b>${esc(download.site)}</b> into the library${tagged}</span>`));
+        list.appendChild(noteRow(`<span>Enter downloads the image or video from <b>${esc(download.site)}</b> into the library${tagged}</span>`));
         State.suggestionMatches = [];
         showSuggestions();
         return;

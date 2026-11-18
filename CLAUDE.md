@@ -111,7 +111,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [imgy/views.py](imgy/views.py) | Page, media file and thumbnail routes, plus `/sw.js` (a worker only controls pages under its own path, so it is served from the root) and `/manifest.webmanifest`, built from `imgy/manifest.json` with fullscreen added for phones. |
 | [imgy/api/](imgy/api/) | One blueprint per resource, all mounted under `/api`. |
 | [imgy/templates/](imgy/templates/) | `login.html`, the sign-in page, and `index.html`, the entire app. JS modules are in [imgy/static/js/](imgy/static/js/), entry [main.js](imgy/static/js/main.js). |
-| [imgy/static/](imgy/static/) | `style.css`, the whole look: theme tokens, layout and components. |
+| [imgy/static/](imgy/static/) | `style.css`, the whole look: theme tokens, layout and components. `fonts/` holds Geist, the one typeface, with its licence. |
 | [extension/](extension/) | The Firefox extension: right-click an image, set tags, upload to Imgy. Plain JS, no build; zip the folder with `manifest.json` at its root to sign it at addons.mozilla.org (unlisted), bump `version` first, and replace `imgy/static/imgy.xpi`, the signed build that Settings › Extension offers, with the result. |
 | [docker/](docker/) | Dockerfile, `compose.yml`, `entrypoint.sh`, `Dockerfile.dockerignore`. |
 

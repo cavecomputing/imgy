@@ -1518,6 +1518,32 @@ body.drag-over::after {
 @keyframes sheet-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes notice-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 
+/* ---------- motion ---------- */
+/* Things that come and go ease in and out with opacity and a short move, never layout. A box shown
+   by removing .hidden starts from its @starting-style; one hidden again keeps its display for the
+   length of the fade (allow-discrete), and overlay keeps a closing dialog or notice in the top layer
+   meanwhile (Safari has no overlay: there it closes as a plain fixed box, which looks the same). */
+:root {
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1); /* arrives fast and settles, like a native sheet */
+    --in: 220ms;  /* coming in */
+    --out: 150ms; /* going away: quicker, so the app never waits on it */
+}
+dialog.dlg {
+    position: fixed; /* as when modal, so a closing dialog doesn't move in Safari, which takes it out of the top layer at once */
+    inset: 0;
+    --dlg-from: scale(0.97);
+    opacity: 0;
+    transform: var(--dlg-from);
+    transition: opacity var(--out) ease-in, transform var(--out) ease-in, display var(--out) allow-discrete, overlay var(--out) allow-discrete;
+}
+dialog.dlg[open] { opacity: 1; transform: none; transition-duration: var(--in); transition-timing-function: var(--ease-out); }
+dialog.dlg::backdrop { opacity: 0; transition: opacity var(--out) ease-in, display var(--out) allow-discrete, overlay var(--out) allow-discrete; }
+dialog.dlg[open]::backdrop { opacity: 1; transition-duration: var(--in); }
+@starting-style {
+    dialog.dlg[open] { opacity: 0; transform: var(--dlg-from); }
+    dialog.dlg[open]::backdrop { opacity: 0; }
+}
+
 /* ---------- smaller screens ---------- */
 @media (max-width: 1180px) {
     /* not enough room to centre the search: it takes what the sides leave */
@@ -1706,6 +1732,7 @@ body.drag-over::after {
     /* a dialog fills the window */
     dialog.dlg { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; box-shadow: none; }
     dialog.dlg::backdrop { background: transparent; }
+    dialog.dlg { --dlg-from: translateY(24px); } /* it comes up from below, as a phone's full-screen sheets do */
     .dlg-head { padding: 16px 16px 0; }
     .dlg-head .icon-btn { margin-top: -10px; } /* centred on the title's 24px line */
     .dlg-body { padding: 0 16px 16px; }

@@ -1579,8 +1579,8 @@ body.drag-over::after {
     }
     .selection-bar .bar-btn { flex-direction: column; justify-content: center; gap: 4px; height: 50px; padding: 0 6px; font-size: 11px; }
     .selection-bar .bar-btn .kbd, .selection-bar .bar-div, .selection-count-label { display: none; }
-    #downloadSelectedBtn span { font-size: 0; }
-    #downloadSelectedBtn span::before { content: "Save"; font-size: 11px; }
+    #downloadSelectedBtn span { display: none; }
+    #downloadSelectedBtn::after { content: "Save"; } /* a label like the others' spans, so it lines up with them */
     .selection-count { padding: 0 4px; }
     .tag-flyup-gallery, .tag-flyup-gallery.bulk-mode {
         bottom: max(calc(84px + env(safe-area-inset-bottom)), calc(var(--keyboard-inset, 0px) + 8px));

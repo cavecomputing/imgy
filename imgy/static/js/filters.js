@@ -664,8 +664,21 @@ export function initFilters() {
     Elements.tagSearch.addEventListener('focus', renderSuggestions);
     // Keep clicks inside the suggestions from blurring the search input
     Elements.tagSuggestions.addEventListener('mousedown', (e) => e.preventDefault());
+    let suggestionsPressedAt = 0;
+    Elements.tagSuggestions.addEventListener('pointerdown', () => { suggestionsPressedAt = performance.now(); });
     Elements.tagSearch.addEventListener('blur', () => {
         if (State.confirmInProgress) return;
+        // on a touch screen the keyboard closes with the blur and the bar drops to the bottom, so unless
+        // a press in the suggestions caused it, close them at once, with no fade, or they hang in the air
+        if (window.matchMedia('(pointer: coarse)').matches && performance.now() - suggestionsPressedAt > 500) {
+            clearTimeout(suggestDebounceTimer);
+            const pop = Elements.tagSuggestions;
+            pop.style.transition = 'none';
+            hideSuggestions();
+            pop.offsetWidth; // apply the hiding before the transition comes back
+            pop.style.transition = '';
+            return;
+        }
         setTimeout(() => {
             if (document.activeElement !== Elements.tagSearch) hideSuggestions();
         }, 200);

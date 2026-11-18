@@ -682,8 +682,9 @@ button.chip { cursor: pointer; }
     background: var(--field);
     border-radius: var(--radius-lg);
 }
-/* 8px on every side of the row: the group's padding above and beside it, this padding below */
-.image-group-header { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 4px; margin-bottom: 8px; font-size: 12px; line-height: 16px; color: var(--fg-muted); }
+/* 8px on every side of the row: the group's padding above and beside it, this padding below.
+   The grid icon's ink starts 1px into its box, so the left padding is 1px less, to match Ungroup's 12px. */
+.image-group-header { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 4px 0 3px; margin-bottom: 8px; font-size: 12px; line-height: 16px; color: var(--fg-muted); }
 .image-group-badge { display: inline-flex; align-items: center; gap: 6px; }
 .image-group-badge svg.i { width: 14px; height: 14px; }
 .image-group-badge strong { font-weight: 500; color: var(--fg); white-space: nowrap; }

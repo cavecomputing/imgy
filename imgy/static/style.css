@@ -328,6 +328,9 @@ svg.i-fill { fill: currentColor; stroke: none; }
 .topbar::after { top: 100%; background: linear-gradient(var(--bg), transparent); opacity: 0; transition: opacity 150ms ease-out; }
 .scrolled .topbar::after { opacity: 1; }
 .gallery::after { position: fixed; bottom: 0; z-index: 50; background: linear-gradient(transparent, var(--bg)); }
+/* on phones, where the header scrolls away: iOS 26 blurs the top of the window unless a fixed or
+   sticky box there has a solid background (not a gradient, not a pseudo-element), so give it one */
+.top-edge { display: none; }
 .topbar-start { min-width: 0; display: flex; align-items: center; gap: 24px; }
 .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .brand {
@@ -1560,9 +1563,10 @@ body.drag-over::after {
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas: "start actions" "views views";
         gap: 0;
-        padding: 0 0 0 var(--page-x); /* the brand in line with the cards and the tabs */
+        padding: env(safe-area-inset-top) 0 0 var(--page-x); /* the brand in line with the cards and the tabs */
     }
-    .topbar::after { position: fixed; top: 0; z-index: 100; } /* the header scrolls away, so the fade stays at the top of the window */
+    .top-edge { display: block; position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: max(12px, env(safe-area-inset-top)); background-color: var(--bg); }
+    .topbar::after { position: fixed; top: max(12px, env(safe-area-inset-top)); z-index: 100; } /* the header scrolls away, so the fade stays at the top of the window */
     .topbar-start { display: contents; }
     .brand { grid-area: start; height: var(--topbar-h); }
     .views { grid-area: views; margin: 0 0 12px; }

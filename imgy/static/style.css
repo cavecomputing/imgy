@@ -1538,11 +1538,11 @@ body.drag-over::after {
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas: "start actions" "views views";
         gap: 0;
-        padding: 0 4px 0 16px;
+        padding: 0 0 0 var(--page-x); /* the brand in line with the cards and the tabs */
     }
     .topbar-start { display: contents; }
     .brand { grid-area: start; height: var(--topbar-h); }
-    .views { grid-area: views; margin: 0 0 12px -4px; }
+    .views { grid-area: views; margin: 0 0 12px; }
     .topbar-actions { grid-area: actions; gap: 0; }
     .icon-btn { width: 44px; height: 44px; border-radius: 12px; }
     .upload-btn { width: 44px; height: 44px; margin: 0; padding: 0; background: transparent; color: var(--fg-muted); }

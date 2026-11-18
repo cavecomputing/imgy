@@ -758,7 +758,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     transition: opacity 150ms ease-out, transform 200ms ease-out;
 }
 .tag-flyup-gallery.active { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.tag-flyup-gallery.bulk-mode { bottom: 90px; }
+.tag-flyup-gallery.bulk-mode { bottom: 88px; } /* 16px above the selection bar */
 .flyup-head { display: flex; align-items: center; gap: 12px; padding: 16px 12px 4px 16px; min-width: 0; } /* the thumbnail 16px from the top, the side and the input */
 .flyup-thumb { width: 36px; height: 36px; flex: none; border-radius: var(--radius-sm); object-fit: cover; background: var(--field); }
 .tag-flyup-gallery.bulk-mode .flyup-thumb { display: none; }
@@ -1363,7 +1363,7 @@ a.cc-btn { text-decoration: none; }
 }
 .selection-bar:not(.hidden) ~ .toast,
 .selection-bar:not(.hidden) ~ .error,
-.selection-bar:not(.hidden) ~ .upload-progress { bottom: 90px; }
+.selection-bar:not(.hidden) ~ .upload-progress { bottom: 88px; } /* 16px above the selection bar, 24px up and 48px tall */
 /* The gallery tag editor sits at the bottom, so its results show up top */
 .tag-flyup-gallery.active ~ .toast, .tag-flyup-gallery.active ~ .error { top: calc(var(--topbar-h) + 10px); bottom: auto; }
 /* where toasts show, so all feedback comes from one place */

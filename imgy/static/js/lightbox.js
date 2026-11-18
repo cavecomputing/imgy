@@ -80,13 +80,21 @@ function fitToFile(el, img) {
 function showImage(img, src) {
     const el = Elements.lightboxImage;
     const sharpening = src === img.url && el.getAttribute('src') === img.thumbnail_url;
-    dropArriving();
-    el.style.visibility = '';
     fitToFile(el, img);
     el.style.display = '';
     el.alt = getImageBaseName(img.filename);
     el.classList.toggle('switching', src !== img.url);
     el.src = src;
+    // After a swipe the neighbour that slid in stands in until the img can draw the new file: until
+    // then the img would go on drawing the last one (Safari does, for as long as a big original
+    // takes to decode, even one decoded ahead in another Image)
+    if (arriving) {
+        el.decode().catch(() => {}).then(() => {
+            if (el.getAttribute('src') !== src) return; // a later call has it
+            dropArriving();
+            el.style.visibility = '';
+        });
+    }
     if (sharpening) return;
     resetZoom();
     el.style.transition = 'none';
@@ -622,7 +630,7 @@ export function initLightbox() {
 
     // Touch support for panning & pinch-to-zoom
     Elements.lightboxContent.addEventListener('touchstart', (e) => {
-        if (drag?.frame) return; // still gliding from the last drag
+        if (drag?.frame || arriving) return; // still gliding from the last drag, or waiting on its file
         if (e.touches.length === 1) {
             const t = e.touches[0];
             if (State.zoom.scale === 1) drag = { x: t.clientX, y: t.clientY, time: e.timeStamp, mode: null, dx: 0, dy: 0, vx: 0, vy: 0, peeks: new Map() };

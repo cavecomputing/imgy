@@ -326,8 +326,12 @@ svg.i-fill { fill: currentColor; stroke: none; }
 .topbar::after { top: 100%; background: linear-gradient(var(--bg), transparent); opacity: 0; transition: opacity 150ms ease-out; }
 .scrolled .topbar::after { opacity: 1; }
 .gallery::after { position: fixed; bottom: 0; z-index: 50; background: linear-gradient(transparent, var(--bg)); }
-/* the on-screen keyboard lifts the bottom of the window, and the fade would ride up on it */
-@media (pointer: coarse) { .topbar:has(#tagSearch:focus) ~ .gallery::after { display: none; } }
+/* while the search has focus on a touch screen, the on-screen keyboard is the bottom of the window:
+   the fade would ride up on it, and the phone search bar needs no room for the home indicator */
+@media (pointer: coarse) {
+    .topbar:has(#tagSearch:focus) ~ .gallery::after { display: none; }
+    .topbar-filter:has(#tagSearch:focus) { bottom: calc(var(--keyboard-inset, 0px) + 8px); }
+}
 /* on phones, where the header scrolls away: iOS 26 blurs the top of the window unless a fixed or
    sticky box there has a solid background (not a gradient, not a pseudo-element), so give it one */
 .top-edge { display: none; }

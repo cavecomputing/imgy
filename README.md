@@ -3,17 +3,12 @@
 </p>
 
 <p align="center">
-  A local-first image and video organizer 🖼️
+  A local image and video organizer 🖼️
 </p>
 
 Imgy is a web app for sorting out a big folder of pictures and clips. Tag, search, favorite, group,
 and rename your media from the browser, with a tiny tag syntax that keeps your hands on the keyboard.
 Your files stay ordinary files in a folder on your own machine, and Imgy only remembers the tags.
-
-**Imgy is not the AI.** Auto-tagging is optional, and Imgy doesn't include or download a model. If
-you want it, point Imgy at a vision model you already have: one running on your computer (Ollama,
-LM Studio, llama.cpp) or one online (OpenRouter and similar). Anything that speaks the
-OpenAI-style chat API works.
 
 <p align="center">
   <img src="assets/gallery.png" alt="The gallery" width="49%">

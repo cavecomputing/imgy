@@ -1699,7 +1699,7 @@ html { -webkit-tap-highlight-color: transparent; }
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas: "start actions" "views views";
         gap: 0;
-        padding: env(safe-area-inset-top) 0 0 var(--page-x); /* the brand in line with the cards and the tabs */
+        padding: env(safe-area-inset-top) 4px 0 var(--page-x); /* the brand in line with the cards; 4px more on the right keeps the last icon 18px in */
     }
     .topbar-start { display: contents; }
     .brand { grid-area: start; height: var(--topbar-h); }

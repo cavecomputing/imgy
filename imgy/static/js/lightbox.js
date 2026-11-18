@@ -296,6 +296,8 @@ async function renderLightboxExif(filename) {
 export function renderLightboxTagBar(tags, filename) {
     const container = Elements.lightboxTagBarTags;
     container.innerHTML = '';
+    if (tags.length) Elements.lightboxTagTab.dataset.count = tags.length; // phones show it on the Tags tab
+    else delete Elements.lightboxTagTab.dataset.count;
     if (!tags.length) container.insertAdjacentHTML('beforeend', '<span class="lb-empty">No tags yet.</span>');
     tags.forEach(t => {
         const chip = document.createElement('span');

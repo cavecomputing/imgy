@@ -1488,7 +1488,7 @@ body.drag-over::after {
     .lb-panel .chip { height: 30px; font-size: 14px; }
     .lb-panel .chip-label { padding: 0 2px; }
     .lb-sec-details { display: none; }
-    .lb-meta-line { display: block; margin: 12px 2px 4px; font-size: 12px; line-height: 16px; color: var(--fg-muted); }
+    .lb-meta-line { display: block; margin: 12px 0 4px; font-size: 12px; line-height: 16px; color: var(--fg-muted); }
     .lb-tabs {
         position: sticky;
         bottom: 0;

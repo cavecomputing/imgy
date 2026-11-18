@@ -1556,6 +1556,19 @@ dialog.dlg[open]::backdrop { opacity: 1; transition-duration: var(--in); }
     .filter-pop:not(.hidden) { opacity: 0; translate: 0 -4px; }
 }
 
+/* Press feedback on touch screens, where nothing hovers: the button sinks a little under the finger.
+   It waits a moment before sinking, so a finger that lands on a card to scroll doesn't flicker it. */
+html { -webkit-tap-highlight-color: transparent; }
+@media (hover: none) {
+    :is(.icon-btn, .bar-btn, .cc-btn, .tab, .lb-tab, .chip, .mini, .settings-tab, .card-action-btn, .seg span, .card-media) {
+        transition: background var(--ease), color var(--ease), opacity var(--ease), box-shadow var(--ease), scale 200ms var(--ease-out);
+    }
+    :is(.icon-btn, .bar-btn, .cc-btn, .tab, .lb-tab, .chip, .mini, .settings-tab, .card-action-btn):active:not(:disabled),
+    .seg label:active span { scale: 0.94; transition-duration: 80ms; }
+    .image-card:active .card-media { scale: 0.97; transition: scale 120ms ease-out 60ms; }
+}
+.card-media img { transition: filter var(--ease); } /* dimming the files a selection leaves out */
+
 /* ---------- smaller screens ---------- */
 @media (max-width: 1180px) {
     /* not enough room to centre the search: it takes what the sides leave */

@@ -43,5 +43,9 @@ start();
 // Only exists on HTTPS and localhost; elsewhere the app just isn't installable
 navigator.serviceWorker?.register('/sw.js');
 
+// iOS Safari only lets a touched button match :active, which gives it its pressed look, when a
+// touchstart listener sits on it or above it
+document.addEventListener('touchstart', () => {}, { passive: true });
+
 // Abort in-flight API requests on page unload to prevent server pile-up
 window.addEventListener('beforeunload', abortLoadData);

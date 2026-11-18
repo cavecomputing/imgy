@@ -20,6 +20,12 @@ OpenAI-style chat API works.
   <img src="assets/lightbox.png" alt="The lightbox" width="49%">
 </p>
 
+<p align="center">
+  <img src="assets/search.png" alt="Searching tags, with suggestions" width="62%">
+  <img src="assets/phone-gallery.png" alt="The gallery on a phone" width="18%">
+  <img src="assets/phone-viewer.png" alt="The lightbox on a phone" width="18%">
+</p>
+
 - Fast tag editing with a small expression syntax (`+new`, `-remove`, `old>new`, ...)
 - Filter by tags, exclusions, file names, favorites, or untagged files
 - **Settings › Tags** lists every tag with its file count and deletes one or many at once

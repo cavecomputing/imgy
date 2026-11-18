@@ -174,7 +174,8 @@ The image installs the locked dependencies into `/app/.venv` (on `PATH`) with uv
   `VIDEO_EXTENSIONS` in `utils.js`, `FILE_TYPES` in `lightbox.js`, both `accept` lists in `index.html`,
   and in the extension `extensionOfType` and the name check in `fileNameFor()` (`extension/upload.js`,
   which ships as a new signed build).
-- **Screenshots.** [README.md](README.md) shows two screenshots from [assets/](assets/). A redesign
-  of the gallery or the lightbox means retaking them.
+- **Screenshots.** [README.md](README.md) shows five screenshots from [assets/](assets/): the
+  gallery, the lightbox and search on desktop, and the gallery and lightbox on a phone. A redesign
+  of any of them means retaking them.
 - **The README feature list and layout.** A user-visible feature means checking the README's feature
   list; a new module or folder means checking the Architecture table above.

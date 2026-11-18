@@ -28,6 +28,7 @@ let gridHeight = 0;         // the blocks' height, which layoutBlocks() gives th
 const heights = new Map();  // measured block heights, margin included, by blockKey(), for the current column width
 let columnTracks = '';      // the grid's column sizes the heights were measured at
 
+const shownThumbnails = new Set(); // thumbnails drawn before, which the browser has at hand: they show at once, the rest fade in
 const blockKey = (block) => block.files.map(img => img.thumbnail_url).join('\n');
 const cardsOf = (el) => el.matches('.image-card') ? [el] : [...el.querySelectorAll('.image-card')];
 /** The height an element takes up in its column, its bottom margin included (cards and groups differ on phones). */
@@ -69,6 +70,12 @@ function createImageCard(img, idx) {
     const thumb = card.querySelector('img');
     thumb.addEventListener('load', remeasure);
     thumb.addEventListener('error', remeasure);
+    if (!shownThumbnails.has(img.thumbnail_url)) {
+        card.classList.add('arriving');
+        const show = () => { shownThumbnails.add(img.thumbnail_url); card.classList.remove('arriving'); };
+        thumb.addEventListener('load', show, { once: true });
+        thumb.addEventListener('error', show, { once: true });
+    }
     card.addEventListener('click', (e) => handleCardClick(e, img, card));
     return card;
 }

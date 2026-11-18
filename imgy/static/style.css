@@ -1571,7 +1571,8 @@ html { -webkit-tap-highlight-color: transparent; }
     .seg label:active span { scale: 0.94; transition-duration: 80ms; }
     .image-card:active .card-media { scale: 0.97; transition: scale 120ms ease-out 60ms; }
 }
-.card-media img { transition: filter var(--ease); } /* dimming the files a selection leaves out */
+.card-media img { transition: filter var(--ease), opacity 200ms ease-out; } /* dimming the files a selection leaves out */
+.image-card.arriving .card-media img { opacity: 0; } /* a thumbnail fades in as it arrives, instead of popping onto its grey box (grid.js) */
 
 /* ---------- smaller screens ---------- */
 @media (max-width: 1180px) {

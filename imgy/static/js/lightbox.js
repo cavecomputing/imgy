@@ -61,12 +61,17 @@ function preloadNeighbours() {
  * the original replaces it; anything else goes up as it is, unzoomed, with nothing fading or
  * zooming over from the last file.
  */
-function showImage(img, src) {
-    const el = Elements.lightboxImage;
-    const sharpening = src === img.url && el.getAttribute('src') === img.thumbnail_url;
+/** Give a picture or video the file's own shape and size, fitted to the viewer, before any of it has loaded. */
+function fitToFile(el, img) {
     const sized = img.width && img.height;
     el.style.width = sized ? `min(${img.width}px, 100cqw, ${img.width / img.height} * 100cqh)` : '';
     el.style.aspectRatio = sized ? `${img.width} / ${img.height}` : '';
+}
+
+function showImage(img, src) {
+    const el = Elements.lightboxImage;
+    const sharpening = src === img.url && el.getAttribute('src') === img.thumbnail_url;
+    fitToFile(el, img);
     el.style.display = '';
     el.alt = getImageBaseName(img.filename);
     el.classList.toggle('switching', src !== img.url);
@@ -143,6 +148,7 @@ export function updateLightboxContent() {
         video.autoplay = true;
         video.src = targetUrl;
         video.poster = img.thumbnail_url;
+        fitToFile(video, img); // else it opens at the poster's size and grows once the video's own size is known
         video.onerror = () => showToast('This video format may not be supported by your browser');
         // Once it has a first frame, the files on either side load ahead as they do for an image
         video.addEventListener('loadeddata', () => { if (version === shownVersion) preloadNeighbours(); }, { once: true });

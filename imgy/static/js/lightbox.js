@@ -101,6 +101,7 @@ function showImage(img, src) {
     el.style.transition = 'none';
     getComputedStyle(el).opacity; // applies the changes while transitions are off
     el.style.transition = '';
+    if (drag?.mode === 'browse') drawDrag(drag.dx, drag.dy); // a swipe already on to the next file keeps it under the finger
 }
 
 /** The picture of file `idx`'s card in the gallery, if it is in the window: the viewer opens out of it and closes into it. */
@@ -522,6 +523,7 @@ function makeGlow(dir) {
     const files = State.filteredImages;
     const glow = Elements.lightboxAmbient.cloneNode();
     glow.removeAttribute('id');
+    glow.removeAttribute('style'); // the room's glow may be mid hand-over
     glow.src = files[(State.currentImageIndex + dir + files.length) % files.length].thumbnail_url;
     glow.style.transition = 'none';
     glow.style.setProperty('--glow', 0);
@@ -568,8 +570,10 @@ function drawDrag(dx, dy) {
     media.style.transition = 'none'; // the img's transform transition would trail the finger (and outlast the touch)
     if (drag.mode === 'browse') {
         const span = Elements.lightboxContent.clientWidth + PEEK_GAP;
-        const x = State.filteredImages.length > 1 ? dx : dx * 0.3; // nothing to slide in: it gives a little and comes back
+        // nothing to slide in: it gives a little and comes back; and only the files either side are drawn
+        const x = State.filteredImages.length > 1 ? Math.min(Math.max(dx, -span), span) : dx * 0.3;
         media.style.transform = `translateX(${x}px)`;
+        if (arriving) arriving.style.transform = `translateX(${x}px)`; // standing in for the shown file
         for (const [dir, peek] of drag.peeks) peek.style.transform = `translateX(${x + dir * span}px)`;
         let incoming = 0;
         for (const [dir, glow] of drag.glows) {
@@ -618,35 +622,74 @@ function cancelDrag() {
     drag = null;
 }
 
+/** Draw the files on either side and their glows, for a sideways drag. */
+function startBrowse() {
+    drag.mode = 'browse';
+    Elements.lightboxImage.classList.add('dragging');
+    if (State.filteredImages.length <= 1) return;
+    for (const dir of [1, -1]) {
+        drag.peeks.set(dir, makePeek(dir));
+        drag.glows.set(dir, makeGlow(dir));
+    }
+    Elements.lightboxAmbient.style.transition = 'none';
+}
+
+/** Make the file `dir` steps away the shown one, its neighbour (now in the middle) standing in until it is up. */
+function handOver(dir) {
+    dropArriving();
+    arriving = drag.peeks.get(dir);
+    drag.peeks.delete(dir);
+    const glow = drag.glows.get(dir);
+    drag.glows.delete(dir);
+    Elements.lightboxImage.style.visibility = 'hidden';
+    cancelDrag();
+    // and the room takes the new file's glow, with the copy that faded in on top until it can draw
+    const ambient = Elements.lightboxAmbient;
+    ambient.style.transition = 'none';
+    ambient.style.setProperty('--under', 1);
+    ambient.src = glow.getAttribute('src'); // as showAmbient() will compare it
+    ambient.decode().catch(() => {}).then(() => requestAnimationFrame(() => {
+        glow.remove();
+        if (!drag) restoreAmbient(); // a new drag sets the room's glow itself
+    }));
+    navigateImage(dir);
+}
+
+/**
+ * A finger down while the last drag is still gliding catches the files where they are, so you can
+ * swipe on through without waiting. A glide on to the next file finishes its hand-over at once and
+ * the new drag starts from wherever that file had got to.
+ */
+function takeOver(touch, time) {
+    cancelAnimationFrame(drag.frame);
+    drag.frame = 0;
+    if (drag.committing) {
+        const span = Elements.lightboxContent.clientWidth + PEEK_GAP;
+        const offset = drag.dx + drag.committing * span; // where the file coming in had got to
+        handOver(drag.committing);
+        drag = { mode: null, vx: 0, vy: 0, peeks: new Map(), glows: new Map() };
+        startBrowse();
+        drawDrag(offset, 0);
+    }
+    Object.assign(drag, { x: touch.clientX - drag.dx, y: touch.clientY - drag.dy, time, vx: 0, vy: 0 });
+}
+
 /** Let go of a drag: on to the next file, closed, or back where it started, by how far and how fast it went. */
 function endDrag() {
     const { mode, dx, dy, vx, vy } = drag;
     const content = Elements.lightboxContent;
     if (mode === 'browse' && State.filteredImages.length > 1) {
-        const dir = dx < 0 ? 1 : -1;
-        const flung = Math.abs(vx) > 0.4 && Math.sign(vx) === Math.sign(dx);
-        if (Math.abs(dx) > content.clientWidth * 0.2 || flung) {
-            settleDrag(-dir * (content.clientWidth + PEEK_GAP), 0, () => {
-                // The neighbour stays in the middle until the viewer has the file up, so no frame shows the last one
-                arriving = drag.peeks.get(dir);
-                drag.peeks.delete(dir);
-                const glow = drag.glows.get(dir);
-                drag.glows.delete(dir);
-                Elements.lightboxImage.style.visibility = 'hidden';
-                cancelDrag();
-                // and the room takes the new file's glow, with the copy that faded in on top until it can draw
-                const ambient = Elements.lightboxAmbient;
-                ambient.style.transition = 'none';
-                ambient.style.setProperty('--under', 1);
-                ambient.src = glow.getAttribute('src'); // as showAmbient() will compare it
-                ambient.decode().catch(() => {}).then(() => requestAnimationFrame(() => {
-                    glow.remove();
-                    restoreAmbient();
-                }));
-                navigateImage(dir);
-            }, Math.sign(vx) === -dir ? Math.abs(vx) : 0);
-            return;
+        // A flick goes on to the neighbour that way, even one caught before it got to the middle,
+        // so quick flicks go through a file each; a slower drag goes on past a fifth of the width
+        const flick = Math.abs(vx) > 0.4 ? Math.sign(vx) : 0;
+        const dir = flick ? -flick : Math.abs(dx) > content.clientWidth * 0.2 ? -Math.sign(dx) : 0;
+        if (dir) {
+            drag.committing = dir;
+            settleDrag(-dir * (content.clientWidth + PEEK_GAP), 0, () => handOver(dir), Math.sign(vx) === -dir ? Math.abs(vx) : 0);
+        } else {
+            settleDrag(0, 0, cancelDrag, Math.sign(vx) === -Math.sign(dx) ? Math.abs(vx) : 0);
         }
+        return;
     } else if (mode === 'close' && (dy > content.clientHeight * 0.15 || vy > 0.5)) {
         closeLightbox(); // the file flies from under the finger back into its card
         return;
@@ -749,7 +792,11 @@ export function initLightbox() {
 
     // Touch support for panning & pinch-to-zoom
     Elements.lightboxContent.addEventListener('touchstart', (e) => {
-        if (drag?.frame || arriving) return; // still gliding from the last drag, or waiting on its file
+        if (e.touches.length === 1 && drag?.frame && drag.mode === 'browse') {
+            takeOver(e.touches[0], e.timeStamp);
+            return;
+        }
+        if (drag?.frame) return; // closing
         if (e.touches.length === 1) {
             const t = e.touches[0];
             if (State.zoom.scale === 1) drag = { x: t.clientX, y: t.clientY, time: e.timeStamp, mode: null, dx: 0, dy: 0, vx: 0, vy: 0, peeks: new Map(), glows: new Map() };
@@ -779,15 +826,11 @@ export function initLightbox() {
             const dx = t.clientX - drag.x, dy = t.clientY - drag.y;
             if (!drag.mode) {
                 if (Math.hypot(dx, dy) < 10) return;
-                drag.mode = Math.abs(dx) > Math.abs(dy) ? 'browse' : dy > 0 ? 'close' : 'none';
-                if (drag.mode === 'browse' && State.filteredImages.length > 1) {
-                    for (const dir of [1, -1]) {
-                        drag.peeks.set(dir, makePeek(dir));
-                        drag.glows.set(dir, makeGlow(dir));
-                    }
-                    Elements.lightboxAmbient.style.transition = 'none';
+                if (Math.abs(dx) > Math.abs(dy)) startBrowse();
+                else {
+                    drag.mode = dy > 0 ? 'close' : 'none';
+                    Elements.lightboxImage.classList.add('dragging');
                 }
-                Elements.lightboxImage.classList.add('dragging');
             }
             if (drag.mode === 'none') return;
             const elapsed = e.timeStamp - drag.time;

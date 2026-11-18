@@ -16,7 +16,6 @@ import { llmQueueUpdateUI } from './llm.js';
 const BATCH = 60;         // files drawn at a time, so a big library opens as fast as a small one
 const PRELOAD_PX = 1500;  // the next batch is drawn when the end of the grid is this close to the bottom of the window
 const KEEP_PX = 1500;     // cards further than this above or below the window are taken out of the page
-const ROW_PX = 4;         // block heights round up to whole rows of this, so equal cards tie and the leftmost column wins
 
 const icon = (name, cls = 'i i-sm') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
@@ -133,7 +132,7 @@ function layoutBlocks() {
     for (const block of blocks) {
         block.col = bottoms.indexOf(Math.min(...bottoms));
         block.top = bottoms[block.col];
-        bottoms[block.col] += Math.ceil(block.height / ROW_PX) * ROW_PX;
+        bottoms[block.col] += Math.round(block.height); // whole pixels: the gap under a card is the gap beside it
         if (block.el) placeElement(block);
     }
     gridHeight = blocks.length ? Math.max(...bottoms) : 0;

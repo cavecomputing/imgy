@@ -333,10 +333,32 @@ svg.i-fill { fill: currentColor; stroke: none; }
 .topbar::after { top: 100%; background: linear-gradient(var(--bg), transparent); opacity: 0; transition: opacity 150ms ease-out; }
 .scrolled .topbar::after { opacity: 1; }
 .gallery::after { position: fixed; bottom: 0; z-index: 50; background: linear-gradient(transparent, var(--bg)); }
+/* back to the start of the gallery, once it has scrolled */
+.to-top {
+    position: fixed;
+    right: var(--page-x);
+    bottom: 24px;
+    z-index: 110;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--raised);
+    box-shadow: var(--shadow-pop);
+    color: var(--fg);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 150ms ease-out, visibility 150ms;
+}
+.to-top:hover { color: var(--ink-text); }
+.scrolled .to-top { opacity: 1; visibility: visible; }
 /* while the search has focus on a touch screen, the on-screen keyboard is the bottom of the window:
-   the fade would ride up on it, and the phone search bar needs no room for the home indicator */
+   the fade and the button would ride up on it, and the phone search bar needs no room for the home indicator */
 @media (pointer: coarse) {
-    .topbar:has(#tagSearch:focus) ~ .gallery::after { display: none; }
+    .topbar:has(#tagSearch:focus) ~ .gallery::after, .topbar:has(#tagSearch:focus) ~ .to-top { display: none; }
     .topbar-filter:has(#tagSearch:focus) { bottom: calc(var(--keyboard-inset, 0px) + 8px); }
 }
 .topbar-start { min-width: 0; display: flex; align-items: center; gap: 24px; }
@@ -1640,6 +1662,7 @@ body.drag-over::after {
 
     .gallery { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); }
     .gallery::after { height: calc(32px + env(safe-area-inset-bottom)); } /* the cards fade out behind the search bar */
+    .to-top { right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); } /* in line with the search bar's right edge, 12px above it */
     .image-card { scroll-margin: calc(112px + env(safe-area-inset-top)) 0 100px; } /* 12px clear of the 100px header */
     .card-media { border-radius: var(--radius-sm); }
     .card-actions, .card-foot, .card-media::after { display: none; }

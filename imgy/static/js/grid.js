@@ -426,5 +426,8 @@ export function initGrid() {
     window.addEventListener('scroll', updateWindowSoon, { passive: true });
     // style.css fades the cards under the header only once there are cards under it
     window.addEventListener('scroll', () => document.documentElement.classList.toggle('scrolled', scrollY > 0), { passive: true });
+    document.getElementById('toTopBtn').addEventListener('click', () => {
+        scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
     window.addEventListener('resize', updateWindowSoon);
 }

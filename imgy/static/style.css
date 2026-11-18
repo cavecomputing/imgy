@@ -1548,11 +1548,11 @@ dialog.dlg[open]::backdrop { opacity: 1; transition-duration: var(--in); }
     dialog.dlg[open]::backdrop { opacity: 0; }
 }
 
-.selection-bar, .filter-pop, .toast, .error, .loading {
+.selection-bar, .filter-pop, .toast, .error, .loading, .upload-progress {
     transition: opacity var(--out) ease-in, translate var(--out) ease-in, display var(--out) allow-discrete, overlay var(--out) allow-discrete;
 }
 .selection-bar:not(.hidden), .filter-pop:not(.hidden) { transition-duration: var(--in); transition-timing-function: var(--ease-out); }
-.selection-bar.hidden, .filter-pop.hidden, .toast.hidden, .error.hidden, .loading.hidden { opacity: 0; pointer-events: none; }
+.selection-bar.hidden, .filter-pop.hidden, .toast.hidden, .error.hidden, .loading.hidden, .upload-progress.hidden { opacity: 0; pointer-events: none; }
 .selection-bar.hidden { translate: 0 12px; }
 .filter-pop.hidden { translate: 0 -4px; }
 @starting-style {

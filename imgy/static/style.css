@@ -885,7 +885,9 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     display: none;
     flex-direction: column;
     height: 100dvh;
+    --shown: calc(1 - var(--dismiss, 0)); /* a swipe down sets --dismiss, fading the viewer to the gallery under it */
     background: var(--viewer);
+    background: rgb(from var(--viewer) r g b / var(--shown));
     overflow: hidden;
     isolation: isolate;
 }
@@ -898,20 +900,23 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     height: 120%;
     object-fit: cover;
     filter: blur(90px) saturate(1.4);
-    opacity: 0.75;
+    opacity: calc(0.75 * var(--shown));
     pointer-events: none;
     transition: opacity 400ms ease;
 }
 .lb-ambient:not([src]) { opacity: 0; }
+.lightbox[style*="--dismiss"] .lb-ambient { transition: none; } /* keeps up with the finger */
 .lightbox::before { /* keeps the glow behind the controls readable */
     content: "";
     position: absolute;
     inset: 0;
     z-index: -1;
     background: radial-gradient(120% 90% at 50% 45%, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.62));
+    opacity: var(--shown);
     pointer-events: none;
 }
-:root:not([data-theme="dark"]) .lb-ambient { opacity: 0.55; }
+:root:not([data-theme="dark"]) .lb-ambient { opacity: calc(0.55 * var(--shown)); }
+.lb-top, .lb-panel { opacity: var(--shown); }
 :root:not([data-theme="dark"]) .lightbox::before { background: rgba(249, 245, 234, 0.5); }
 .glass {
     background: var(--glass);
@@ -995,6 +1000,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 .zoomed-view .lightbox-content img { transition: none !important; }
 .zoomed-view .lightbox-content img { border-radius: 0; box-shadow: none; }
 .lightbox-content img.switching { filter: blur(4px); opacity: 0.85; }
+.lightbox-content .lb-peek { position: absolute; pointer-events: none; transition: none; } /* the file next door, sliding in with a swipe (drawDrag() in lightbox.js) */
 .zoomed-view .lightbox-content { cursor: grab; }
 .lightbox-video { max-width: 100%; max-height: 100%; border-radius: 12px; outline: none; background: var(--video-bg); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4); }
 .lightbox-nav {

@@ -29,6 +29,15 @@ let lastTap = null;
 const DOUBLE_TAP_MS = 300;
 const DOUBLE_TAP_PX = 40;
 
+// A one-finger drag on an unzoomed file: sideways the file follows the finger with its neighbour
+// coming in beside it ('browse'), downwards it shrinks away as the viewer fades ('close'). `peeks`
+// are the neighbours drawn for it; `arriving` is the one left standing in for the new file until
+// the viewer puts that file up.
+let drag = null;
+let arriving = null;
+const PEEK_GAP = 16; // between a file and its neighbour while they slide
+const SETTLE_MS = 220;
+
 function loadInBackground(url) {
     const loader = new Image();
     loader.src = url;
@@ -71,6 +80,8 @@ function fitToFile(el, img) {
 function showImage(img, src) {
     const el = Elements.lightboxImage;
     const sharpening = src === img.url && el.getAttribute('src') === img.thumbnail_url;
+    dropArriving();
+    el.style.visibility = '';
     fitToFile(el, img);
     el.style.display = '';
     el.alt = getImageBaseName(img.filename);
@@ -103,6 +114,9 @@ export function closeLightbox() {
     fadingAmbient?.remove();
     Elements.lightboxStrip.textContent = '';
     const restoreFilename = getCurrentLightboxImage()?.filename;
+    cancelDrag();
+    dropArriving();
+    Elements.lightboxImage.style.visibility = '';
     Elements.lightbox.classList.remove('active');
     document.body.style.overflow = '';
     resetZoom();
@@ -141,6 +155,8 @@ export function updateLightboxContent() {
         Elements.lightboxImage.removeAttribute('src'); // drops the last picture while the video plays
         Elements.resetZoomBtn.style.display = 'none';
         resetZoom();
+        dropArriving();
+        Elements.lightboxImage.style.visibility = '';
 
         const video = document.createElement('video');
         video.className = 'lightbox-video';
@@ -414,6 +430,103 @@ export function resetZoom() {
     applyTransform();
 }
 
+/** The picture or video on show, which a drag moves. */
+function shownMedia() {
+    return Elements.lightboxContent.querySelector('video.lightbox-video') || Elements.lightboxImage;
+}
+
+function dropArriving() {
+    arriving?.remove();
+    arriving = null;
+}
+
+/** The file `dir` steps away, drawn centred where the shown file is, ready to slide in. */
+function makePeek(dir) {
+    const files = State.filteredImages;
+    const file = files[(State.currentImageIndex + dir + files.length) % files.length];
+    const peek = document.createElement('img');
+    peek.className = 'lb-peek';
+    peek.alt = '';
+    peek.draggable = false;
+    // The original if it has been fetched ahead, else the thumbnail the gallery already has
+    peek.src = loaders.some(l => decoded.has(l) && l.getAttribute('src') === file.url) ? file.url : file.thumbnail_url;
+    fitToFile(peek, file);
+    Elements.lightboxContent.append(peek);
+    const media = shownMedia();
+    peek.style.left = `${media.offsetLeft + (media.offsetWidth - peek.offsetWidth) / 2}px`;
+    peek.style.top = `${media.offsetTop + (media.offsetHeight - peek.offsetHeight) / 2}px`;
+    return peek;
+}
+
+/** Draw the drag with the finger (dx, dy) from where it went down: the files slid sideways, or the file pulled down. */
+function drawDrag(dx, dy) {
+    drag.dx = dx;
+    drag.dy = dy;
+    const media = shownMedia();
+    if (drag.mode === 'browse') {
+        const span = Elements.lightboxContent.clientWidth + PEEK_GAP;
+        const x = State.filteredImages.length > 1 ? dx : dx * 0.3; // nothing to slide in: it gives a little and comes back
+        media.style.transform = `translateX(${x}px)`;
+        for (const [dir, peek] of drag.peeks) peek.style.transform = `translateX(${x + dir * span}px)`;
+    } else {
+        const progress = Math.min(Math.max(dy / Elements.lightboxContent.clientHeight, 0), 1);
+        media.style.transform = `translate(${dx}px, ${dy < 0 ? dy * 0.3 : dy}px) scale(${1 - progress * 0.4})`;
+        Elements.lightbox.style.setProperty('--dismiss', Math.min(progress * 2, 1));
+    }
+}
+
+/** Glide the drag from where it is to (toX, toY), then call `done`. */
+function settleDrag(toX, toY, done) {
+    const fromX = drag.dx, fromY = drag.dy;
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : SETTLE_MS;
+    const start = performance.now();
+    const step = now => {
+        const t = duration ? Math.min((now - start) / duration, 1) : 1;
+        const eased = 1 - (1 - t) ** 3;
+        drawDrag(fromX + (toX - fromX) * eased, fromY + (toY - fromY) * eased);
+        if (t < 1) drag.frame = requestAnimationFrame(step);
+        else done();
+    };
+    drag.frame = requestAnimationFrame(step);
+}
+
+/** Put everything a drag moved back as it was, at once. */
+function cancelDrag() {
+    if (!drag) return;
+    cancelAnimationFrame(drag.frame);
+    for (const [, peek] of drag.peeks) peek.remove();
+    const media = shownMedia();
+    media.style.transform = media === Elements.lightboxImage ? 'translate(0px, 0px) scale(1)' : '';
+    Elements.lightboxImage.classList.remove('dragging');
+    Elements.lightbox.style.removeProperty('--dismiss');
+    drag = null;
+}
+
+/** Let go of a drag: on to the next file, closed, or back where it started, by how far and how fast it went. */
+function endDrag() {
+    const { mode, dx, dy, vx, vy } = drag;
+    const content = Elements.lightboxContent;
+    if (mode === 'browse' && State.filteredImages.length > 1) {
+        const dir = dx < 0 ? 1 : -1;
+        const flung = Math.abs(vx) > 0.4 && Math.sign(vx) === Math.sign(dx);
+        if (Math.abs(dx) > content.clientWidth * 0.2 || flung) {
+            settleDrag(-dir * (content.clientWidth + PEEK_GAP), 0, () => {
+                // The neighbour stays in the middle until the viewer has the file up, so no frame shows the last one
+                arriving = drag.peeks.get(dir);
+                drag.peeks.delete(dir);
+                Elements.lightboxImage.style.visibility = 'hidden';
+                cancelDrag();
+                navigateImage(dir);
+            });
+            return;
+        }
+    } else if (mode === 'close' && (dy > content.clientHeight * 0.15 || vy > 0.5)) {
+        settleDrag(dx, content.clientHeight, closeLightbox);
+        return;
+    }
+    settleDrag(0, 0, cancelDrag);
+}
+
 export function navigateImage(dir) {
     if (State.filteredImages.length <= 1) return;
     closeLightboxTagFlyup();
@@ -509,9 +622,10 @@ export function initLightbox() {
 
     // Touch support for panning & pinch-to-zoom
     Elements.lightboxContent.addEventListener('touchstart', (e) => {
+        if (drag?.frame) return; // still gliding from the last drag
         if (e.touches.length === 1) {
-            State.zoom.swipeStartX = e.touches[0].clientX;
             const t = e.touches[0];
+            if (State.zoom.scale === 1) drag = { x: t.clientX, y: t.clientY, time: e.timeStamp, mode: null, dx: 0, dy: 0, vx: 0, vy: 0, peeks: new Map() };
             tapStart = e.target === Elements.lightboxImage ? { x: t.clientX, y: t.clientY, time: e.timeStamp } : null;
             if (State.zoom.scale > 1) {
                 State.zoom.isDragging = true;
@@ -520,7 +634,8 @@ export function initLightbox() {
                 Elements.lightboxImage.classList.add('dragging');
             }
         } else if (e.touches.length === 2) {
-            tapStart = lastTap = null; // a pinch is not a tap
+            cancelDrag(); // a pinch is not a swipe
+            tapStart = lastTap = null; // nor a tap
             State.zoom.isDragging = false;
             Elements.lightboxImage.classList.add('dragging');
             updateCachedDimensions();
@@ -532,7 +647,26 @@ export function initLightbox() {
     }, { passive: true });
 
     Elements.lightboxContent.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 1 && State.zoom.isDragging) {
+        if (e.touches.length === 1 && drag && !drag.frame) {
+            const t = e.touches[0];
+            const dx = t.clientX - drag.x, dy = t.clientY - drag.y;
+            if (!drag.mode) {
+                if (Math.hypot(dx, dy) < 10) return;
+                drag.mode = Math.abs(dx) > Math.abs(dy) ? 'browse' : dy > 0 ? 'close' : 'none';
+                if (drag.mode === 'browse' && State.filteredImages.length > 1) {
+                    for (const dir of [1, -1]) drag.peeks.set(dir, makePeek(dir));
+                }
+                Elements.lightboxImage.classList.add('dragging');
+            }
+            if (drag.mode === 'none') return;
+            const elapsed = e.timeStamp - drag.time;
+            if (elapsed > 0) { // pixels per ms, mostly the last few moves
+                drag.vx = drag.vx * 0.5 + (dx - drag.dx) / elapsed * 0.5;
+                drag.vy = drag.vy * 0.5 + (dy - drag.dy) / elapsed * 0.5;
+            }
+            drag.time = e.timeStamp;
+            drawDrag(dx, dy);
+        } else if (e.touches.length === 1 && State.zoom.isDragging) {
             State.zoom.translateX = e.touches[0].clientX - State.zoom.startX;
             State.zoom.translateY = e.touches[0].clientY - State.zoom.startY;
             updateTransform();
@@ -565,11 +699,9 @@ export function initLightbox() {
             lastTap = isTap && !isDoubleTap ? { x: t.clientX, y: t.clientY, time: e.timeStamp } : null;
             tapStart = null;
         }
-        if (e.changedTouches.length === 1 && State.zoom.scale === 1) {
-            const deltaX = e.changedTouches[0].clientX - State.zoom.swipeStartX;
-            if (Math.abs(deltaX) > 50) {
-                navigateImage(deltaX > 0 ? -1 : 1);
-            }
+        if (e.touches.length === 0 && drag && !drag.frame) {
+            if (drag.mode === 'browse' || drag.mode === 'close') endDrag();
+            else drag = null;
         }
         // Seamless pinch→pan: if one finger remains while zoomed, start panning
         if (e.touches.length === 1 && State.zoom.scale > 1) {
@@ -586,6 +718,7 @@ export function initLightbox() {
         Elements.lightboxImage.classList.remove('zooming');
     });
 
+    Elements.lightboxContent.addEventListener('touchcancel', () => { if (!drag?.frame) cancelDrag(); });
     Elements.lightboxImage.addEventListener('load', updateCachedDimensions);
 
     window.addEventListener('resize', () => {

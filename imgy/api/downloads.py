@@ -1,4 +1,4 @@
-"""Saving the video on a web page into the library with yt-dlp, in a background thread.
+"""Saving the image or video at a link into the library, with yt-dlp, in a background thread.
 
 A download's progress lives in the downloads table rather than in memory, because the
 gunicorn worker that started it is rarely the one that answers the next poll.
@@ -11,13 +11,13 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import yt_dlp
 from flask import Blueprint, abort
 
 from ..catalog import invalidate_images_cache
-from ..config import DOWNLOAD_FOLDER
+from ..config import DOWNLOAD_FOLDER, MAX_UPLOAD_BYTES
 from ..db import get_db
 from ..media import allowed_file
 from .common import json_body
@@ -33,6 +33,12 @@ ACTIVE = ('starting', 'downloading', 'processing')
 STALE_SECONDS = 300
 # Finished downloads stay listed this long, so every open page sees how they ended
 SHOW_FINISHED_SECONDS = 60
+# The image types Imgy shows, by the Content-Type a server sends them with
+IMAGE_TYPES = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/bmp': '.bmp'}
+# Asked for by name, so a server that picks a format by what the browser takes doesn't send AVIF
+ACCEPT = 'image/webp,image/png,image/jpeg,image/gif,text/html;q=0.9,*/*;q=0.8'
+# yt-dlp's ways of saying a page it understands holds no video: such a page may still have an image
+NO_VIDEO = re.compile(r'No (video|media)|not a video|Unsupported URL')
 
 
 @bp.post('/downloads')
@@ -123,15 +129,20 @@ def _download(download_id, url, tags):
     try:
         workdir.mkdir(parents=True, exist_ok=True)
         with yt_dlp.YoutubeDL(options) as ydl:
-            info = ydl.extract_info(url)
-        entry = (info.get('entries') or [info])[0] if info else None
-        path = Path(entry['requested_downloads'][0]['filepath']) if entry and entry.get('requested_downloads') else None
-        if not path or not path.exists():
-            raise yt_dlp.utils.DownloadError('Nothing to download. Live streams are skipped.')
-        if path.suffix == '.unknown_video':  # yt-dlp's name for a direct link that isn't a video
-            raise yt_dlp.utils.DownloadError('No video at that link')
-        if not allowed_file(path.name):
-            raise yt_dlp.utils.DownloadError(f'The site sent a {path.suffix} file, which Imgy can\'t show')
+            path = _download_image(ydl, url, workdir, update, direct_only=True)
+            if not path:
+                try:
+                    path = _download_video(ydl, url)
+                except yt_dlp.utils.DownloadError as e:
+                    # A post or page with a picture and no video: take its preview image (og:image)
+                    if not NO_VIDEO.search(str(e)):
+                        raise
+                    try:
+                        path = _download_image(ydl, url, workdir, update)
+                    except yt_dlp.networking.exceptions.RequestError:
+                        path = None
+                    if not path:
+                        raise
         update(status='processing')  # last chance to cancel before the file joins the library
         added = add_to_library(path.name, lambda dest: os.replace(path, dest), tags)
         invalidate_images_cache()
@@ -146,6 +157,64 @@ def _download(download_id, url, tags):
         _fail(download_id, 'Internal error')
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+
+
+def _download_video(ydl, url):
+    info = ydl.extract_info(url)
+    entry = (info.get('entries') or [info])[0] if info else None
+    path = Path(entry['requested_downloads'][0]['filepath']) if entry and entry.get('requested_downloads') else None
+    if not path or not path.exists():
+        raise yt_dlp.utils.DownloadError('Nothing to download. Live streams are skipped.')
+    if path.suffix == '.unknown_video':  # yt-dlp's name for a direct link that isn't a video
+        raise yt_dlp.utils.DownloadError('No video at that link')
+    if not allowed_file(path.name):
+        raise yt_dlp.utils.DownloadError(f'The site sent a {path.suffix} file, which Imgy can\'t show')
+    return path
+
+
+def _download_image(ydl, url, workdir, update, direct_only=False):
+    """Save the image at url, or, unless direct_only, the image a web page names as its preview.
+
+    Returns None when there is no image there. Only the headers are read of anything else, so a
+    direct link to a video isn't fetched twice."""
+    try:
+        response = ydl.urlopen(yt_dlp.networking.Request(url, headers={'Accept': ACCEPT}))
+    except yt_dlp.networking.exceptions.RequestError:
+        if direct_only:
+            return None  # some sites refuse plain requests but still work through yt-dlp
+        raise
+    with response:
+        content_type = response.headers.get('Content-Type', '').split(';')[0].strip().lower()
+        if content_type == 'text/html' and not direct_only:
+            page_image = _page_image(response.read(2 * 1024 * 1024).decode(errors='replace'), response.url)
+            return page_image and _download_image(ydl, page_image, workdir, update, direct_only=True)
+        if not content_type.startswith('image/'):
+            return None
+        if content_type not in IMAGE_TYPES:
+            raise yt_dlp.utils.DownloadError(f'The site sent the image as {content_type.removeprefix("image/").upper()}, which Imgy can\'t show')
+        path = workdir / f'{Path(urlsplit(response.url).path).stem or "image"}{IMAGE_TYPES[content_type]}'
+        update(status='downloading', title=path.name, part=None, downloaded=0,
+               total=int(response.headers.get('Content-Length') or 0) or None)
+        size = 0
+        with open(path, 'wb') as f:
+            while chunk := response.read(1024 * 1024):
+                size += len(chunk)
+                if size > MAX_UPLOAD_BYTES:
+                    raise yt_dlp.utils.DownloadError('The image is over 500 MB')
+                f.write(chunk)
+                update(downloaded=size)
+    return path
+
+
+def _page_image(html, page_url):
+    """The preview image a page names for link previews (og:image, else twitter:image), or None."""
+    images = {}
+    for tag in re.findall(r'<meta\b[^>]*>', html):
+        attrs = yt_dlp.utils.extract_attributes(tag)
+        name = attrs.get('property') or attrs.get('name')
+        if name in ('og:image', 'twitter:image') and attrs.get('content'):
+            images.setdefault(name, urljoin(page_url, attrs['content']))
+    return images.get('og:image') or images.get('twitter:image')
 
 
 def _fail(download_id, message):

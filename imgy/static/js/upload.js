@@ -114,7 +114,7 @@ const DOWNLOAD_ACTIVE = new Set(['starting', 'downloading', 'processing']);
 const watchedDownloads = new Set(); // seen running on this page, so it reports how each one ends once
 let downloadPollTimer = null;
 
-/** Ask the server to fetch the video at url with yt-dlp; progress shows in the upload panel. */
+/** Ask the server to fetch the image or video at url; progress shows in the upload panel. */
 export async function startDownload(url, tags = []) {
     const { id } = await api.post('/api/downloads', { url, tags });
     watchedDownloads.add(id);
@@ -148,7 +148,7 @@ function showDownloadProgress(running) {
     }
     const d = running[0];
     const pct = d.status === 'processing' ? 100 : d.total ? Math.min(100, (d.downloaded / d.total) * 100) : 0;
-    const step = d.status === 'starting' ? 'looking up the video'
+    const step = d.status === 'starting' ? 'looking up the link'
         : d.status === 'processing' ? 'joining video and audio'
         : `${d.part ? `${d.part} ` : ''}${formatFileSize(d.downloaded || 0)} of ${d.total ? formatFileSize(d.total) : '?'}`;
     const others = running.length > 1 ? ` · +${running.length - 1}` : '';

@@ -736,7 +736,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     box-shadow: var(--shadow-pop);
     white-space: nowrap;
 }
-.selection-count { display: inline-flex; align-items: center; gap: 8px; padding: 0 10px 0 6px; font-weight: 500; }
+.selection-count { display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; font-weight: 500; } /* 16px in from the bar's edge, as the Esc hint is from the other */
 
 /* ---------- tag editors ---------- */
 .tag-flyup-gallery {

@@ -1510,7 +1510,7 @@ body.drag-over::after {
         background: transparent;
         font-size: 11px;
         font-weight: 500;
-        line-height: 1;
+        line-height: 12px; /* with the 22px icon and the 4px gap, 38px: the icon lands on a whole pixel in the 52px tab */
         color: var(--fg-muted);
         text-decoration: none;
     }

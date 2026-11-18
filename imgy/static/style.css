@@ -917,7 +917,10 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     overflow: hidden;
     isolation: isolate;
 }
-.lightbox.active { display: flex; }
+/* a swipe or the viewer opening and closing (flyViewer() in lightbox.js) animates it */
+@property --dismiss { syntax: "<number>"; inherits: true; initial-value: 0; }
+.lightbox.active, .lightbox.closing { display: flex; }
+.lightbox.closing { pointer-events: none; } /* flying back into the gallery, which takes the taps again at once */
 .lb-ambient {
     position: absolute;
     inset: -10%;
@@ -926,6 +929,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     height: 120%;
     object-fit: cover;
     filter: blur(90px) saturate(1.4);
+    will-change: opacity; /* its own layer, so changing its opacity (a swipe, opening, closing) doesn't blur it all again */
     /* --glow is a neighbour's glow fading in over this one with a swipe; --under fades this one so
        that the two always add up to one glow at --a */
     --a: 0.75;
@@ -934,7 +938,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     transition: opacity 400ms ease;
 }
 .lb-ambient:not([src]) { opacity: 0; }
-.lightbox[style*="--dismiss"] .lb-ambient { transition: none; } /* keeps up with the finger */
+.lightbox[style*="--dismiss"] :is(.lb-ambient, .lightbox-nav, .lb-strip) { transition: none; } /* keeps up with the finger */
 .lightbox::before { /* keeps the glow behind the controls readable */
     content: "";
     position: absolute;
@@ -945,7 +949,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     pointer-events: none;
 }
 :root:not([data-theme="dark"]) .lb-ambient { --a: 0.55; }
-.lb-top, .lb-panel { opacity: var(--shown); }
+.lb-top, .lb-panel, .lightbox-nav, .lb-strip { opacity: var(--shown); }
 :root:not([data-theme="dark"]) .lightbox::before { background: rgba(249, 245, 234, 0.5); }
 .glass {
     background: var(--glass);

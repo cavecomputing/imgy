@@ -21,6 +21,7 @@ let loaders = [];
 const decoded = new WeakSet(); // the neighbours whose original has decoded, so it draws at once
 let shownVersion = 0; // bumped for each file shown and on closing, so a load that finishes late knows it is stale
 let fadingAmbient = null; // a copy of the last file's glow, fading out over the new one
+let flight = null; // the viewer opening out of a card or closing into one, while it does (flyViewer())
 
 // A finger down on the image that may turn out to be a tap, and the last tap, so a double tap can
 // reset the zoom. The second tap must start within DOUBLE_TAP_MS of the first and DOUBLE_TAP_PX of it.
@@ -102,30 +103,89 @@ function showImage(img, src) {
     el.style.transition = '';
 }
 
+/** The picture of file `idx`'s card in the gallery, if it is in the window: the viewer opens out of it and closes into it. */
+function cardPicture(idx) {
+    const picture = Elements.imageGrid.querySelector(`.image-card[data-idx="${idx}"] .card-media`);
+    const box = picture?.getBoundingClientRect();
+    return box && box.bottom > 0 && box.top < window.innerHeight ? picture : null;
+}
+
+/**
+ * Grow the shown file out of `card` as the room fades in, or, closing, shrink it from the transform
+ * `from` back into the card as the room fades from `dismiss` (where a swipe down left it) to nothing.
+ * The file is cropped and rounded as the card shows it. With no card in the window, it fades in or out
+ * where it is.
+ */
+function flyViewer(card, opening, from = 'none', dismiss = 0) {
+    const media = shownMedia();
+    const near = { transform: from, opacity: 1 };
+    let far = { transform: from === 'none' ? 'scale(0.92)' : `${from} scale(0.92)`, opacity: 0 };
+    const box = media.getBoundingClientRect(); // the zoom and any drag are reset, so this is the file's own box
+    if (card && box.width && box.height) {
+        const c = card.getBoundingClientRect();
+        const scale = Math.max(c.width / box.width, c.height / box.height); // it covers the card, as the thumbnail does
+        const cropX = (box.width - c.width / scale) / 2, cropY = (box.height - c.height / scale) / 2;
+        far = { transform: `translate(${c.x + c.width / 2 - box.x - box.width / 2}px, ${c.y + c.height / 2 - box.y - box.height / 2}px) scale(${scale})`, opacity: 1 };
+        if (cropX > 0.5 || cropY > 0.5) { // a group's square crop; a clip on any other card would cut off the file's shadow
+            far.clipPath = `inset(${cropY}px ${cropX}px round ${parseFloat(getComputedStyle(card).borderTopLeftRadius) / scale}px)`;
+            near.clipPath = `inset(0px 0px round ${getComputedStyle(media).borderTopLeftRadius})`;
+        }
+        card.style.visibility = 'hidden'; // the file is out of it
+    }
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const options = { duration: reduce ? 0 : opening ? 280 : 240, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'both' };
+    // Set under the animation, it also turns off the glow's own fade, which would lag behind (CSS)
+    Elements.lightbox.style.setProperty('--dismiss', opening ? 0 : 1);
+    const animations = [
+        media.animate(opening ? [far, near] : [near, far], options),
+        Elements.lightbox.animate([{ '--dismiss': opening ? 1 : dismiss }, { '--dismiss': opening ? 0 : 1 }], options),
+    ];
+    flight = { animations, card };
+    animations[0].finished.then(() => {
+        if (flight?.animations !== animations) return; // stopped already
+        if (opening) land();
+        else finishClosing();
+    }, () => {});
+}
+
+/** End the viewer's opening or closing where it is going, at once. */
+function land() {
+    if (!flight) return;
+    for (const animation of flight.animations) animation.cancel();
+    if (flight.card) flight.card.style.visibility = '';
+    Elements.lightbox.style.removeProperty('--dismiss');
+    flight = null;
+}
+
 export function openLightbox(idx) {
+    finishClosing();
+    land();
     State.lightboxScrollY = window.scrollY;
     State.currentImageIndex = idx;
+    const card = cardPicture(idx);
     updateLightboxContent();
     Elements.lightbox.classList.add('active');
     document.body.style.overflow = 'hidden';
+    flyViewer(card, true);
 }
 
 export function closeLightbox() {
-    const video = Elements.lightboxContent.querySelector('video.lightbox-video');
-    if (video) { video.pause(); video.remove(); }
-    Elements.lightboxExif.textContent = '';
+    if (!Elements.lightbox.classList.contains('active')) return;
+    // The file closes from wherever a drag, the zoom or the opening has it
+    const media = shownMedia();
+    const from = getComputedStyle(media).transform;
+    const dismiss = parseFloat(getComputedStyle(Elements.lightbox).getPropertyValue('--dismiss')) || 0;
+    land();
+    if (media.tagName === 'VIDEO') media.pause();
     closeLightboxTagFlyup();
     shownVersion++;
     stopBackgroundLoads();
-    Elements.lightboxImage.removeAttribute('src'); // lets the browser drop the decoded original
-    Elements.lightboxAmbient.removeAttribute('src');
-    fadingAmbient?.remove();
-    Elements.lightboxStrip.textContent = '';
     const restoreFilename = getCurrentLightboxImage()?.filename;
     cancelDrag();
     dropArriving();
     Elements.lightboxImage.style.visibility = '';
-    Elements.lightbox.classList.remove('active');
+    // It stays on screen while it flies back (.closing), but is closed for everything else
+    Elements.lightbox.classList.replace('active', 'closing');
     document.body.style.overflow = '';
     resetZoom();
     clearCardFocus(); // the redraw may leave the old outline on a card that keys no longer act on
@@ -136,6 +196,20 @@ export function closeLightbox() {
         window.scrollTo(0, State.lightboxScrollY);
         State.lightboxScrollY = null;
     }
+    flyViewer(cardPicture(State.focusedCardIndex), false, from, dismiss);
+}
+
+/** Take the viewer off the screen once it has flown back into the gallery, letting go of what it held. */
+function finishClosing() {
+    if (!Elements.lightbox.classList.contains('closing')) return;
+    land();
+    Elements.lightbox.classList.remove('closing');
+    Elements.lightboxContent.querySelector('video.lightbox-video')?.remove();
+    Elements.lightboxExif.textContent = '';
+    Elements.lightboxImage.removeAttribute('src'); // lets the browser drop the decoded original
+    Elements.lightboxAmbient.removeAttribute('src');
+    fadingAmbient?.remove();
+    Elements.lightboxStrip.textContent = '';
 }
 
 export function setLightboxFavoriteState(isFavorite) {
@@ -574,7 +648,7 @@ function endDrag() {
             return;
         }
     } else if (mode === 'close' && (dy > content.clientHeight * 0.15 || vy > 0.5)) {
-        settleDrag(dx, content.clientHeight, closeLightbox, Math.max(vy, 0));
+        closeLightbox(); // the file flies from under the finger back into its card
         return;
     }
     settleDrag(0, 0, cancelDrag);

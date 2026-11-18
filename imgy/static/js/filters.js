@@ -604,6 +604,7 @@ function trackKeyboardInset() {
         // refresh), which would read as a keyboard that many pixels tall
         const inset = Math.max(0, window.innerHeight - vv.height - Math.max(0, vv.offsetTop));
         document.documentElement.style.setProperty('--keyboard-inset', `${Math.round(inset)}px`);
+        document.documentElement.style.setProperty('--viewport-h', `${Math.round(vv.height)}px`); // the height left to the suggestions
     };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);

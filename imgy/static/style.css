@@ -1718,16 +1718,22 @@ html { -webkit-tap-highlight-color: transparent; }
         z-index: 120;
     }
     /* frosted glass: a hairline and a highlight along the top instead of a hard ring, and a soft shadow */
-    .cmd {
-        height: 48px;
-        padding: 0 16px 0 18px;
-        border-radius: 24px;
+    .cmd, .cmd:focus-within { height: 48px; padding: 0 16px 0 18px; border-radius: 24px; background: none; box-shadow: var(--search-shadow); }
+    .cmd:focus-within { box-shadow: inset 0 0 0 1px var(--focus), var(--search-shadow); }
+    /* the blur sits on a layer of its own beside the field, not on the field's box: iOS drew the
+       caret far above the field when the box round it had a backdrop-filter and the suggestions
+       inside it changed height */
+    .cmd::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: inherit;
         background: var(--search-glass);
         -webkit-backdrop-filter: blur(24px) saturate(1.8);
         backdrop-filter: blur(24px) saturate(1.8);
-        box-shadow: var(--search-shadow);
+        pointer-events: none;
     }
-    .cmd:focus-within { background: var(--search-glass); box-shadow: inset 0 0 0 1px var(--focus), var(--search-shadow); }
     .cmd-input { font-size: 16px; } /* under 16px, iOS zooms the page when the field takes focus */
     .cmd-kbd, .keys-hw, li.keys-hw { display: none; } /* li: as specific as .cc-check li's display: flex */
     /* it opens upwards and stops 8px under the header, in the part of the window the keyboard leaves; the list scrolls */

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sign in · Imgy</title>
-    <meta name="theme-color" content="#0e0e0f">
+    <meta name="theme-color" content="#282828">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.webmanifest">
@@ -16,18 +16,18 @@
                 : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
             document.documentElement.setAttribute('data-theme', theme);
             // and the phone's status bar to match, which appearance.js does in the gallery
-            if (theme === 'light') document.querySelector('meta[name="theme-color"]').content = '#fbfbfb';
+            if (theme === 'light') document.querySelector('meta[name="theme-color"]').content = '#f9f5ea';
         } catch { /* storage blocked: keep the default */ }
     </script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <svg class="sprite" aria-hidden="true" focusable="false">
-        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+        <symbol id="i-logo" viewBox="0 0 24 24"><polygon fill="#ebdbb2" points="3.6 17.8 8.5 12.2 12.6 16.4 15.3 13.8 20.4 18.8 18 19 6 19"/><rect x="3" y="4.5" width="18" height="15" rx="3" fill="none" stroke="#b8bb26" stroke-width="2.3"/><circle cx="15.8" cy="9.2" r="2.1" fill="#b8bb26"/></symbol>
     </svg>
     <main class="cc-signin">
         <form class="cc-signin__card" method="post">
-            <span class="brand"><span class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg></span>imgy</span>
+            <span class="brand"><span class="brand-mark"><svg aria-hidden="true"><use href="#i-logo"/></svg></span>imgy</span>
             <p>Enter the password to open your library.</p>
             {% if error %}<p class="cc-signin__error" role="alert">{{ error }}</p>{% endif %}
             <div class="cc-field cc-field--stack"><label for="password">Password</label><input class="cc-input" id="password" name="password" type="password" autocomplete="current-password" required autofocus></div>

@@ -33,7 +33,7 @@ OpenAI-style chat API works.
 - Press `?` in the app for every keyboard shortcut; `h` `j` `k` `l` move like the arrow keys
 - Firefox extension (**Settings › Extension**): right-click any image on the web, set tags, and upload it to Imgy
 - Installs as an app on a phone or computer when it is served over HTTPS (or from `localhost`), and on Android appears in the share sheet so you can send photos, videos and links straight in
-- A quiet, monochrome look in dark and light, with a phone layout that keeps the search in reach of your thumb
+- A quiet look in the logo's charcoal, cream and lime, dark and light, with a phone layout that keeps the search in reach of your thumb
 - An optional password (`IMGY_PASSWORD`), remembered on each device you sign in from
 
 > [!WARNING]

@@ -6,7 +6,7 @@ import { saveSetting } from './settings.js';
 const GALLERY_DEFAULT_SIZE = window.innerWidth <= 768 ? 150 : 232;
 const GALLERY_MIN_SIZE = 150;
 const GALLERY_MAX_SIZE = 400;
-const THEME_COLORS = { dark: '#0e0e0f', light: '#fbfbfb' };
+const THEME_COLORS = { dark: '#282828', light: '#f9f5ea' };
 
 export function applyTheme(theme) {
     if (theme !== 'dark' && theme !== 'light') return;

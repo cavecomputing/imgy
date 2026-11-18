@@ -309,6 +309,18 @@ svg.i-fill { fill: currentColor; stroke: none; }
     padding: 0 var(--page-x);
     background: var(--bg);
 }
+/* cards fade out under the header once the page scrolls, and into the bottom edge of the window */
+.topbar::after, .gallery::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 24px;
+    pointer-events: none;
+}
+.topbar::after { top: 100%; background: linear-gradient(var(--bg), transparent); opacity: 0; transition: opacity 150ms ease-out; }
+.scrolled .topbar::after { opacity: 1; }
+.gallery::after { position: fixed; bottom: 0; z-index: 50; background: linear-gradient(transparent, var(--bg)); }
 .topbar-start { min-width: 0; display: flex; align-items: center; gap: 24px; }
 .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .brand {
@@ -1540,6 +1552,7 @@ body.drag-over::after {
         gap: 0;
         padding: 0 0 0 var(--page-x); /* the brand in line with the cards and the tabs */
     }
+    .topbar::after { position: fixed; top: 0; z-index: 100; } /* the header scrolls away, so the fade stays at the top of the window */
     .topbar-start { display: contents; }
     .brand { grid-area: start; height: var(--topbar-h); }
     .views { grid-area: views; margin: 0 0 12px; }
@@ -1563,6 +1576,7 @@ body.drag-over::after {
     .filter-pop-list { max-height: min(360px, calc(100vh - 260px)); }
 
     .gallery { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); }
+    .gallery::after { height: calc(64px + env(safe-area-inset-bottom)); } /* the cards fade out behind the search bar */
     .image-card { scroll-margin: 12px 0 100px; }
     .card-media { border-radius: var(--radius-sm); }
     .card-actions, .card-foot, .card-media::after { display: none; }

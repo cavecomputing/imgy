@@ -424,5 +424,7 @@ export function initGrid() {
     // Lay the blocks out again whenever the grid's width changes, and follow the window with them
     new ResizeObserver(resizeAllMasonryItems).observe(Elements.imageGrid);
     window.addEventListener('scroll', updateWindowSoon, { passive: true });
+    // style.css fades the cards under the header only once there are cards under it
+    window.addEventListener('scroll', () => document.documentElement.classList.toggle('scrolled', scrollY > 0), { passive: true });
     window.addEventListener('resize', updateWindowSoon);
 }

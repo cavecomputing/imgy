@@ -926,7 +926,10 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     height: 120%;
     object-fit: cover;
     filter: blur(90px) saturate(1.4);
-    opacity: calc(0.75 * var(--shown));
+    /* --glow is a neighbour's glow fading in over this one with a swipe; --under fades this one so
+       that the two always add up to one glow at --a */
+    --a: 0.75;
+    opacity: calc(var(--a) * var(--shown) * var(--glow, 1) * (1 - var(--under, 0)) / (1 - var(--a) * var(--under, 0)));
     pointer-events: none;
     transition: opacity 400ms ease;
 }
@@ -941,7 +944,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     opacity: var(--shown);
     pointer-events: none;
 }
-:root:not([data-theme="dark"]) .lb-ambient { opacity: calc(0.55 * var(--shown)); }
+:root:not([data-theme="dark"]) .lb-ambient { --a: 0.55; }
 .lb-top, .lb-panel { opacity: var(--shown); }
 :root:not([data-theme="dark"]) .lightbox::before { background: rgba(249, 245, 234, 0.5); }
 .glass {

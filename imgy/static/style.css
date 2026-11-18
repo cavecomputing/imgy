@@ -315,7 +315,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
     position: absolute;
     left: 0;
     right: 0;
-    height: 24px;
+    height: 12px;
     pointer-events: none;
 }
 .topbar::after { top: 100%; background: linear-gradient(var(--bg), transparent); opacity: 0; transition: opacity 150ms ease-out; }
@@ -1576,7 +1576,7 @@ body.drag-over::after {
     .filter-pop-list { max-height: min(360px, calc(100vh - 260px)); }
 
     .gallery { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); }
-    .gallery::after { height: calc(64px + env(safe-area-inset-bottom)); } /* the cards fade out behind the search bar */
+    .gallery::after { height: calc(32px + env(safe-area-inset-bottom)); } /* the cards fade out behind the search bar */
     .image-card { scroll-margin: 12px 0 100px; }
     .card-media { border-radius: var(--radius-sm); }
     .card-actions, .card-foot, .card-media::after { display: none; }

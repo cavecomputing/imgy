@@ -47,7 +47,6 @@
     --ink: #b8bb26;
     --on-ink: #282828;
     --ink-text: #5f6113;
-    --brand-tile: #282828;
     --star: #9d5800;
     --danger: #a62a1e;
     --danger-wash: rgba(166, 42, 30, 0.08);
@@ -79,7 +78,6 @@
     --ink: #b8bb26;
     --on-ink: #1d2021;
     --ink-text: #b8bb26;
-    --brand-tile: transparent;
     --star: #fabd2f;
     --danger: #fb6b58;
     --danger-wash: rgba(251, 107, 88, 0.1);
@@ -346,10 +344,8 @@ svg.i-fill { fill: currentColor; stroke: none; }
     line-height: 20px;
     color: var(--fg);
 }
-/* the logo: lime and cream straight on the dark page, on a charcoal tile on the light one */
-.brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--brand-tile); }
-.brand-mark svg { width: 17px; height: 17px; }
-[data-theme="dark"] .brand-mark svg { width: 24px; height: 24px; }
+/* the logo is its own charcoal tile, so it sits straight on the page in both themes */
+.brand-mark svg { display: block; width: 24px; height: 24px; }
 .topbar-filter { min-width: 0; display: flex; align-items: center; }
 .upload-btn { width: 100px; margin-left: 8px; padding: 0; } /* a set width keeps the buttons beside it on whole pixels */
 .upload-btn svg.i { stroke-width: 2; }

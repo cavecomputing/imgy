@@ -1499,6 +1499,9 @@ body.drag-over::after {
        file details over the bottom of the picture, so the picture keeps its size while they change. */
     .lb-body { position: relative; flex-direction: column; }
     .lightbox-content { padding: 0 12px calc(78px + env(safe-area-inset-bottom)); } /* above the bar */
+    /* the picture touches the top of its box, which clips anything drawn above it: a shadow reaching
+       up there ended in a hard line under the header, so here it only falls below */
+    :is(.lightbox-content img, .lightbox-video) { box-shadow: 0 32px 40px -8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06); }
     .lightbox-nav, .lb-strip { display: none; }
     .lb-top { height: 60px; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; padding: 0 12px; }
     .lb-back { width: 44px; height: 44px; border-radius: 50%; background: var(--glass); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); box-shadow: var(--shadow-glass); }

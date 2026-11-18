@@ -43,7 +43,7 @@ function renderTrashRow(f) {
         <td class="cc-note">${esc(f.trash_date ? formatShortDate(f.trash_date) : '—')}</td>
         <td class="trash-actions">
             <button class="cc-btn cc-btn--ghost btn-sm restore" type="button" title="Put it back where it was"><svg class="i i-xs" aria-hidden="true"><use href="#i-restore"/></svg><span>Restore</span></button>
-            <button class="icon-btn icon-btn--warn icon-btn--sm delete" type="button" title="Delete forever" aria-label="Delete ${esc(displayName)} forever"><svg class="i i-sm" aria-hidden="true"><use href="#i-x"/></svg></button>
+            <button class="icon-btn icon-btn--warn delete" type="button" title="Delete forever" aria-label="Delete ${esc(displayName)} forever"><svg class="i i-sm" aria-hidden="true"><use href="#i-x"/></svg></button>
         </td>
     `;
     row.querySelector('.restore').addEventListener('click', async function () {

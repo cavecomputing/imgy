@@ -339,9 +339,6 @@ svg.i-fill { fill: currentColor; stroke: none; }
     .topbar:has(#tagSearch:focus) ~ .gallery::after { display: none; }
     .topbar-filter:has(#tagSearch:focus) { bottom: calc(var(--keyboard-inset, 0px) + 8px); }
 }
-/* on phones, where the header scrolls away: iOS 26 blurs the top of the window unless a fixed or
-   sticky box there has a solid background (not a gradient, not a pseudo-element), so give it one */
-.top-edge { display: none; }
 .topbar-start { min-width: 0; display: flex; align-items: center; gap: 24px; }
 .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .brand {
@@ -1610,9 +1607,8 @@ body.drag-over::after {
 
 @media (max-width: 768px) {
     :root { --topbar-h: 56px; --page-x: 12px; --gap: 8px; }
-    /* the header scrolls away; the search stays at the bottom, in reach of a thumb */
+    /* the header stays at the top; the search sits at the bottom, in reach of a thumb */
     .topbar {
-        position: static;
         height: auto;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -1620,8 +1616,6 @@ body.drag-over::after {
         gap: 0;
         padding: env(safe-area-inset-top) 0 0 var(--page-x); /* the brand in line with the cards and the tabs */
     }
-    .top-edge { display: block; position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: max(12px, env(safe-area-inset-top)); background-color: var(--bg); }
-    .topbar::after { position: fixed; top: max(12px, env(safe-area-inset-top)); z-index: 100; } /* the header scrolls away, so the fade stays at the top of the window */
     .topbar-start { display: contents; }
     .brand { grid-area: start; height: var(--topbar-h); }
     .views { grid-area: views; margin: 0 0 12px; }
@@ -1646,7 +1640,7 @@ body.drag-over::after {
 
     .gallery { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); }
     .gallery::after { height: calc(32px + env(safe-area-inset-bottom)); } /* the cards fade out behind the search bar */
-    .image-card { scroll-margin: 12px 0 100px; }
+    .image-card { scroll-margin: calc(112px + env(safe-area-inset-top)) 0 100px; } /* 12px clear of the 100px header */
     .card-media { border-radius: var(--radius-sm); }
     .card-actions, .card-foot, .card-media::after { display: none; }
     .image-group { padding: 6px; border-radius: var(--radius); }
@@ -1681,7 +1675,7 @@ body.drag-over::after {
     .selection-bar:not(.hidden) ~ .toast,
     .selection-bar:not(.hidden) ~ .error,
     .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(84px + env(safe-area-inset-bottom)); }
-    .tag-flyup-gallery.active ~ .toast, .tag-flyup-gallery.active ~ .error { top: calc(env(safe-area-inset-top) + 10px); bottom: auto; }
+    .tag-flyup-gallery.active ~ .toast, .tag-flyup-gallery.active ~ .error { top: calc(110px + env(safe-area-inset-top)); bottom: auto; }
 
     /* a dialog fills the window */
     dialog.dlg { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; box-shadow: none; }

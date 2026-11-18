@@ -471,6 +471,7 @@ function drawDrag(dx, dy) {
     drag.dx = dx;
     drag.dy = dy;
     const media = shownMedia();
+    media.style.transition = 'none'; // the img's transform transition would trail the finger (and outlast the touch)
     if (drag.mode === 'browse') {
         const span = Elements.lightboxContent.clientWidth + PEEK_GAP;
         const x = State.filteredImages.length > 1 ? dx : dx * 0.3; // nothing to slide in: it gives a little and comes back
@@ -505,6 +506,8 @@ function cancelDrag() {
     for (const [, peek] of drag.peeks) peek.remove();
     const media = shownMedia();
     media.style.transform = media === Elements.lightboxImage ? 'translate(0px, 0px) scale(1)' : '';
+    getComputedStyle(media).transform; // applies it while transitions are still off
+    media.style.transition = '';
     Elements.lightboxImage.classList.remove('dragging');
     Elements.lightbox.style.removeProperty('--dismiss');
     drag = null;

@@ -10,7 +10,7 @@ import { parseFilterExpressionTokens, pickSuggestion, splitTagTokens, tryTabComp
 import { getLlmActionSummary } from './llm.js';
 import { startDownload } from './upload.js';
 
-const DESKTOP_PLACEHOLDER = 'Filter by tag   -exclude   +create   old>new';
+const DESKTOP_PLACEHOLDER = 'Search tags and names, or paste a link';
 const ROW_HEIGHT = 34;
 
 function getFilterModeInfo(rawTerm) {
@@ -56,7 +56,7 @@ function updateFilterPlaceholder() {
     const hasChips = State.activeTags.size > 0 || State.excludeTags.size > 0 || State.nameTerms.size > 0;
     let placeholder = DESKTOP_PLACEHOLDER;
     if (hasChips) placeholder = '';
-    else if (isPhoneLayout()) placeholder = State.images.length ? `Filter ${formatCount(State.images.length, 'file')} by tag` : 'Filter by tag';
+    else if (isPhoneLayout()) placeholder = State.images.length ? `Search ${formatCount(State.images.length, 'file')}` : 'Search';
     Elements.tagSearch.placeholder = placeholder;
 }
 
@@ -617,15 +617,28 @@ export function initFilters() {
     window.matchMedia('(max-width: 768px)').addEventListener('change', updateFilterPlaceholder);
     trackKeyboardInset();
 
+    // All, Favorites and Untagged are tabs: one view at a time, and clicking the open one goes back to All
+    Elements.allViewBtn.addEventListener('click', () => {
+        if (!State.showFavoritesOnly && !State.showUntaggedOnly) return;
+        State.showFavoritesOnly = false;
+        setToggleButtonState(Elements.favoriteFilterBtn, false);
+        leaveUntaggedFilter();
+        applyFilters();
+    });
     Elements.favoriteFilterBtn.addEventListener('click', () => {
         State.showFavoritesOnly = !State.showFavoritesOnly;
         setToggleButtonState(Elements.favoriteFilterBtn, State.showFavoritesOnly);
+        leaveUntaggedFilter();
         applyFilters();
     });
     Elements.untaggedFilterBtn.addEventListener('click', () => {
         State.showUntaggedOnly = !State.showUntaggedOnly;
         setToggleButtonState(Elements.untaggedFilterBtn, State.showUntaggedOnly);
-        if (State.showUntaggedOnly) { State.activeTags.clear(); State.excludeTags.clear(); }
+        if (State.showUntaggedOnly) {
+            State.activeTags.clear(); State.excludeTags.clear();
+            State.showFavoritesOnly = false;
+            setToggleButtonState(Elements.favoriteFilterBtn, false);
+        }
         applyFilters(); renderFilterBarTags();
     });
 

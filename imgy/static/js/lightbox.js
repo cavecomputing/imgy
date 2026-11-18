@@ -11,6 +11,7 @@ import { toggleTagFilter } from './filters.js';
 import { clearCardFocus } from './navigation.js';
 
 const FILE_TYPES = { jpg: 'JPEG', jpeg: 'JPEG', png: 'PNG', gif: 'GIF', webp: 'WebP', bmp: 'BMP' };
+const STRIP_REACH = 4; // files the strip shows on each side of the open one
 
 // Images loading in the background: the original on screen (and its thumbnail while that stands in)
 // and, once it is up, the originals on either side, downloaded and decoded so arrowing to them shows
@@ -92,6 +93,8 @@ export function closeLightbox() {
     shownVersion++;
     stopBackgroundLoads();
     Elements.lightboxImage.removeAttribute('src'); // lets the browser drop the decoded original
+    Elements.lightboxAmbient.removeAttribute('src');
+    Elements.lightboxStrip.textContent = '';
     const restoreFilename = getCurrentLightboxImage()?.filename;
     Elements.lightbox.classList.remove('active');
     document.body.style.overflow = '';
@@ -171,6 +174,8 @@ export function updateLightboxContent() {
         }
     }
 
+    Elements.lightboxAmbient.src = img.thumbnail_url; // the blurred glow behind the file
+    renderLightboxStrip();
     Elements.lightboxHeaderFilename.textContent = getImageBaseName(img.filename);
     Elements.lightboxHeaderExt.textContent = getExtension(img.filename);
     Elements.lightboxPosition.innerHTML = `${State.currentImageIndex + 1} of ${State.filteredImages.length}<span class="lb-pos-hint"> · swipe to browse</span>`;
@@ -184,6 +189,15 @@ export function updateLightboxContent() {
     renderLightboxTagBar(img.tags || [], img.filename);
     renderLightboxMeta(img);
     renderLightboxExif(img.filename);
+}
+
+/** The thumbnails of the files on either side, to jump to; hidden when the file is alone. */
+function renderLightboxStrip() {
+    const files = State.filteredImages;
+    const current = State.currentImageIndex;
+    const first = Math.max(0, current - STRIP_REACH);
+    const near = files.length > 1 ? files.slice(first, current + STRIP_REACH + 1) : [];
+    Elements.lightboxStrip.innerHTML = near.map((file, i) => `<button type="button" role="listitem" data-idx="${first + i}" aria-label="${esc(getDisplayFilename(file.filename))}"${first + i === current ? ' aria-current="true"' : ''}><img src="${esc(file.thumbnail_url)}" alt="" draggable="false"></button>`).join('');
 }
 
 function describeType(filename) {
@@ -390,6 +404,13 @@ export function initLightbox() {
 
     Elements.closeLightboxBtn.addEventListener('click', closeLightbox);
     Elements.lightboxBackBtn.addEventListener('click', closeLightbox);
+    Elements.lightboxStrip.addEventListener('click', (e) => {
+        const button = e.target.closest('button');
+        if (!button || button.hasAttribute('aria-current')) return;
+        closeLightboxTagFlyup();
+        State.currentImageIndex = Number(button.dataset.idx);
+        updateLightboxContent();
+    });
     Elements.prevImageBtn.addEventListener('click', () => navigateImage(-1));
     Elements.nextImageBtn.addEventListener('click', () => navigateImage(1));
     Elements.resetZoomBtn.addEventListener('click', resetZoom);

@@ -1,14 +1,14 @@
 /** Gallery grid: image cards, groups, the masonry layout, and the library count above it. */
 import { State } from './state.js';
 import { Elements } from './dom.js';
-import { esc, formatCount, getDisplayFilename, getExtension, getImageBaseName, isVideo } from './utils.js';
+import { esc, formatCount, getExtension, getImageBaseName, isVideo } from './utils.js';
 import { showToast } from './ui.js';
 import { api } from './api.js';
 import { reloadDataPreservingScroll } from './data.js';
 import { startInlineRename } from './rename.js';
 import { clearCardFocus, restoreCardFocus } from './navigation.js';
 import { toggleImageSelection } from './selection.js';
-import { deleteImage, toggleFavorite, updateLocalState } from './actions.js';
+import { toggleFavorite, updateLocalState } from './actions.js';
 import { openGalleryTagFlyup } from './flyup.js';
 import { openLightbox } from './lightbox.js';
 import { llmQueueUpdateUI } from './llm.js';
@@ -34,11 +34,6 @@ const cardsOf = (el) => el.matches('.image-card') ? [el] : [...el.querySelectorA
 /** The height an element takes up in its column, its bottom margin included (cards and groups differ on phones). */
 const outerHeight = (el) => el.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(el).marginBottom) || 0);
 
-function createCardFootMeta(tags = []) {
-    if (!tags.length) return `<button class="card-tag-btn tag-btn card-untagged" type="button" aria-label="Edit tags">${icon('tag-off', 'i i-xs')}<span class="cc-badge cc-badge--warn">Untagged</span></button>`;
-    return `<button class="card-tag-btn tag-btn" type="button" aria-label="Edit tags, ${formatCount(tags.length, 'tag')}">${icon('tag', 'i i-xs')}${tags.length}</button>`;
-}
-
 function createImageCard(img, idx) {
     const card = document.createElement('div');
     const isSelected = State.selectedImages.has(img.filename);
@@ -60,15 +55,12 @@ function createImageCard(img, idx) {
             ${video ? `<span class="card-play">${icon('play', 'i')}${esc(ext.slice(1).toUpperCase())}</span>` : ''}
             <span class="card-check" aria-hidden="true">${icon('check', 'i')}</span>
             <div class="card-actions">
+                <button class="card-action-btn tag-btn" type="button" title="Edit tags (T)" aria-label="Edit tags">${icon('tag')}</button>
                 <button class="card-action-btn star-btn" type="button" title="Favorite (F)" aria-label="Favorite" aria-pressed="${img.is_favorite ? 'true' : 'false'}">${icon('star')}</button>
-                <a class="card-action-btn" href="${esc(img.url)}" download="${esc(getDisplayFilename(img.filename))}" title="Download" aria-label="Download">${icon('download')}</a>
-                <button class="card-action-btn delete-btn" type="button" title="Move to trash (D)" aria-label="Move to trash">${icon('trash')}</button>
             </div>
-        </div>
-        <div class="card-foot">
-            <span class="card-title"><span class="card-title-text" title="Rename (R)">${esc(baseName)}</span><span class="card-ext">${esc(ext)}</span></span>
-            <svg class="card-star" role="img" aria-label="Favorite"><use href="#i-star"/></svg>
-            ${createCardFootMeta(img.tags || [])}
+            <div class="card-foot">
+                <span class="card-title"><span class="card-title-text" title="Rename (R)">${esc(baseName)}</span><span class="card-ext">${esc(ext)}</span></span>
+            </div>
         </div>
     `;
 
@@ -79,16 +71,7 @@ function createImageCard(img, idx) {
     thumb.addEventListener('load', remeasure);
     thumb.addEventListener('error', remeasure);
     card.addEventListener('click', (e) => handleCardClick(e, img, card));
-    card.drawnTags = (img.tags || []).join('\n');
     return card;
-}
-
-/** Redraw the part of a card that shows its tags. */
-function refreshCardTags(card, tags) {
-    card.drawnTags = tags.join('\n');
-    const foot = card.querySelector('.card-foot');
-    foot.lastElementChild.remove();
-    foot.insertAdjacentHTML('beforeend', createCardFootMeta(tags));
 }
 
 function createGroupContainer(groupId, members, firstIndex) {
@@ -256,26 +239,13 @@ function hasActiveFilters() {
     return State.activeTags.size > 0 || State.excludeTags.size > 0 || State.nameTerms.size > 0 || State.showFavoritesOnly || State.showUntaggedOnly;
 }
 
-/** The line above the grid: library totals, how many files the filters leave, or the selection. */
+/** The count in the All tab: the library's size, or how many files a search leaves of it. */
 export function renderLibraryCount() {
     const el = Elements.libraryCount;
     if (!el) return;
     const total = State.images.length;
-    const shown = State.filteredImages.length;
-    // Phones hide the .lib-count-* parts to fit next to the toggles
-    if (State.selectionMode) {
-        el.innerHTML = `<strong>${State.selectedImages.size}</strong><span class="lib-count-total"> of ${shown}</span> selected`;
-    } else if (hasActiveFilters()) {
-        el.innerHTML = `<strong>${shown}</strong> of ${total}<span class="lib-count-unit"> ${total === 1 ? 'file' : 'files'}</span>`;
-    } else {
-        const untagged = State.images.filter(img => !img.tags?.length).length;
-        const favorites = State.images.filter(img => img.is_favorite).length;
-        const extra = [];
-        if (untagged) extra.push(`${untagged} untagged`);
-        if (favorites) extra.push(formatCount(favorites, 'favorite'));
-        el.innerHTML = `<strong>${total}</strong> ${total === 1 ? 'file' : 'files'}`
-            + (extra.length ? `<span class="lib-count-extra"> · ${extra.join(' · ')}</span>` : '');
-    }
+    const searching = State.activeTags.size > 0 || State.excludeTags.size > 0 || State.nameTerms.size > 0;
+    el.textContent = searching ? `${State.filteredImages.length} of ${total}` : `${total}`;
 }
 
 function renderEmptyState() {
@@ -375,10 +345,6 @@ function updateInPlace(previous) {
     renumberCards();
     layoutBlocks();
     updateWindow();
-    for (const card of Elements.imageGrid.querySelectorAll('.image-card')) {
-        const tags = State.imagesByFilename.get(card.dataset.filename)?.tags || [];
-        if (card.drawnTags !== tags.join('\n')) refreshCardTags(card, tags);
-    }
     return true;
 }
 
@@ -426,7 +392,7 @@ async function handleCardClick(e, img, card) {
     // Keyboard activations (detail 0) keep focus so Tab carries on from there.
     if (e.detail) e.target.closest('.card-action-btn')?.blur();
     if (State.selectionMode) {
-        // Only toggle the selection; keep the download link from firing
+        // Only toggle the selection
         e.preventDefault();
         toggleImageSelection(img.filename, card);
         return;
@@ -445,7 +411,6 @@ async function handleCardClick(e, img, card) {
     }
 
     if (e.target.closest('.tag-btn')) { openGalleryTagFlyup(img); return; }
-    if (e.target.closest('.delete-btn')) { deleteImage(idx); return; }
     if (!e.target.closest('.card-action-btn')) openLightbox(idx);
 }
 

@@ -23,7 +23,7 @@ OpenAI-style chat API works.
 - Fast tag editing with a small expression syntax (`+new`, `-remove`, `old>new`, ...)
 - Filter by tags, exclusions, file names, favorites, or untagged files
 - **Settings › Tags** lists every tag with its file count and deletes one or many at once
-- Lightbox with zoom, pan, pinch, and swipe; plays common video formats
+- Lightbox with zoom, pan, pinch, and swipe, and a strip of the files on either side; plays common video formats
 - Replace a file with a new version (an upscaled copy, say) from the lightbox; it keeps its name, tags, favorite, group, and place
 - Bulk selection: tag, favorite, group, download as ZIP, or move to trash
 - Drag files or groups into your own order (press and hold on a phone); **Settings › Appearance** switches back to newest first
@@ -33,7 +33,7 @@ OpenAI-style chat API works.
 - Press `?` in the app for every keyboard shortcut; `h` `j` `k` `l` move like the arrow keys
 - Firefox extension (**Settings › Extension**): right-click any image on the web, set tags, and upload it to Imgy
 - Installs as an app on a phone or computer when it is served over HTTPS (or from `localhost`), and on Android appears in the share sheet so you can send photos, videos and links straight in
-- Gruvbox dark and light themes, with a phone layout that keeps the filter in reach of your thumb
+- A quiet, monochrome look in dark and light, with a phone layout that keeps the search in reach of your thumb
 - An optional password (`IMGY_PASSWORD`), remembered on each device you sign in from
 
 > [!WARNING]

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Imgy</title>
     <meta name="description" content="A fast, local-first image and video organizer">
-    <meta name="theme-color" content="#282828">
+    <meta name="theme-color" content="#0e0e0f">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.webmanifest">
@@ -23,7 +23,6 @@
     <link rel="preload" href="/api/images" as="fetch" crossorigin>
     <link rel="preload" href="/api/tags" as="fetch" crossorigin>
     <link rel="preload" href="/api/settings" as="fetch" crossorigin>
-    <link rel="stylesheet" href="{{ assets['/static/cavecomputing.css'] }}">
     <link rel="stylesheet" href="{{ assets['/static/style.css'] }}">
     <script type="importmap">{{ {'imports': assets} | tojson }}</script>
 </head>
@@ -58,13 +57,20 @@
     </svg>
 
     <header class="topbar">
-        <div class="brand"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>imgy</div>
+        <div class="topbar-start">
+            <div class="brand"><span class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg></span>imgy</div>
+            <nav class="views" aria-label="Views">
+                <button id="allViewBtn" class="tab" type="button" title="Show every file">All<span id="libraryCount" class="lib-count"></span></button>
+                <button id="favoriteFilterBtn" class="tab toggle" type="button" title="Show favorites only (F)" aria-pressed="false">Favorites</button>
+                <button id="untaggedFilterBtn" class="tab toggle" type="button" title="Show untagged files only (U)" aria-pressed="false">Untagged</button>
+            </nav>
+        </div>
         <div class="topbar-filter">
             <div class="cmd" id="filterBar" role="search">
                 <svg class="i i-sm cmd-icon" aria-hidden="true"><use href="#i-search"/></svg>
                 <button id="moreFilters" class="chip chip-more hidden" type="button"></button>
                 <div id="activeTags" class="cmd-chips"></div>
-                <input type="text" id="tagSearch" class="cmd-input" placeholder="Filter by tag   -exclude   +create   old>new" aria-label="Filter by tag or file name" autocomplete="off" autocapitalize="none" spellcheck="false">
+                <input type="text" id="tagSearch" class="cmd-input" placeholder="Search tags and names, or paste a link" aria-label="Filter by tag or file name, or paste a link to download" autocomplete="off" autocapitalize="none" spellcheck="false">
                 <kbd class="kbd cmd-kbd" title="Focus the filter">/</kbd>
                 <div id="tagSuggestions" class="pop filter-pop hidden">
                     <div id="filterPopChips" class="chips filter-pop-chips hidden"></div>
@@ -75,43 +81,22 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="topbar-actions">
+            <button id="selectModeBtn" class="icon-btn toggle" type="button" title="Select files (S)" aria-label="Select files" aria-pressed="false">
+                <svg class="i" aria-hidden="true"><use href="#i-check-square"/></svg>
+            </button>
+            <button id="trashBtn" class="icon-btn icon-btn--warn" type="button" title="Trash (X)" aria-label="Open trash">
+                <svg class="i" aria-hidden="true"><use href="#i-trash"/></svg><span id="trashCount" class="dot-count hidden"></span>
+            </button>
+            <button id="shortcutsBtn" class="icon-btn" type="button" title="Settings and shortcuts (?)" aria-label="Settings and shortcuts">
+                <svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg>
+            </button>
             <button id="uploadBtn" class="cc-btn cc-btn--primary upload-btn" type="button" title="Upload files" aria-label="Upload files">
                 <svg class="i i-sm" aria-hidden="true"><use href="#i-upload"/></svg><span>Upload</span>
             </button>
         </div>
-        <button id="themeToggleBtn" class="icon-btn theme-btn" type="button" title="Switch to light theme" aria-label="Switch to light theme">
-            <svg class="i" aria-hidden="true"><use id="themeIcon" href="#i-sun"/></svg>
-        </button>
-        <button id="trashBtn" class="icon-btn icon-btn--warn" type="button" title="Trash (X)" aria-label="Open trash">
-            <svg class="i" aria-hidden="true"><use href="#i-trash"/></svg><span id="trashCount" class="dot-count hidden"></span>
-        </button>
-        <button id="shortcutsBtn" class="icon-btn" type="button" title="Settings and shortcuts (?)" aria-label="Settings and shortcuts">
-            <svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg>
-        </button>
     </header>
-
-    <div class="subbar">
-        <span id="libraryCount" class="lib-count"></span>
-        <div class="spacer"></div>
-        <button id="favoriteFilterBtn" class="toggle" type="button" title="Show favorites only (F)" aria-pressed="false">
-            <svg class="i i-sm" aria-hidden="true"><use href="#i-star"/></svg><span>Favorites</span><kbd class="kbd kbd-sm">F</kbd>
-        </button>
-        <button id="untaggedFilterBtn" class="toggle" type="button" title="Show untagged files only (U)" aria-pressed="false">
-            <svg class="i i-sm" aria-hidden="true"><use href="#i-tag-off"/></svg><span>Untagged</span><kbd class="kbd kbd-sm">U</kbd>
-        </button>
-        <button id="selectModeBtn" class="toggle" type="button" title="Select files (S)" aria-pressed="false">
-            <svg class="i i-sm" aria-hidden="true"><use href="#i-check-square"/></svg><span>Select</span><kbd class="kbd kbd-sm">S</kbd>
-        </button>
-        <div class="size-ctl" title="Thumbnail size">
-            <button id="gallerySizeDown" class="icon-btn icon-btn--sm" type="button" title="Smaller thumbnails" aria-label="Smaller thumbnails">
-                <svg class="i i-sm" aria-hidden="true"><use href="#i-square"/></svg>
-            </button>
-            <input type="range" id="gallerySizeSlider" min="150" max="400" step="10" aria-label="Thumbnail size">
-            <button id="gallerySizeUp" class="icon-btn icon-btn--sm" type="button" title="Larger thumbnails" aria-label="Larger thumbnails">
-                <svg class="i i-sm" aria-hidden="true"><use href="#i-grid"/></svg>
-            </button>
-        </div>
-    </div>
 
     <main class="gallery">
         <div id="imageGrid" class="image-grid"></div>
@@ -166,6 +151,7 @@
     </div>
 
     <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-labelledby="lightboxTitle">
+        <img id="lightboxAmbient" class="lb-ambient" alt="" aria-hidden="true">
         <header class="lb-top">
             <button id="lightboxBackBtn" class="icon-btn lb-back" type="button" aria-label="Back to the gallery">
                 <svg class="i" aria-hidden="true"><use href="#i-chevron-left"/></svg>
@@ -175,12 +161,12 @@
                 <span id="lightboxPosition" class="lb-pos"></span>
             </div>
             <div class="spacer"></div>
-            <div class="lb-actions">
-                <button id="lightboxFavoriteBtn" class="bar-btn" type="button" title="Favorite (F)" aria-pressed="false">
-                    <svg class="i i-sm" aria-hidden="true"><use href="#i-star"/></svg><span>Favorite</span><kbd class="kbd kbd-sm">F</kbd>
+            <div class="lb-actions glass">
+                <button id="lightboxFavoriteBtn" class="icon-btn" type="button" title="Favorite (F)" aria-label="Favorite" aria-pressed="false">
+                    <svg class="i" aria-hidden="true"><use href="#i-star"/></svg>
                 </button>
-                <button id="lightboxTagBtn" class="bar-btn" type="button" title="Edit tags (T)">
-                    <svg class="i i-sm" aria-hidden="true"><use href="#i-tag"/></svg><span>Tags</span><kbd class="kbd kbd-sm">T</kbd>
+                <button id="lightboxTagBtn" class="icon-btn" type="button" title="Edit tags (T)" aria-label="Edit tags">
+                    <svg class="i" aria-hidden="true"><use href="#i-tag"/></svg>
                 </button>
                 <div class="bar-div"></div>
                 <a id="lightboxDownloadBtn" class="icon-btn" download title="Download" aria-label="Download">
@@ -201,17 +187,18 @@
         <div class="lb-body">
             <div class="lightbox-content" id="lightboxContent">
                 <img id="lightboxImage" src="" alt="" draggable="false">
-                <button id="prevImage" class="lightbox-nav prev" type="button" aria-label="Previous file">
+                <button id="prevImage" class="lightbox-nav glass prev" type="button" aria-label="Previous file">
                     <svg class="i" aria-hidden="true"><use href="#i-chevron-left"/></svg>
                 </button>
-                <button id="nextImage" class="lightbox-nav next" type="button" aria-label="Next file">
+                <button id="nextImage" class="lightbox-nav glass next" type="button" aria-label="Next file">
                     <svg class="i" aria-hidden="true"><use href="#i-chevron-right"/></svg>
                 </button>
+                <div id="lightboxStrip" class="lb-strip glass" role="list" aria-label="Nearby files"></div>
                 <div class="keys keys-hw lb-keys"><span><kbd>&larr;</kbd><kbd>&rarr;</kbd> browse</span><span>scroll or pinch to zoom</span><span><kbd>0</kbd> reset zoom</span></div>
                 <button id="resetZoom" class="zoom-reset" type="button">Reset zoom</button>
             </div>
 
-            <aside class="lb-panel" aria-label="File details">
+            <aside class="lb-panel glass" aria-label="File details">
                 <section class="lb-sec lb-sec-tags">
                     <h2 class="cc-eyebrow">Tags</h2>
                     <div id="lightboxTagBarTags" class="chips"></div>
@@ -272,7 +259,7 @@
     <dialog id="shortcutsModal" class="dlg settings-dlg" aria-label="Settings">
         <div class="settings-shell">
             <nav class="settings-nav" aria-label="Settings sections">
-                <div class="brand settings-brand"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>imgy</div>
+                <div class="brand settings-brand"><span class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg></span>imgy</div>
                 <button type="button" class="settings-tab" data-section="about"><svg class="i i-sm" aria-hidden="true"><use href="#i-terminal"/></svg>About</button>
                 <button type="button" class="settings-tab" data-section="appearance"><svg class="i i-sm" aria-hidden="true"><use href="#i-sun"/></svg>Appearance</button>
                 <button type="button" class="settings-tab" data-section="llm"><svg class="i i-sm" aria-hidden="true"><use href="#i-eye"/></svg>Auto-tagging</button>
@@ -314,7 +301,7 @@
                                     <label><input type="radio" name="themeChoice" value="dark"><span>Dark</span></label>
                                     <label><input type="radio" name="themeChoice" value="light"><span>Light</span></label>
                                 </div>
-                                <p class="field-help">Gruvbox dark or light. The sun and moon button in the top bar switches too.</p>
+                                <p class="field-help">Imgy follows your system until you pick one.</p>
                             </div>
                         </div>
                         <div class="field">
@@ -325,7 +312,7 @@
                                     <span id="gallerySizeValue" class="field-value"></span>
                                     <button id="gallerySizeReset" class="cc-btn cc-btn--ghost btn-sm" type="button">Reset</button>
                                 </div>
-                                <p class="field-help">The width of a gallery column. The slider next to Select changes it too.</p>
+                                <p class="field-help">The width of a gallery column.</p>
                             </div>
                         </div>
                         <div class="field">

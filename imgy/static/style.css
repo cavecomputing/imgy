@@ -1574,7 +1574,7 @@ body.drag-over::after {
         max-width: none;
         justify-content: space-between;
         gap: 0;
-        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+        padding: 10px 8px calc(10px + env(safe-area-inset-bottom)); /* 70px tall, to cover the search bar (20px up, 48px tall) and its 1px ring */
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     }
     .selection-bar .bar-btn { flex-direction: column; justify-content: center; gap: 4px; height: 50px; padding: 0 6px; font-size: 11px; }

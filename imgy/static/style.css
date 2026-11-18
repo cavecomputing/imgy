@@ -248,6 +248,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
 .tab.active { background: var(--field); color: var(--ink-text); }
 /* All is the view while neither of the others is on */
 .views:not(:has(.toggle.active)) #allViewBtn { background: var(--field); color: var(--ink-text); }
+.tab-icon { display: none; } /* phones show the tabs as icons */
 .lib-count { font-weight: 400; color: var(--fg-subtle); white-space: nowrap; }
 .lib-count strong { font-weight: 400; }
 
@@ -1692,19 +1693,18 @@ html { -webkit-tap-highlight-color: transparent; }
 
 @media (max-width: 768px) {
     :root { --topbar-h: 56px; --page-x: 12px; --gap: 8px; }
-    /* the header stays at the top; the search sits at the bottom, in reach of a thumb */
+    /* one row at the top: the logo, the views as icons, the buttons; the search sits at the bottom, in reach of a thumb */
     .topbar {
-        height: auto;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        grid-template-areas: "start actions" "views views";
-        gap: 0;
-        padding: env(safe-area-inset-top) 4px 0 var(--page-x); /* the brand in line with the cards; 4px more on the right keeps the last icon 18px in */
+        height: calc(var(--topbar-h) + env(safe-area-inset-top));
+        justify-content: space-between;
+        padding: env(safe-area-inset-top) 4px 0 var(--page-x); /* the logo in line with the cards; 4px more on the right keeps the last icon 18px in */
     }
-    .topbar-start { display: contents; }
-    .brand { grid-area: start; height: var(--topbar-h); }
-    .views { grid-area: views; margin: 0 0 12px; }
-    .topbar-actions { grid-area: actions; gap: 0; }
+    .topbar-start { gap: 12px; }
+    .brand-name { display: none; }
+    .tab { width: 40px; height: 36px; padding: 0; justify-content: center; }
+    .tab-icon { display: block; }
+    .tab-label { display: none; } /* the title still names the tab */
+    .topbar-actions { gap: 0; }
     .icon-btn { width: 44px; height: 44px; border-radius: 12px; }
     .upload-btn { width: 44px; height: 44px; margin: 0; padding: 0; background: transparent; color: var(--fg-muted); }
     .dot-count { top: 6px; right: 5px; }
@@ -1735,7 +1735,7 @@ html { -webkit-tap-highlight-color: transparent; }
     .gallery { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); }
     .gallery::after { height: calc(16px + env(safe-area-inset-bottom)); } /* the cards fade out at the bottom edge, and show through the glass above it */
     .to-top { right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); } /* in line with the search bar's right edge, 12px above it */
-    .image-card { scroll-margin: calc(112px + env(safe-area-inset-top)) 0 100px; } /* 12px clear of the 100px header */
+    .image-card { scroll-margin: calc(var(--topbar-h) + 12px + env(safe-area-inset-top)) 0 100px; } /* 12px clear of the header */
     .card-media { border-radius: var(--radius-sm); }
     .card-actions, .card-foot, .card-media::after { display: none; }
     .image-group { padding: 6px; border-radius: var(--radius); }
@@ -1774,7 +1774,7 @@ html { -webkit-tap-highlight-color: transparent; }
     .selection-bar:not(.hidden) ~ .toast,
     .selection-bar:not(.hidden) ~ .error,
     .selection-bar:not(.hidden) ~ .upload-progress { bottom: calc(84px + env(safe-area-inset-bottom)); }
-    .tag-flyup-gallery.active ~ .toast, .tag-flyup-gallery.active ~ .error { top: calc(110px + env(safe-area-inset-top)); bottom: auto; }
+    .tag-flyup-gallery.active ~ .toast, .tag-flyup-gallery.active ~ .error { top: calc(var(--topbar-h) + 10px + env(safe-area-inset-top)); bottom: auto; }
 
     /* a dialog fills the window */
     dialog.dlg { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; box-shadow: none; }

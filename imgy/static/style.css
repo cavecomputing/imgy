@@ -1544,6 +1544,18 @@ dialog.dlg[open]::backdrop { opacity: 1; transition-duration: var(--in); }
     dialog.dlg[open]::backdrop { opacity: 0; }
 }
 
+.selection-bar, .filter-pop, .toast, .error, .loading {
+    transition: opacity var(--out) ease-in, translate var(--out) ease-in, display var(--out) allow-discrete, overlay var(--out) allow-discrete;
+}
+.selection-bar:not(.hidden), .filter-pop:not(.hidden) { transition-duration: var(--in); transition-timing-function: var(--ease-out); }
+.selection-bar.hidden, .filter-pop.hidden, .toast.hidden, .error.hidden, .loading.hidden { opacity: 0; pointer-events: none; }
+.selection-bar.hidden { translate: 0 12px; }
+.filter-pop.hidden { translate: 0 -4px; }
+@starting-style {
+    .selection-bar:not(.hidden) { opacity: 0; translate: 0 12px; }
+    .filter-pop:not(.hidden) { opacity: 0; translate: 0 -4px; }
+}
+
 /* ---------- smaller screens ---------- */
 @media (max-width: 1180px) {
     /* not enough room to centre the search: it takes what the sides leave */
@@ -1706,6 +1718,10 @@ dialog.dlg[open]::backdrop { opacity: 1; transition-duration: var(--in); }
         padding: 10px 8px calc(10px + env(safe-area-inset-bottom)); /* 70px tall, to cover the search bar (20px up, 48px tall) and its 1px ring */
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     }
+    .selection-bar.hidden { translate: 0 100%; } /* it slides up from the bottom edge, over the search bar */
+    @starting-style { .selection-bar:not(.hidden) { translate: 0 100%; } }
+    .filter-pop.hidden { translate: 0 4px; } /* it opens upwards, out of the search bar */
+    @starting-style { .filter-pop:not(.hidden) { translate: 0 4px; } }
     .selection-bar .bar-btn { flex-direction: column; justify-content: center; gap: 4px; height: 50px; padding: 0 6px; font-size: 11px; }
     .selection-bar .bar-btn .kbd, .selection-bar .bar-div, .selection-count-label { display: none; }
     #downloadSelectedBtn span { display: none; }

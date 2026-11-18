@@ -20,6 +20,7 @@ const STRIP_REACH = 4; // files the strip shows on each side of the open one
 let loaders = [];
 const decoded = new WeakSet(); // the neighbours whose original has decoded, so it draws at once
 let shownVersion = 0; // bumped for each file shown and on closing, so a load that finishes late knows it is stale
+let fadingAmbient = null; // a copy of the last file's glow, fading out over the new one
 
 // A finger down on the image that may turn out to be a tap, and the last tap, so a double tap can
 // reset the zoom. The second tap must start within DOUBLE_TAP_MS of the first and DOUBLE_TAP_PX of it.
@@ -94,6 +95,7 @@ export function closeLightbox() {
     stopBackgroundLoads();
     Elements.lightboxImage.removeAttribute('src'); // lets the browser drop the decoded original
     Elements.lightboxAmbient.removeAttribute('src');
+    fadingAmbient?.remove();
     Elements.lightboxStrip.textContent = '';
     const restoreFilename = getCurrentLightboxImage()?.filename;
     Elements.lightbox.classList.remove('active');
@@ -174,7 +176,7 @@ export function updateLightboxContent() {
         }
     }
 
-    Elements.lightboxAmbient.src = img.thumbnail_url; // the blurred glow behind the file
+    showAmbient(img.thumbnail_url);
     renderLightboxStrip();
     Elements.lightboxHeaderFilename.textContent = getImageBaseName(img.filename);
     Elements.lightboxHeaderExt.textContent = getExtension(img.filename);
@@ -189,6 +191,21 @@ export function updateLightboxContent() {
     renderLightboxTagBar(img.tags || [], img.filename);
     renderLightboxMeta(img);
     renderLightboxExif(img.filename);
+}
+
+/** The blurred glow behind the file: the last file's fades out over it instead of the whole room changing colour in one frame. */
+function showAmbient(url) {
+    const ambient = Elements.lightboxAmbient;
+    const last = ambient.getAttribute('src');
+    if (last === url) return;
+    fadingAmbient?.remove(); // arrowing quickly fades from the newest glow only
+    if (last && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const fading = fadingAmbient = ambient.cloneNode();
+        fading.removeAttribute('id');
+        ambient.after(fading);
+        fading.animate({ opacity: 0 }, { duration: 400, easing: 'ease' }).finished.then(() => fading.remove(), () => {});
+    }
+    ambient.src = url;
 }
 
 /** The thumbnails of the files on either side, to jump to; hidden when the file is alone. */

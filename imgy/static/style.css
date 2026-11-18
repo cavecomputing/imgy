@@ -337,7 +337,7 @@ svg.i-fill { fill: currentColor; stroke: none; }
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 10px 0 12px;
+    padding: 0 14px 0 12px; /* the search icon's ink starts 2px into its box, so both ends sit 14px in */
     background: var(--field);
     border-radius: 12px;
     transition: background var(--ease), box-shadow var(--ease);

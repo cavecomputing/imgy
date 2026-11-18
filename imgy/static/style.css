@@ -67,6 +67,8 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
     --shadow-pop: 0 18px 48px rgba(40, 32, 20, 0.14), 0 0 0 1px rgba(60, 56, 54, 0.08);
     --shadow-glass: 0 0 0 1px var(--line), 0 8px 24px rgba(40, 32, 20, 0.1);
+    --search-glass: rgba(255, 253, 246, 0.6);
+    --search-shadow: inset 0 0 0 0.5px rgba(60, 56, 54, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(40, 32, 20, 0.06), 0 12px 32px -8px rgba(40, 32, 20, 0.22);
     --scroll-thumb: rgba(60, 56, 54, 0.3);
     color-scheme: light;
 }
@@ -98,6 +100,8 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-pop: 0 18px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
     --shadow-glass: 0 0 0 1px var(--line), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --search-glass: rgba(50, 48, 47, 0.5);
+    --search-shadow: inset 0 0 0 0.5px rgba(235, 219, 178, 0.1), inset 0 1px 0 rgba(235, 219, 178, 0.14), 0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 36px -8px rgba(0, 0, 0, 0.6);
     --scroll-thumb: rgba(235, 219, 178, 0.24);
     color-scheme: dark;
 }
@@ -1712,15 +1716,24 @@ html { -webkit-tap-highlight-color: transparent; }
         bottom: calc(var(--keyboard-inset, 0px) + 20px + env(safe-area-inset-bottom));
         z-index: 120;
     }
-    .cmd { height: 48px; padding: 0 16px 0 18px; border-radius: 24px; background: var(--raised); box-shadow: var(--shadow-pop); }
-    .cmd:focus-within { box-shadow: var(--shadow-pop), inset 0 0 0 1px var(--focus); }
+    /* frosted glass: a hairline and a highlight along the top instead of a hard ring, and a soft shadow */
+    .cmd {
+        height: 48px;
+        padding: 0 16px 0 18px;
+        border-radius: 24px;
+        background: var(--search-glass);
+        -webkit-backdrop-filter: blur(24px) saturate(1.8);
+        backdrop-filter: blur(24px) saturate(1.8);
+        box-shadow: var(--search-shadow);
+    }
+    .cmd:focus-within { background: var(--search-glass); box-shadow: inset 0 0 0 1px var(--focus), var(--search-shadow); }
     .cmd-input { font-size: 16px; } /* under 16px, iOS zooms the page when the field takes focus */
     .cmd-kbd, .keys-hw, li.keys-hw { display: none; } /* li: as specific as .cc-check li's display: flex */
     .filter-pop { top: auto; bottom: calc(100% + 8px); min-width: 0; }
     .filter-pop-list { max-height: min(360px, calc(100vh - 260px)); }
 
     .gallery { padding: 0 12px calc(96px + env(safe-area-inset-bottom)); }
-    .gallery::after { height: calc(32px + env(safe-area-inset-bottom)); } /* the cards fade out behind the search bar */
+    .gallery::after { height: calc(16px + env(safe-area-inset-bottom)); } /* the cards fade out at the bottom edge, and show through the glass above it */
     .to-top { right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); } /* in line with the search bar's right edge, 12px above it */
     .image-card { scroll-margin: calc(112px + env(safe-area-inset-top)) 0 100px; } /* 12px clear of the 100px header */
     .card-media { border-radius: var(--radius-sm); }

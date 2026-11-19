@@ -24,11 +24,12 @@ let fadingAmbient = null; // a copy of the last file's glow, fading out over the
 let flight = null; // the viewer opening out of a card or closing into one, while it does (flyViewer())
 
 // A finger down on the image that may turn out to be a tap, and the last tap, so a double tap can
-// reset the zoom. The second tap must start within DOUBLE_TAP_MS of the first and DOUBLE_TAP_PX of it.
+// zoom in or back out. The second tap must start within DOUBLE_TAP_MS of the first and DOUBLE_TAP_PX of it.
 let tapStart = null;
 let lastTap = null;
 const DOUBLE_TAP_MS = 300;
 const DOUBLE_TAP_PX = 40;
+const TAP_ZOOM = 2.5; // how far a double tap or double click zooms a fitted image
 
 // A one-finger drag on an unzoomed file: sideways the file follows the finger with its neighbour
 // coming in beside it and its glow fading in over the room ('browse'), downwards it shrinks away as
@@ -506,6 +507,13 @@ function startSmoothZoom(factor, focalX, focalY) {
     sz._smoothRAF = requestAnimationFrame(animate);
 }
 
+/** Zoom a fitted image in toward a point, or a zoomed one back out to fit. */
+function toggleZoom(x, y) {
+    if (State.zoom.scale > 1) return resetZoom();
+    updateCachedDimensions();
+    startSmoothZoom(TAP_ZOOM, x, y);
+}
+
 export function resetZoom() {
     Elements.lightboxImage.classList.remove('zooming');
     if (State.zoom._smoothRAF) cancelAnimationFrame(State.zoom._smoothRAF);
@@ -722,7 +730,7 @@ export function initLightbox() {
     Elements.prevImageBtn.addEventListener('click', () => navigateImage(-1));
     Elements.nextImageBtn.addEventListener('click', () => navigateImage(1));
     Elements.resetZoomBtn.addEventListener('click', resetZoom);
-    Elements.lightboxImage.addEventListener('dblclick', () => { if (State.zoom.scale > 1) resetZoom(); });
+    Elements.lightboxImage.addEventListener('dblclick', e => toggleZoom(e.clientX, e.clientY));
 
     const startRename = () => {
         const img = getCurrentLightboxImage();
@@ -869,7 +877,10 @@ export function initLightbox() {
             const isTap = e.timeStamp - tapStart.time < DOUBLE_TAP_MS && Math.hypot(t.clientX - tapStart.x, t.clientY - tapStart.y) < 10;
             const isDoubleTap = isTap && lastTap && tapStart.time - lastTap.time < DOUBLE_TAP_MS
                 && Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < DOUBLE_TAP_PX;
-            if (isDoubleTap && State.zoom.scale > 1) resetZoom();
+            if (isDoubleTap) {
+                e.preventDefault(); // the touch handles it, so no dblclick zooms it back
+                toggleZoom(t.clientX, t.clientY);
+            }
             lastTap = isTap && !isDoubleTap ? { x: t.clientX, y: t.clientY, time: e.timeStamp } : null;
             tapStart = null;
         }

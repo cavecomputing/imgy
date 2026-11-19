@@ -169,28 +169,6 @@
                 <h1 id="lightboxTitle" class="lb-title"><span id="lightboxHeaderFilename" class="editable-header-filename" role="button" tabindex="0" title="Rename (R)"></span><span id="lightboxHeaderExt" class="lb-ext"></span></h1>
                 <span id="lightboxPosition" class="lb-pos"></span>
             </div>
-            <div class="spacer"></div>
-            <div class="lb-actions glass">
-                <button id="lightboxFavoriteBtn" class="icon-btn" type="button" title="Favorite (F)" aria-label="Favorite" aria-pressed="false">
-                    <svg class="i" aria-hidden="true"><use href="#i-star"/></svg>
-                </button>
-                <button id="lightboxTagBtn" class="icon-btn" type="button" title="Edit tags (T)" aria-label="Edit tags">
-                    <svg class="i" aria-hidden="true"><use href="#i-tag"/></svg>
-                </button>
-                <div class="bar-div"></div>
-                <a id="lightboxDownloadBtn" class="icon-btn" download title="Download" aria-label="Download">
-                    <svg class="i" aria-hidden="true"><use href="#i-download"/></svg>
-                </a>
-                <button id="lightboxReplaceBtn" class="icon-btn" type="button" title="Replace with another file, keeping the name and tags" aria-label="Replace with another file">
-                    <svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>
-                </button>
-                <button id="lightboxHeaderDeleteBtn" class="icon-btn icon-btn--warn" type="button" title="Move to trash (D)" aria-label="Move to trash">
-                    <svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>
-                </button>
-            </div>
-            <button id="closeLightbox" class="icon-btn lb-close" type="button" title="Close (Esc)" aria-label="Close">
-                <svg class="i" aria-hidden="true"><use href="#i-x"/></svg>
-            </button>
         </header>
 
         <div class="lb-body">
@@ -208,6 +186,33 @@
             </div>
 
             <aside class="lb-panel glass" aria-label="File details">
+                <div class="lb-actions">
+                    <button id="lightboxFavoriteBtn" class="icon-btn" type="button" title="Favorite (F)" aria-label="Favorite" aria-pressed="false">
+                        <svg class="i" aria-hidden="true"><use href="#i-star"/></svg>
+                    </button>
+                    <button id="lightboxTagBtn" class="icon-btn" type="button" title="Edit tags (T)" aria-label="Edit tags">
+                        <svg class="i" aria-hidden="true"><use href="#i-tag"/></svg>
+                    </button>
+                    <div class="bar-div"></div>
+                    <a id="lightboxDownloadBtn" class="icon-btn" download title="Download" aria-label="Download">
+                        <svg class="i" aria-hidden="true"><use href="#i-download"/></svg>
+                    </a>
+                    <button id="lightboxReplaceBtn" class="icon-btn" type="button" title="Replace with another file, keeping the name and tags" aria-label="Replace with another file">
+                        <svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>
+                    </button>
+                    <button id="lightboxHeaderDeleteBtn" class="icon-btn icon-btn--warn" type="button" title="Move to trash (D)" aria-label="Move to trash">
+                        <svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>
+                    </button>
+                    <div class="spacer"></div>
+                    <button id="closeLightbox" class="icon-btn" type="button" title="Close (Esc)" aria-label="Close">
+                        <svg class="i" aria-hidden="true"><use href="#i-x"/></svg>
+                    </button>
+                </div>
+                <section class="lb-sec lb-sec-details">
+                    <h2 class="cc-eyebrow">Details</h2>
+                    <table class="cc-table lb-details"><tbody id="lightboxMeta"></tbody></table>
+                    <p id="lightboxExif" class="lb-help"></p>
+                </section>
                 <section class="lb-sec lb-sec-tags">
                     <h2 class="cc-eyebrow">Tags</h2>
                     <div id="lightboxTagBarTags" class="chips"></div>
@@ -221,11 +226,6 @@
                     </div>
                 </section>
                 <p id="lightboxMetaLine" class="lb-meta-line"></p>
-                <section class="lb-sec lb-sec-details">
-                    <h2 class="cc-eyebrow">Details</h2>
-                    <table class="cc-table lb-details"><tbody id="lightboxMeta"></tbody></table>
-                    <p id="lightboxExif" class="lb-help"></p>
-                </section>
                 <div class="lb-tabs" role="toolbar" aria-label="File actions">
                     <button id="lightboxFavoriteTab" class="lb-tab" type="button" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg>Favorite</button>
                     <button id="lightboxTagTab" class="lb-tab" type="button"><svg class="i" aria-hidden="true"><use href="#i-tag"/></svg>Tags</button>

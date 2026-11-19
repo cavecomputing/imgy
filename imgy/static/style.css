@@ -974,11 +974,10 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 16px;
+    padding: 0 336px 0 24px; /* clear of the dock on the right */
 }
-.lb-top .icon-btn { color: var(--fg); }
-.lb-back, .lb-close { width: 40px; height: 40px; border-radius: 12px; }
-.lb-back:hover:not(:disabled), .lb-close:hover:not(:disabled) { background: var(--glass); }
+.lb-top .icon-btn, .lb-actions .icon-btn { color: var(--fg); }
+.lb-back { display: none; } /* phones only: the dock's X closes on a desktop */
 .lb-heading { min-width: 0; display: flex; flex-direction: column; }
 .lb-title {
     min-width: 0;
@@ -1009,12 +1008,13 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 }
 .lb-pos { flex: none; font-size: 12px; line-height: 16px; color: var(--fg-muted); white-space: nowrap; }
 .lb-pos-hint { display: none; }
-.lb-actions { height: 44px; display: flex; align-items: center; gap: 2px; padding: 0 4px; border-radius: var(--radius-lg); }
+/* the actions, along the top of the dock */
+.lb-actions { flex: none; height: 52px; display: flex; align-items: center; gap: 2px; margin: 0 -12px 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .lb-actions .bar-div { margin: 0 4px; background: var(--line-strong); }
 #lightboxFavoriteBtn.active { color: var(--star); }
 #lightboxFavoriteBtn.active svg.i { fill: currentColor; }
 
-.lb-body { flex: 1 1 auto; min-height: 0; display: flex; }
+.lb-body { flex: 1 1 auto; min-height: 0; display: flex; padding-right: 336px; } /* the dock is out of the flow, over this side */
 .lightbox-content {
     position: relative;
     flex: 1 1 auto;
@@ -1106,22 +1106,23 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 }
 .zoom-reset.visible { opacity: 1; pointer-events: auto; }
 
+/* the dock: actions, the file's details, and its tags in a tray at the bottom, the window's full height */
 .lb-panel {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    bottom: 16px;
     width: 304px;
-    flex: none;
-    align-self: flex-start;
-    max-height: calc(100% - 16px);
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    margin: 0 16px 16px 0;
-    padding: 20px;
+    padding: 8px 20px 20px;
     overflow-y: auto;
     border-radius: var(--radius-xl);
 }
 .lb-panel .cc-eyebrow { margin-bottom: 10px; color: var(--fg-muted); }
-.lb-sec-details { padding-top: 12px; border-top: 1px solid var(--line); margin-top: -12px; } /* the rule halfway between the sections */
-.lb-sec-tags { padding-bottom: 0; }
+.lb-sec-details { padding: 8px 0 20px; } /* the bottom keeps the tags clear of it in a short window */
+.lb-sec-tags { margin: auto -8px -8px; padding: 14px 14px 16px; border-radius: var(--radius-lg); background: var(--field); }
+.lb-sec-tags .cc-eyebrow { margin-bottom: 12px; }
 .lb-tabs, .lb-meta-line { display: none; }
 .lb-details { border: 0; background: transparent; }
 .cc-table.lb-details td { padding: 4px 0; border: 0; font-size: 13px; line-height: 18px; vertical-align: top; }
@@ -1599,19 +1600,20 @@ html { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 900px) {
     /* The details card turns into a bar of actions floating on the glow, and Tags opens the tags and
        file details over the bottom of the picture, so the picture keeps its size while they change. */
-    .lb-body { position: relative; flex-direction: column; }
+    .lb-body { position: relative; flex-direction: column; padding-right: 0; }
     .lightbox-content { padding: 0 12px calc(78px + env(safe-area-inset-bottom)); } /* above the bar */
     /* the picture touches the top of its box, which clips anything drawn above it: a shadow reaching
        up there ended in a hard line under the header, so here it only falls below */
     :is(.lightbox-content img, .lightbox-video) { box-shadow: 0 32px 40px -8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06); }
     .lightbox-nav, .lb-strip { display: none; }
     .lb-top { height: 60px; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; padding: 0 12px; }
-    .lb-back { width: 44px; height: 44px; border-radius: 50%; background: var(--glass); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); box-shadow: var(--shadow-glass); }
+    .lb-back { display: inline-grid; width: 44px; height: 44px; border-radius: 50%; background: var(--glass); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); box-shadow: var(--shadow-glass); }
     .lb-heading { align-items: center; text-align: center; }
     .lb-title { max-width: 100%; justify-content: center; }
-    .lb-top .spacer, .lb-actions, .lb-close { display: none; }
+    .lb-actions { display: none; }
     .lb-panel {
         position: absolute;
+        top: auto;
         left: 12px;
         right: 12px;
         bottom: calc(8px + env(safe-area-inset-bottom));
@@ -1639,6 +1641,7 @@ html { -webkit-tap-highlight-color: transparent; }
     .lb-panel .chip { height: 30px; font-size: 14px; }
     .lb-panel .chip-label { padding: 0 2px; }
     .lb-sec-details { display: none; }
+    .lb-sec-tags { margin: 0; padding: 0; background: none; }
     .lb-meta-line { display: block; margin: 12px 0 4px; font-size: 12px; line-height: 16px; color: var(--fg-muted); }
     .lb-tabs {
         position: sticky;

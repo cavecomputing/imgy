@@ -22,21 +22,61 @@ function setTheme(theme) {
     saveSetting('theme', theme);
 }
 
+let galleryColWidth = GALLERY_DEFAULT_SIZE;
+
+/** The gallery's width plus one gap, and the gap: n columns of width w fit when n * (w + gap) <= span. */
+function gallerySpan() {
+    const gap = parseFloat(window.getComputedStyle(Elements.imageGrid).columnGap) || 0;
+    return [Elements.imageGrid.getBoundingClientRect().width + gap, gap];
+}
+
+/** How many columns the gallery shows when they are at least `width` wide. */
+function columnsAt(width) {
+    const [span, gap] = gallerySpan();
+    return Math.max(1, Math.floor(span / (width + gap)));
+}
+
+/**
+ * The columns stretch to fill the row, so two widths that give the same count look the same:
+ * the slider picks a count instead, one column a step. Its values are minus the count, so that
+ * right means fewer, bigger thumbnails.
+ */
+function syncGallerySlider() {
+    const slider = Elements.gallerySizeSetting;
+    const columns = columnsAt(galleryColWidth);
+    const text = columns === 1 ? '1 column' : `${columns} columns`;
+    slider.min = -columnsAt(GALLERY_MIN_SIZE);
+    slider.max = -columnsAt(GALLERY_MAX_SIZE);
+    slider.value = -columns;
+    slider.disabled = slider.min === slider.max;
+    slider.setAttribute('aria-valuetext', text);
+    Elements.gallerySizeValue.textContent = text;
+}
+
 function setGalleryColWidth(v) {
-    const value = Math.min(GALLERY_MAX_SIZE, Math.max(GALLERY_MIN_SIZE, parseInt(v, 10) || GALLERY_DEFAULT_SIZE));
-    document.documentElement.style.setProperty('--gallery-col-width', value + 'px');
-    Elements.gallerySizeSetting.value = value;
-    Elements.gallerySizeValue.textContent = `${value}px`;
-    try { localStorage.setItem('galleryColWidth', value); } catch { /* storage blocked */ }
+    galleryColWidth = Math.min(GALLERY_MAX_SIZE, Math.max(GALLERY_MIN_SIZE, parseInt(v, 10) || GALLERY_DEFAULT_SIZE));
+    document.documentElement.style.setProperty('--gallery-col-width', galleryColWidth + 'px');
+    try { localStorage.setItem('galleryColWidth', galleryColWidth); } catch { /* storage blocked */ }
     resizeAllMasonryItems();
+    syncGallerySlider();
+}
+
+/**
+ * Store the width halfway between the narrowest and widest that give this many columns, so a
+ * small change to the window keeps the count. The clamp to the size limits stays within that range.
+ */
+function setGalleryColumns(columns) {
+    const [span, gap] = gallerySpan();
+    setGalleryColWidth((span / columns + span / (columns + 1)) / 2 - gap);
 }
 
 export function initGallerySlider() {
     let saved = null;
     try { saved = localStorage.getItem('galleryColWidth'); } catch { /* storage blocked */ }
     setGalleryColWidth(saved || GALLERY_DEFAULT_SIZE);
-    Elements.gallerySizeSetting.addEventListener('input', (e) => setGalleryColWidth(e.target.value));
+    Elements.gallerySizeSetting.addEventListener('input', (e) => setGalleryColumns(-e.target.value));
     Elements.gallerySizeReset.addEventListener('click', () => setGalleryColWidth(GALLERY_DEFAULT_SIZE));
+    new ResizeObserver(syncGallerySlider).observe(Elements.imageGrid);
 }
 
 export function initTheme() {

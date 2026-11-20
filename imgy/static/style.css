@@ -1233,7 +1233,7 @@ a.cc-btn { text-decoration: none; }
 .field-help { margin-top: 8px; font-size: 13px; line-height: 18px; color: var(--fg-muted); }
 .field-row { display: flex; align-items: center; gap: 12px; padding-top: 3px; }
 .field-row input[type="range"] { width: 220px; accent-color: var(--ink); }
-.field-value { min-width: 52px; font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.field-value { min-width: 72px; font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
 .field-checks { display: flex; flex-wrap: wrap; gap: 10px 20px; padding-top: 8px; }
 .field-callout { margin-top: 10px; }
 .field.hidden-provider { display: none; }

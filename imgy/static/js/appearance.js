@@ -38,16 +38,15 @@ function columnsAt(width) {
 
 /**
  * The columns stretch to fill the row, so two widths that give the same count look the same:
- * the slider picks a count instead, one column a step. Its values are minus the count, so that
- * right means fewer, bigger thumbnails.
+ * the slider picks a count instead, one column a step, more to the right.
  */
 function syncGallerySlider() {
     const slider = Elements.gallerySizeSetting;
     const columns = columnsAt(galleryColWidth);
     const text = columns === 1 ? '1 column' : `${columns} columns`;
-    slider.min = -columnsAt(GALLERY_MIN_SIZE);
-    slider.max = -columnsAt(GALLERY_MAX_SIZE);
-    slider.value = -columns;
+    slider.min = columnsAt(GALLERY_MAX_SIZE);
+    slider.max = columnsAt(GALLERY_MIN_SIZE);
+    slider.value = columns;
     slider.disabled = slider.min === slider.max;
     slider.setAttribute('aria-valuetext', text);
     Elements.gallerySizeValue.textContent = text;
@@ -74,7 +73,7 @@ export function initGallerySlider() {
     let saved = null;
     try { saved = localStorage.getItem('galleryColWidth'); } catch { /* storage blocked */ }
     setGalleryColWidth(saved || GALLERY_DEFAULT_SIZE);
-    Elements.gallerySizeSetting.addEventListener('input', (e) => setGalleryColumns(-e.target.value));
+    Elements.gallerySizeSetting.addEventListener('input', (e) => setGalleryColumns(Number(e.target.value)));
     Elements.gallerySizeReset.addEventListener('click', () => setGalleryColWidth(GALLERY_DEFAULT_SIZE));
     new ResizeObserver(syncGallerySlider).observe(Elements.imageGrid);
 }

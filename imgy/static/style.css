@@ -575,6 +575,9 @@ button.chip { cursor: pointer; }
     column-gap: var(--gap);
 }
 .image-grid > :is(.image-card, .image-group):not(.drag-ghost) { position: absolute; left: 0; }
+/* Safari leaves the column gaps out of the column widths while every item is out of flow, which
+   pushes the last column past the gallery's edge: this empty item keeps one in flow. */
+.image-grid::before { content: ""; grid-area: 1 / 1; }
 #gridEnd { height: 1px; } /* grid.js draws more cards when this comes near the window; some browsers skip a target with no area */
 
 .image-card {
@@ -773,7 +776,7 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
 
 .empty-state {
     grid-column: 1 / -1;
-    grid-row-end: span 60;
+    grid-row: 1 / span 60; /* over the grid's empty ::before, not below it */
     display: flex;
     justify-content: center;
     padding: 96px 0;

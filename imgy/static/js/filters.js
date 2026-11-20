@@ -611,12 +611,40 @@ function trackKeyboardInset() {
     update();
 }
 
+/**
+ * iOS scrolls the page to bring a field that takes focus above the keyboard, and on phones the
+ * search bar sits at the bottom, where the keyboard will be, so a tap on it carried the gallery up
+ * by the keyboard's height and left it there. Shown a quarter of the way down the window for the
+ * moment it takes focus, the field needs no scrolling; trackKeyboardInset() then lifts the bar.
+ * A tap has to be turned into a focus of our own for this to work in time (as React Aria does).
+ */
+function focusSearchInPlace() {
+    const input = Elements.tagSearch;
+    const raise = () => {
+        if (input.style.translate) return; // raised already, by the tap that is focusing it
+        input.style.translate = `0 ${Math.min(0, Math.round(innerHeight / 4 - input.getBoundingClientRect().top))}px`;
+        requestAnimationFrame(() => { input.style.translate = ''; });
+    };
+    let startX = 0, startY = 0;
+    input.addEventListener('touchstart', (e) => { ({ clientX: startX, clientY: startY } = e.touches[0]); }, { passive: true });
+    input.addEventListener('touchend', (e) => {
+        const { clientX, clientY } = e.changedTouches[0];
+        const moved = Math.hypot(clientX - startX, clientY - startY) > 10;
+        if (document.activeElement === input || moved || !e.cancelable) return; // a drag, or placing the caret
+        e.preventDefault();
+        raise();
+        input.focus();
+    });
+    input.addEventListener('focus', () => { if (matchMedia('(pointer: coarse)').matches) raise(); });
+}
+
 export function initFilters() {
     setToggleButtonState(Elements.favoriteFilterBtn, false);
     setToggleButtonState(Elements.untaggedFilterBtn, false);
     updateFilterPlaceholder();
     window.matchMedia('(max-width: 768px)').addEventListener('change', updateFilterPlaceholder);
     trackKeyboardInset();
+    focusSearchInPlace();
 
     // All, Favorites and Untagged are tabs: one view at a time, and clicking the open one goes back to All
     Elements.allViewBtn.addEventListener('click', () => {

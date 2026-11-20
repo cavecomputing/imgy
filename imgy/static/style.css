@@ -569,7 +569,8 @@ button.chip { cursor: pointer; }
 .image-grid {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(--gallery-col-width, 232px), 1fr));
+    /* min() so a column wider than the gallery shrinks to it instead of running off the page */
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--gallery-col-width, 232px), 100%), 1fr));
     grid-auto-rows: 4px; /* the empty state spans 60 of these */
     column-gap: var(--gap);
 }

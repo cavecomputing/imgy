@@ -118,6 +118,10 @@ tag you are typing, and `Enter` applies the expression. A tag to add, remove, sh
 typed only part of stands for the first suggestion when that starts with it, or for the only one;
 the arrow keys highlight another. Destructive filter-bar actions ask for confirmation.
 
+On a phone the tag editors ask for none of the symbols, which its keyboard keeps out of reach. The
+matches are listed under the field and a tap adds one (to every selected file, in the bulk editor),
+`Enter` adds the highlighted one, and a word that is not a tag yet is created without its `+`.
+
 ## Downloading from a link
 
 Paste a link to an image, or to a page with a video, into the filter bar and press `Enter`: the

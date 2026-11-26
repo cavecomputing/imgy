@@ -908,8 +908,9 @@ body.is-reordering { cursor: grabbing; -webkit-user-select: none; user-select: n
     cursor: pointer;
 }
 .match-item:hover, .match-item.active { background: var(--hover); }
-.match-item.delete-mode span:first-child { color: var(--danger); }
+.match-item.delete-mode span:first-of-type { color: var(--danger); }
 .match-item mark { background: none; color: inherit; font-weight: 600; }
+.match-item svg.i { display: none; }
 .flyup-foot { padding: 14px 16px; border-top: 1px solid var(--line); }
 
 /* the viewer's editor sits inside the details card */
@@ -1880,6 +1881,31 @@ html { -webkit-tap-highlight-color: transparent; }
     .flyup-close svg.i { display: block; }
     .flyup-input { height: 44px; }
     .flyup-input input { font-size: 16px; }
+    /* The tag editor by touch: the file's tags above the field, and under it the matches as rows a
+       thumb can hit, each with a plus under the field's icon and its name under the typed text.
+       Only the most used tags keep their heading. */
+    .flyup-current { order: -1; }
+    .tag-flyup-gallery .flyup-section-title, .flyup-current .chip--new { display: none; }
+    .flyup-common .flyup-section-title { display: flex; }
+    .flyup-actions { order: 1; }
+    .tag-flyup-gallery .chips { gap: 8px; }
+    .tag-flyup-gallery .chip { height: 32px; padding: 0 0 0 10px; border-radius: var(--radius-sm); font-size: 14px; line-height: 20px; }
+    .tag-flyup-gallery .chip-label { pointer-events: none; } /* a slip beside the x would leave the editor to filter the gallery */
+    .tag-flyup-gallery .chip-x { width: 28px; height: 32px; border-radius: var(--radius-sm); }
+    .tag-flyup-gallery .chip-n { margin-left: 4px; font-size: 13px; }
+    .tag-flyup-gallery .chip-pick { height: 36px; padding: 0 12px; }
+    .flyup-common .chips { max-height: 80px; overflow: hidden; } /* as many as fit on two lines */
+    .tag-flyup-gallery .flyup-empty { font-size: 14px; line-height: 32px; }
+    /* a selection's tags stay on one line that scrolls sideways, so the editor keeps its height */
+    .bulk-mode .flyup-current .chips { flex-wrap: nowrap; margin-right: -16px; padding-right: 16px; overflow-x: auto; scrollbar-width: none; }
+    .tag-flyup-gallery .mini { height: 36px; padding: 0 10px; font-size: 14px; line-height: 20px; }
+    .tag-flyup-gallery .mini code { display: none; }
+    .tag-flyup-gallery .mini.warn { color: var(--danger); }
+    .match-list { margin: 0 -10px -10px; } /* 6px from the card's edges */
+    .match-item { gap: 9px; height: 44px; padding: 0 10px 0 21px; border-radius: var(--radius); font-size: 15px; line-height: 20px; }
+    .match-item svg.i { display: block; color: var(--fg-muted); }
+    .match-item.delete-mode svg.i { visibility: hidden; }
+    .match-new svg.i, .match-new .tag-count-badge { color: var(--ok); }
 
     .toast, .error, .upload-progress { bottom: calc(84px + env(safe-area-inset-bottom)); }
     .upload-progress { left: 16px; right: 16px; width: auto; }

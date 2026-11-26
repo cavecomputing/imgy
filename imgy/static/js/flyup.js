@@ -3,7 +3,7 @@ import { CONFIG } from './config.js';
 import { getCurrentLightboxImage, getImagesByFilenames, getSelectedFilenames, refreshBulkVirtualTags, State } from './state.js';
 import { ActiveFlyup, Elements } from './dom.js';
 import { esc, formatCount, getDisplayFilename, highlightMatch, isVideo } from './utils.js';
-import { showToast } from './ui.js';
+import { isPhoneLayout, showToast } from './ui.js';
 import { processBulkTagsFromInput, updateSelectionBar } from './selection.js';
 import { addTags, removeTags } from './actions.js';
 import { collectTagMutations, getCommonTags, pickSuggestion, planTagExpression, splitTagTokens, tryTabCompletion } from './tags.js';
@@ -14,6 +14,9 @@ import { getLlmSettings } from './settings.js';
 
 const SINGLE_PLACEHOLDER = 'tag  +new  -remove  old>new';
 const BULK_PLACEHOLDER = 'tag  +new  -remove  old>new  =  ++  ?';
+const PLUS = '<svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>'; // phones show it in front of a match
+// A phone's keyboard keeps the symbols two layers down, so there the editor asks for none of them
+const placeholder = (bulk) => isPhoneLayout() ? 'Add a tag' : bulk ? BULK_PLACEHOLDER : SINGLE_PLACEHOLDER;
 
 export function isGalleryTagFlyupOpen() {
     return Elements.galleryTagFlyup.classList.contains('active');
@@ -38,7 +41,7 @@ export function openGalleryTagFlyup(img) {
     Elements.galleryTagTitle.textContent = getDisplayFilename(img.filename);
     Elements.bulkTagBtn.classList.remove('active');
     ActiveFlyup.input.value = '';
-    ActiveFlyup.input.placeholder = SINGLE_PLACEHOLDER;
+    ActiveFlyup.input.placeholder = placeholder(false);
     focusFlyupPanel(flyup);
     renderActiveQuickTagPanel();
 }
@@ -59,7 +62,7 @@ export function openBulkTagFlyup() {
     Elements.galleryTagTitle.textContent = `${State.selectedImages.size} selected`;
     Elements.bulkTagBtn.classList.add('active');
     ActiveFlyup.input.value = '';
-    ActiveFlyup.input.placeholder = BULK_PLACEHOLDER;
+    ActiveFlyup.input.placeholder = placeholder(true);
     focusFlyupPanel(flyup);
     renderActiveQuickTagPanel();
 }
@@ -144,15 +147,18 @@ function enterPick() {
     return isAdd ? null : pickSuggestion(term, State.quickTagMatches);
 }
 
+/** A plain word that is no tag yet: not a command, a rename, or a word with - or + in front. */
+const isNewWord = (token) => !/^[-+]|>|^[?=]$/.test(token) && !State.allTags.includes(token.toLowerCase());
+
 /**
  * The tokens Enter applies, with the suggestion it takes (or the one clicked) in place of the word
- * being typed, kept whole if it has spaces.
+ * being typed, kept whole if it has spaces. On a phone a new word makes a tag without its +.
  */
 function enterTokens(pick = enterPick()) {
     const tokens = splitTagTokens(ActiveFlyup.input.value, State.bulkTagFlyupMode ? /[\s,]+/ : /\s+/);
     const { raw, isRemove } = getQuickTagLastToken();
     if (pick) tokens.splice(raw ? -1 : tokens.length, 1, (isRemove ? '-' : '') + pick);
-    return tokens;
+    return isPhoneLayout() ? tokens.map(t => isNewWord(t) ? '+' + t : t) : tokens;
 }
 
 function currentPlan() {
@@ -170,8 +176,11 @@ function currentPlan() {
 /** The preview under the input: what Enter would do with each token. */
 function renderQuickTagHint(plan) {
     if (!ActiveFlyup.hint) return;
-    ActiveFlyup.hint.innerHTML = plan.rows.length
-        ? `<div class="plan">${plan.rows.map(r => `<code class="${r.cls}">${esc(r.code)}</code><span${r.alert ? ' class="warn"' : ''}>${r.html}</span>`).join('')}</div>`
+    // On a phone the lit match says what Enter adds; only a warning or the typed syntax is spelled out
+    const plain = isPhoneLayout() && !/(^|\s)[-+?=]|>/.test(ActiveFlyup.input.value);
+    const rows = plain ? plan.rows.filter(r => r.cls === 'warn') : plan.rows;
+    ActiveFlyup.hint.innerHTML = rows.length
+        ? `<div class="plan">${rows.map(r => `<code class="${r.cls}">${esc(r.code)}</code><span${r.alert ? ' class="warn"' : ''}>${r.html}</span>`).join('')}</div>`
         : '';
 }
 
@@ -191,9 +200,9 @@ function resetQuickTagInput({ focus = false, lightboxRefresh = false } = {}) {
     if (focus) ActiveFlyup.input.focus();
 }
 
-function appendSection(container, title, note = '') {
+function appendSection(container, title, note = '', kind = '') {
     const section = document.createElement('div');
-    section.className = 'flyup-section';
+    section.className = `flyup-section ${kind}`;
     section.innerHTML = `<div class="flyup-section-title">${esc(title)}${note ? ` <small>${esc(note)}</small>` : ''}</div>`;
     container.appendChild(section);
     return section;
@@ -291,6 +300,7 @@ function renderQuickTagSuggestions() {
     const existing = img?.tags || [];
     const { term, isRemove } = getQuickTagLastToken();
     const raw = ActiveFlyup.input.value.trim();
+    const phone = isPhoneLayout();
     container.innerHTML = '';
 
     // Commands and renames are explained by the preview above; nothing to suggest
@@ -334,8 +344,8 @@ function renderQuickTagSuggestions() {
             addAction('=', 'Equalize', { title: 'Give every selected file all their tags' });
             addAction('++', 'Group', { disabled: files.length < 2, title: files.length < 2 ? 'Select at least 2 files to group' : 'Group the selected files' });
         }
-        if (existing.length) addAction('--', 'Clear all tags', { warn: true });
-        if (actions.children.length) appendSection(container, 'Actions').appendChild(actions);
+        if (existing.length) addAction('--', phone ? 'Clear all' : 'Clear all tags', { warn: true });
+        if (actions.children.length) appendSection(container, 'Actions', '', 'flyup-actions').appendChild(actions);
 
         const common = getCommonTags(8, bulk ? [] : existing);
         if (common.length) {
@@ -345,18 +355,23 @@ function renderQuickTagSuggestions() {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'chip chip-pick';
-                btn.textContent = tag;
+                btn.innerHTML = esc(tag) + (phone ? `<span class="chip-n">${State.tagCounts[tag] || 0}</span>` : '');
                 btn.title = bulk ? `Add ${tag} to the expression` : `Add ${tag}`;
                 btn.dataset.tag = tag;
                 chips.appendChild(btn);
             });
-            appendSection(container, 'Common tags').appendChild(chips);
+            appendSection(container, phone ? 'Most used' : 'Common tags', '', 'flyup-common').appendChild(chips);
         }
         return;
     }
 
+    // On a phone a tap has to do what the keyboard's missing keys would: the match Enter takes is
+    // lit, and a word that is no tag yet gets a row that creates it
+    const lit = phone ? enterPick() ?? (matches.includes(term) ? term : null) : null;
+    const newTag = phone && !isRemove && isNewWord(term) ? term : null;
+
     // Nothing matches: the preview above already says what Enter would do
-    if (!matches.length) {
+    if (!matches.length && !newTag) {
         State.quickTagIndex = -1;
         return;
     }
@@ -368,13 +383,20 @@ function renderQuickTagSuggestions() {
     const selected = bulk && isRemove ? getEditorFiles() : null;
     matches.forEach((t, idx) => {
         const item = document.createElement('div');
-        item.className = `match-item${idx === State.quickTagIndex ? ' active' : ''}${isRemove ? ' delete-mode' : ''}`;
+        item.className = `match-item${idx === State.quickTagIndex || t === lit ? ' active' : ''}${isRemove ? ' delete-mode' : ''}`;
         const count = selected ? selected.filter(f => f.tags?.includes(t)).length : State.tagCounts[t] || 0;
         const countTitle = selected ? `On ${count} of ${formatCount(selected.length, 'selected file')}` : formatCount(count, 'file');
-        item.innerHTML = `<span>${highlightMatch(t, term)}</span><span class="tag-count-badge" title="${countTitle}">${count}</span>`;
+        item.innerHTML = `${PLUS}<span>${highlightMatch(t, term)}</span><span class="tag-count-badge" title="${countTitle}">${count}</span>`;
         item.dataset.tag = t;
         list.appendChild(item);
     });
+    if (newTag) {
+        const item = document.createElement('div');
+        item.className = `match-item match-new${lit ? '' : ' active'}`;
+        item.innerHTML = `${PLUS}<span>${esc(newTag)}</span><span class="tag-count-badge">New tag</span>`;
+        item.dataset.tag = newTag;
+        list.appendChild(item);
+    }
     section.appendChild(list);
     const activeItem = list.children[State.quickTagIndex];
     if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
@@ -481,11 +503,12 @@ export function initFlyups() {
     }
 
     // A click on a suggestion is Enter with that tag in place of the word being typed, so the words
-    // before it are applied too. On a selection it only completes the word, as Tab does.
+    // before it are applied too. On a selection it only completes the word, as Tab does, unless
+    // this is a phone, where Enter is no easier to reach than Tab.
     function handleSuggestionClick(e) {
         const tag = e.target.closest('.match-item, .chip-pick')?.dataset.tag;
         if (!tag) return;
-        if (State.bulkTagFlyupMode) quickTagInsertSuggestion(tag);
+        if (State.bulkTagFlyupMode && !isPhoneLayout()) quickTagInsertSuggestion(tag);
         else applyTagExpression(tag);
     }
     // The input keeps the focus through a click in its editor

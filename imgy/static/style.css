@@ -1906,6 +1906,9 @@ html { -webkit-tap-highlight-color: transparent; }
     .match-item svg.i { display: block; color: var(--fg-muted); }
     .match-item.delete-mode svg.i { visibility: hidden; }
     .match-new svg.i, .match-new .tag-count-badge { color: var(--ok); }
+    /* the viewer opens the same editor over the picture, on the glass its bar of actions has */
+    .tag-flyup-gallery.on-viewer { z-index: 1100; background: var(--glass); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); box-shadow: var(--shadow-glass); }
+    .on-viewer .flyup-thumb { display: none; }
 
     .toast, .error, .upload-progress { bottom: calc(84px + env(safe-area-inset-bottom)); }
     .upload-progress { left: 16px; right: 16px; width: auto; }

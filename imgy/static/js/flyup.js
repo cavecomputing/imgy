@@ -36,6 +36,7 @@ export function openGalleryTagFlyup(img) {
     ActiveFlyup.setGallery();
     const flyup = Elements.galleryTagFlyup;
     flyup.classList.remove('hidden', 'bulk-mode');
+    flyup.classList.toggle('on-viewer', Elements.lightbox.classList.contains('active'));
     Elements.galleryTagThumb.src = img.thumbnail_url || img.url;
     Elements.galleryTagEyebrow.textContent = 'Tags';
     Elements.galleryTagTitle.textContent = getDisplayFilename(img.filename);
@@ -76,7 +77,7 @@ export function closeGalleryTagFlyup() {
     const cleanup = () => {
         if (flyup.classList.contains('active')) return;
         flyup.classList.add('hidden');
-        flyup.classList.remove('bulk-mode');
+        flyup.classList.remove('bulk-mode', 'on-viewer');
         Elements.quickTagInput.placeholder = SINGLE_PLACEHOLDER;
         State.bulkTagFlyupMode = false;
         State.currentQuickTagImage = null;
@@ -102,6 +103,7 @@ export function openLightboxTagFlyup() {
 }
 
 export function closeLightboxTagFlyup() {
+    closeGalleryTagFlyup(); // the editor a phone's viewer opens
     const flyup = Elements.lightboxTagFlyup;
     if (!isLightboxTagFlyupOpen() && flyup.classList.contains('hidden')) return;
     // The lightbox editor sits inline in the details panel, so it closes at once
@@ -116,6 +118,13 @@ export function closeLightboxTagFlyup() {
 }
 
 export function toggleLightboxTagFlyup() {
+    // A phone's viewer opens the gallery's editor over the picture: it follows the keyboard up,
+    // where the viewer's own sits at the bottom of the screen with its matches behind the keys
+    if (isPhoneLayout()) {
+        if (isGalleryTagFlyupOpen()) closeGalleryTagFlyup();
+        else openGalleryTagFlyup(getCurrentLightboxImage());
+        return;
+    }
     if (isLightboxTagFlyupOpen()) closeLightboxTagFlyup();
     else openLightboxTagFlyup();
 }
@@ -406,7 +415,7 @@ export function initFlyups() {
     document.addEventListener('mousedown', (e) => {
         if (isGalleryTagFlyupOpen() &&
             !Elements.galleryTagFlyup.contains(e.target) &&
-            !e.target.closest('.tag-btn') &&
+            !e.target.closest('.tag-btn, #lightboxTagTab') &&
             !e.target.closest('.selection-bar')) {
             closeGalleryTagFlyup();
         }

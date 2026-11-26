@@ -204,13 +204,26 @@ function remeasureSoon(el) {
     settled.add(el);
 }
 
-/** Lay the gallery out again when its columns change size: every height is measured again. */
+/**
+ * Lay the gallery out again when its columns change size: every height is measured again. The cards
+ * in the page are measured where they are, not drawn again, so their pictures stay on screen; the
+ * blocks out of the page are drawn only to be measured.
+ */
 export function resizeAllMasonryItems() {
     const tracks = window.getComputedStyle(Elements.imageGrid).gridTemplateColumns;
     if (tracks === columnTracks) return;
     columnTracks = tracks;
     heights.clear();
-    if (blocks.length) renderImageGrid();
+    if (!blocks.length) return;
+    // Measured in the first column, which every block fits: a column past the new last one has no width
+    blocks.forEach(block => { block.col = 0; if (block.el) placeElement(block); });
+    const fresh = blocks.filter(block => !block.el);
+    Elements.imageGrid.append(...fresh.map(createBlock));
+    const sizes = blocks.map(block => outerHeight(block.el));
+    blocks.forEach((block, i) => { block.height = sizes[i]; heights.set(blockKey(block), sizes[i]); });
+    fresh.forEach(block => { block.el.remove(); block.el = null; }); // updateWindow() puts back those near the window, in order
+    layoutBlocks();
+    updateWindow();
 }
 
 /** Number each drawn card by its place in the blocks, which is its place in State.filteredImages. */

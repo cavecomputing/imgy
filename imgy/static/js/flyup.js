@@ -68,6 +68,7 @@ export function closeGalleryTagFlyup() {
     if (!isGalleryTagFlyupOpen()) return;
     const flyup = Elements.galleryTagFlyup;
     flyup.classList.remove('active');
+    Elements.quickTagInput.blur();
     Elements.bulkTagBtn.classList.remove('active');
     const cleanup = () => {
         if (flyup.classList.contains('active')) return;
@@ -143,11 +144,14 @@ function enterPick() {
     return isAdd ? null : pickSuggestion(term, State.quickTagMatches);
 }
 
-/** The tokens Enter applies, with the suggestion Enter takes in place of the last one, kept whole if it has spaces. */
-function enterTokens() {
+/**
+ * The tokens Enter applies, with the suggestion it takes (or the one clicked) in place of the word
+ * being typed, kept whole if it has spaces.
+ */
+function enterTokens(pick = enterPick()) {
     const tokens = splitTagTokens(ActiveFlyup.input.value, State.bulkTagFlyupMode ? /[\s,]+/ : /\s+/);
-    const pick = enterPick();
-    if (pick) tokens[tokens.length - 1] = (getQuickTagLastToken().isRemove ? '-' : '') + pick;
+    const { raw, isRemove } = getQuickTagLastToken();
+    if (pick) tokens.splice(raw ? -1 : tokens.length, 1, (isRemove ? '-' : '') + pick);
     return tokens;
 }
 
@@ -289,20 +293,6 @@ function renderQuickTagSuggestions() {
     const raw = ActiveFlyup.input.value.trim();
     container.innerHTML = '';
 
-    async function chooseQuickTag(tag) {
-        if (!img) return;
-        if (bulk) {
-            quickTagInsertSuggestion(tag);
-            return;
-        }
-        if (isRemove) {
-            await removeQuickTagFromContext(img, tag);
-            return;
-        }
-        await addTags(img.filename, [tag]);
-        resetQuickTagInput({ focus: true, lightboxRefresh: true });
-    }
-
     // Commands and renames are explained by the preview above; nothing to suggest
     if (['?', '--', '=', '++'].includes(raw) || term.includes('>')) {
         State.quickTagMatches = [];
@@ -357,7 +347,7 @@ function renderQuickTagSuggestions() {
                 btn.className = 'chip chip-pick';
                 btn.textContent = tag;
                 btn.title = bulk ? `Add ${tag} to the expression` : `Add ${tag}`;
-                btn.addEventListener('click', () => chooseQuickTag(tag));
+                btn.dataset.tag = tag;
                 chips.appendChild(btn);
             });
             appendSection(container, 'Common tags').appendChild(chips);
@@ -382,7 +372,7 @@ function renderQuickTagSuggestions() {
         const count = selected ? selected.filter(f => f.tags?.includes(t)).length : State.tagCounts[t] || 0;
         const countTitle = selected ? `On ${count} of ${formatCount(selected.length, 'selected file')}` : formatCount(count, 'file');
         item.innerHTML = `<span>${highlightMatch(t, term)}</span><span class="tag-count-badge" title="${countTitle}">${count}</span>`;
-        item.addEventListener('click', () => chooseQuickTag(t));
+        item.dataset.tag = t;
         list.appendChild(item);
     });
     section.appendChild(list);
@@ -406,10 +396,7 @@ export function initFlyups() {
     });
 
     // Phones have no Esc key
-    Elements.closeGalleryTagFlyupBtn.addEventListener('click', () => {
-        closeGalleryTagFlyup();
-        Elements.quickTagInput.blur();
-    });
+    Elements.closeGalleryTagFlyupBtn.addEventListener('click', closeGalleryTagFlyup);
 
     // Shared handlers for the gallery and lightbox inputs
     function handleQuickTagInput() {
@@ -472,6 +459,38 @@ export function initFlyups() {
         resetQuickTagInput({ lightboxRefresh: true });
     }
 
+    /** Apply what is typed. A clicked suggestion comes as `pick`; without one Enter chooses, as enterPick() says. */
+    async function applyTagExpression(pick) {
+        const img = State.currentQuickTagImage;
+        if (!img) return;
+
+        // A highlighted suggestion stands in for the token being typed, and so does the one a
+        // tag typed in part picks: a phone has no Tab or arrow keys to choose it with
+        const tokens = enterTokens(pick);
+        if (!State.bulkTagFlyupMode && tokens.includes('=')) { showToast('"=" only works on a selection'); return; }
+        if (!State.bulkTagFlyupMode && tokens.includes('++')) { showToast('"++" only works on a selection'); return; }
+        if (tokens.includes('?') && tokens.length > 1) { showToast('"?" must be the only token'); return; }
+
+        if (tokens.length === 0) return;
+
+        if (State.bulkTagFlyupMode) {
+            await handleQuickTagBulkMode(tokens, img);
+        } else {
+            await handleQuickTagSingleImage(tokens, img);
+        }
+    }
+
+    // A click on a suggestion is Enter with that tag in place of the word being typed, so the words
+    // before it are applied too. On a selection it only completes the word, as Tab does.
+    function handleSuggestionClick(e) {
+        const tag = e.target.closest('.match-item, .chip-pick')?.dataset.tag;
+        if (!tag) return;
+        if (State.bulkTagFlyupMode) quickTagInsertSuggestion(tag);
+        else applyTagExpression(tag);
+    }
+    // The input keeps the focus through a click in its editor
+    const keepFocus = (e) => { if (e.target.tagName !== 'INPUT') e.preventDefault(); };
+
     async function handleQuickTagKeydown(e) {
         const matches = State.quickTagMatches;
         if (e.key === 'ArrowDown') {
@@ -502,23 +521,7 @@ export function initFlyups() {
             });
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            const img = State.currentQuickTagImage;
-            if (!img) return;
-
-            // A highlighted suggestion stands in for the token being typed, and so does the one a
-            // tag typed in part picks: a phone has no Tab or arrow keys to choose it with
-            const tokens = enterTokens();
-            if (!State.bulkTagFlyupMode && tokens.includes('=')) { showToast('"=" only works on a selection'); return; }
-            if (!State.bulkTagFlyupMode && tokens.includes('++')) { showToast('"++" only works on a selection'); return; }
-            if (tokens.includes('?') && tokens.length > 1) { showToast('"?" must be the only token'); return; }
-
-            if (tokens.length === 0) return;
-
-            if (State.bulkTagFlyupMode) {
-                await handleQuickTagBulkMode(tokens, img);
-            } else {
-                await handleQuickTagSingleImage(tokens, img);
-            }
+            await applyTagExpression();
         } else if (e.key === 'Escape') {
             // Handled here, so the global shortcut doesn't also close the lightbox behind the editor
             e.stopPropagation();
@@ -535,4 +538,8 @@ export function initFlyups() {
     Elements.quickTagInput.addEventListener('keydown', handleQuickTagKeydown);
     Elements.lightboxTagInput.addEventListener('input', handleQuickTagInput);
     Elements.lightboxTagInput.addEventListener('keydown', handleQuickTagKeydown);
+    for (const editor of [Elements.galleryTagFlyup, Elements.lightboxTagFlyup]) {
+        editor.addEventListener('click', handleSuggestionClick);
+        editor.addEventListener('mousedown', keepFocus);
+    }
 }

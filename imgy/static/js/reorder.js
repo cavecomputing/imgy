@@ -243,7 +243,9 @@ function onPointerEnd(e) {
 export function initReorder() {
     const grid = Elements.imageGrid;
     grid.addEventListener('pointerdown', onPointerDown);
-    grid.addEventListener('lostpointercapture', () => end(true));
+    // The drag is over when the grid loses the pointer it captured. A card that had the pointer
+    // itself, because the finger shifted on it, loses it as the drag begins: that is not the end.
+    grid.addEventListener('lostpointercapture', (e) => { if (e.target === grid) end(true); });
     // A finger held on a card would open the browser's context menu, which cancels the drag
     grid.addEventListener('contextmenu', (e) => { if (press?.hold) e.preventDefault(); });
     // Once an item is lifted, the finger moves it instead of scrolling the page

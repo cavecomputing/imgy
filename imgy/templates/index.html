@@ -112,6 +112,20 @@
     </main>
     <button id="toTopBtn" class="to-top" type="button" title="Back to the start" aria-label="Back to the start of the gallery"><svg class="i" aria-hidden="true"><use href="#i-arrow-up"/></svg></button>
 
+    <!-- phones: a finger held on a picture dims the page and lists what can be done with that file (grid.js) -->
+    <div id="cardMenu" class="card-menu" popover="manual">
+        <img class="card-menu-held" alt="">
+        <div class="card-menu-list">
+            <button type="button" data-action="favorite" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg>Favorite</button>
+            <button type="button" data-action="tags"><svg class="i" aria-hidden="true"><use href="#i-tag"/></svg>Tags</button>
+            <button type="button" data-action="select"><svg class="i" aria-hidden="true"><use href="#i-check-square"/></svg>Select</button>
+            <a data-action="save" download><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Save</a>
+            <button type="button" data-action="replace"><svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>Replace</button>
+            <button type="button" data-action="trash"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Trash</button>
+            <button type="button" data-action="settings"><svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg>Settings</button>
+        </div>
+    </div>
+
     <div id="selectionBar" class="selection-bar hidden" role="toolbar" aria-label="Selected files">
         <span class="selection-count"><span id="selectedCount" class="cc-badge cc-badge--count">0</span><span class="selection-count-label">selected</span></span>
         <div class="bar-div"></div>

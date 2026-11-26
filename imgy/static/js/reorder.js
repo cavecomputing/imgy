@@ -3,7 +3,8 @@ import { State } from './state.js';
 import { Elements } from './dom.js';
 import { saveImageOrder } from './data.js';
 import { clearCardFocus } from './navigation.js';
-import { drawnOrder, syncGridOrder } from './grid.js';
+import { drawnOrder, openCardMenu, syncGridOrder } from './grid.js';
+import { isPhoneLayout } from './ui.js';
 
 const DRAG_DISTANCE = 5;    // px a mouse travels before a press becomes a drag
 const HOLD_MS = 300;        // how long a finger rests on a card to pick it up
@@ -205,6 +206,17 @@ function endPress() {
     press = null;
 }
 
+/**
+ * A finger has rested on the item. On a phone a card shows its menu, and is picked up when the
+ * finger moves on from there; a group, or a card anywhere else, is picked up at once.
+ */
+function onHold() {
+    if (!isPhoneLayout() || !press.item.matches('.image-card')) return begin();
+    press.menu = true;
+    window.addEventListener('click', swallowClick, true); // lifting the finger is not a tap on the menu
+    openCardMenu(press.item);
+}
+
 function onPointerDown(e) {
     if (e.button !== 0 || !e.isPrimary || State.selectionMode || e.target.closest('a, button, input')) return;
     // A press that is still around means its release went missing: put everything back
@@ -214,7 +226,7 @@ function onPointerDown(e) {
     const item = e.target.closest('.image-card') ?? e.target.closest('.image-group');
     if (!item) return;
     press = { item, id: e.pointerId, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, hold: e.pointerType === 'touch', began: false };
-    if (press.hold) press.timer = setTimeout(begin, HOLD_MS);
+    if (press.hold) press.timer = setTimeout(onHold, HOLD_MS);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerEnd);
     window.addEventListener('pointercancel', onPointerEnd);
@@ -231,7 +243,10 @@ function onPointerMove(e) {
     if (press.began) return;
     const travelled = Math.hypot(press.x - press.startX, press.y - press.startY);
     if (!press.hold && travelled > DRAG_DISTANCE) begin();
-    else if (press.hold && travelled > HOLD_DRIFT) endPress(); // the finger is scrolling
+    else if (press.menu && travelled > HOLD_DRIFT) {
+        Elements.cardMenu.hidePopover();
+        begin();
+    } else if (press.hold && travelled > HOLD_DRIFT) endPress(); // the finger is scrolling
 }
 
 function onPointerEnd(e) {
@@ -248,6 +263,6 @@ export function initReorder() {
     grid.addEventListener('lostpointercapture', (e) => { if (e.target === grid) end(true); });
     // A finger held on a card would open the browser's context menu, which cancels the drag
     grid.addEventListener('contextmenu', (e) => { if (press?.hold) e.preventDefault(); });
-    // Once an item is lifted, the finger moves it instead of scrolling the page
-    window.addEventListener('touchmove', (e) => { if (drag && e.cancelable) e.preventDefault(); }, { passive: false });
+    // Once an item is lifted or shows its menu, the finger moves it instead of scrolling the page
+    window.addEventListener('touchmove', (e) => { if ((drag || press?.menu) && e.cancelable) e.preventDefault(); }, { passive: false });
 }

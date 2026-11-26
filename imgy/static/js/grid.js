@@ -1,16 +1,17 @@
 /** Gallery grid: image cards, groups, the masonry layout, and the library count above it. */
 import { State } from './state.js';
 import { Elements } from './dom.js';
-import { esc, formatCount, getExtension, getImageBaseName, isVideo } from './utils.js';
+import { esc, formatCount, getDisplayFilename, getExtension, getImageBaseName, isVideo } from './utils.js';
 import { showToast } from './ui.js';
 import { api } from './api.js';
 import { reloadDataPreservingScroll } from './data.js';
 import { startInlineRename } from './rename.js';
 import { clearCardFocus, restoreCardFocus } from './navigation.js';
-import { toggleImageSelection } from './selection.js';
-import { toggleFavorite, updateLocalState } from './actions.js';
+import { toggleImageSelection, toggleSelectionMode } from './selection.js';
+import { deleteImage, toggleFavorite, updateLocalState } from './actions.js';
 import { openGalleryTagFlyup } from './flyup.js';
-import { openLightbox } from './lightbox.js';
+import { openLightbox, pickReplacement } from './lightbox.js';
+import { toggleShortcutsModal } from './settings.js';
 import { llmQueueUpdateUI } from './llm.js';
 
 const BATCH = 60;         // files drawn at a time, so a big library opens as fast as a small one
@@ -27,6 +28,7 @@ let blocks = [];
 let gridHeight = 0;         // the blocks' height, which layoutBlocks() gives the grid
 const heights = new Map();  // measured block heights, margin included, by blockKey(), for the current column width
 let columnTracks = '';      // the grid's column sizes the heights were measured at
+let heldCard = null;        // the card the card menu is open for
 
 const shownThumbnails = new Set(); // thumbnails drawn before, which the browser has at hand: they show at once, the rest fade in
 const blockKey = (block) => block.files.map(img => img.thumbnail_url).join('\n');
@@ -420,7 +422,60 @@ async function handleCardClick(e, img, card) {
     if (!e.target.closest('.card-action-btn')) openLightbox(idx);
 }
 
+/**
+ * Open the card menu for `card`: a copy of its picture stays lit over the dimmed page, and the
+ * list sits 8px under it, or above it when there is no room below, in line with its outer edge.
+ */
+export function openCardMenu(card) {
+    const img = State.imagesByFilename.get(card.dataset.filename);
+    const menu = Elements.cardMenu;
+    const [held, list] = menu.children;
+    const picture = card.getBoundingClientRect(); // the card, since the picture in it shrinks while pressed
+    heldCard = card;
+    held.src = card.querySelector('img').src;
+    Object.assign(held.style, { left: `${picture.left}px`, top: `${picture.top}px`, width: `${picture.width}px`, height: `${picture.height}px` });
+    list.querySelector('[data-action="favorite"]').setAttribute('aria-pressed', img.is_favorite);
+    Object.assign(list.querySelector('a'), { href: img.url, download: getDisplayFilename(img.filename) });
+    menu.showPopover();
+
+    // The menu's padding is the room a phone's notch and home bar take
+    const { paddingTop, paddingBottom } = getComputedStyle(menu);
+    const ceiling = parseFloat(paddingTop) + 8;
+    const floor = innerHeight - parseFloat(paddingBottom) - 8;
+    const below = Math.round(picture.bottom) + 8;
+    const above = Math.round(picture.top) - 8 - list.offsetHeight;
+    const fitsBelow = below + list.offsetHeight <= floor;
+    const onLeft = picture.left + picture.width / 2 < innerWidth / 2;
+    const left = onLeft ? Math.round(picture.left) : Math.round(picture.right) - list.offsetWidth;
+    list.style.left = `${Math.max(12, Math.min(left, innerWidth - 12 - list.offsetWidth))}px`; // inside the page's 12px margins
+    // With no room either side of a tall picture, the list lies over its lower part
+    list.style.top = `${fitsBelow ? below : above >= ceiling ? above : floor - list.offsetHeight}px`;
+    list.style.transformOrigin = `${onLeft ? 'left' : 'right'} ${fitsBelow ? 'top' : 'bottom'}`; // it grows out of the corner by the picture
+}
+
+const cardMenuActions = {
+    favorite: async (img) => updateLocalState(img.filename, { is_favorite: await toggleFavorite(img.filename) }),
+    tags: openGalleryTagFlyup,
+    select: (img) => {
+        if (!State.selectionMode) toggleSelectionMode();
+        toggleImageSelection(img.filename, heldCard);
+    },
+    replace: (img) => pickReplacement(img.filename),
+    trash: (img) => deleteImage(State.filteredImages.indexOf(img)),
+    settings: () => toggleShortcutsModal(),
+};
+
 export function initGrid() {
+    // A tap anywhere closes the card menu; one on a row also does what the row says (Save is a link)
+    Elements.cardMenu.addEventListener('click', (e) => {
+        Elements.cardMenu.hidePopover();
+        const action = cardMenuActions[e.target.closest('[data-action]')?.dataset.action];
+        const img = State.imagesByFilename.get(heldCard.dataset.filename);
+        if (action && img) action(img);
+    });
+    // A finger held on the menu would open the browser's own menu for the picture or the link
+    Elements.cardMenu.addEventListener('contextmenu', (e) => e.preventDefault());
+
     // A card's buttons show for keyboard focus on one of them. This class does what
     // :has(.card-action-btn:focus-visible) did, which slowed every redraw down.
     Elements.imageGrid.addEventListener('focusin', (e) => {

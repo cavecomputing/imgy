@@ -1723,19 +1723,21 @@ html { -webkit-tap-highlight-color: transparent; }
     .icon-btn { width: 44px; height: 44px; border-radius: 12px; }
     .more-btn { display: grid; width: 36px; height: 36px; border-radius: 18px; background: var(--field); color: var(--fg); }
 
-    /* Select, Upload, Trash and Settings: a menu under the more button */
-    .action-menu {
-        position: fixed;
-        inset: calc(env(safe-area-inset-top) + 52px) var(--page-x) auto auto;
+    /* Select, Upload, Trash and Settings: a menu under the more button. The card menu's list looks the same. */
+    .action-menu, .card-menu-list {
         width: 224px;
-        margin: 0;
         padding: 6px 0;
-        border: 0;
         border-radius: var(--radius-lg);
         background: var(--raised);
         box-shadow: var(--shadow-pop);
         color: var(--fg);
         flex-direction: column;
+    }
+    .action-menu {
+        position: fixed;
+        inset: calc(env(safe-area-inset-top) + 52px) var(--page-x) auto auto;
+        margin: 0;
+        border: 0;
         opacity: 0;
         translate: 0 -4px;
         transition: opacity var(--out) ease-in, translate var(--out) ease-in, display var(--out) allow-discrete, overlay var(--out) allow-discrete;
@@ -1743,7 +1745,7 @@ html { -webkit-tap-highlight-color: transparent; }
     .action-menu:not(:popover-open) { display: none; }
     .action-menu:popover-open { display: flex; opacity: 1; translate: none; transition-duration: var(--in); transition-timing-function: var(--ease-out); }
     @starting-style { .action-menu:popover-open { opacity: 0; translate: 0 -4px; } }
-    .action-menu > button, .action-menu > button:hover {
+    .action-menu > button, .action-menu > button:hover, .card-menu-list > * {
         width: auto;
         height: 44px;
         justify-content: flex-start;
@@ -1758,16 +1760,49 @@ html { -webkit-tap-highlight-color: transparent; }
         font-weight: 400;
         line-height: 20px;
     }
-    .action-menu > button { display: flex; align-items: center; }
-    .action-menu > button:active:not(:disabled) { scale: none; background: var(--hover); }
-    .action-menu svg.i { width: 18px; height: 18px; stroke-width: 1.75; color: var(--fg-muted); }
+    .action-menu > button, .card-menu-list > * { display: flex; align-items: center; }
+    .action-menu > button:active:not(:disabled), .card-menu-list > :active { scale: none; background: var(--hover); }
+    .action-menu svg.i, .card-menu-list svg.i { width: 18px; height: 18px; stroke-width: 1.75; color: var(--fg-muted); }
     .action-menu .active, .action-menu .active svg.i { color: var(--ink-text); }
     .action-menu .menu-label, .action-menu .upload-btn span { display: inline; }
     #selectModeBtn { order: -2; }
     #uploadBtn { order: -1; }
-    #trashBtn { margin-top: 13px; } /* a line between the pairs, 6px clear of each */
-    #trashBtn::before { content: ""; position: absolute; top: -7px; left: 0; right: 0; height: 1px; background: var(--line); }
+    #trashBtn, .card-menu-list > :last-child { margin-top: 13px; } /* a line between the pairs, 6px clear of each */
+    :is(#trashBtn, .card-menu-list > :last-child)::before { content: ""; position: absolute; top: -7px; left: 0; right: 0; height: 1px; background: var(--line); }
     .action-menu .dot-count { position: static; margin-left: auto; }
+
+    /* A finger held on a picture: the page dims and blurs behind a lit copy of the picture, and what
+       can be done with the file is listed beside it. grid.js places both; the padding tells it how
+       much room the notch and the home bar take. */
+    .card-menu {
+        inset: 0;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+        border: 0;
+        background: var(--scrim);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        overflow: hidden;
+        touch-action: none; /* the page doesn't scroll under it */
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        opacity: 0;
+        transition: opacity var(--out) ease-in, display var(--out) allow-discrete, overlay var(--out) allow-discrete;
+    }
+    .card-menu:popover-open { opacity: 1; transition-duration: var(--in); transition-timing-function: var(--ease-out); }
+    .card-menu-held { position: absolute; border-radius: var(--radius-sm); object-fit: cover; box-shadow: var(--shadow-pop); }
+    .card-menu-list { position: absolute; display: flex; scale: 0.9; transition: scale var(--out) ease-in; }
+    .card-menu:popover-open .card-menu-list { scale: 1; transition: scale var(--in) var(--ease-out); }
+    @starting-style {
+        .card-menu:popover-open { opacity: 0; }
+        .card-menu:popover-open .card-menu-list { scale: 0.9; }
+    }
+    .card-menu-list > * { position: relative; border: 0; text-decoration: none; }
+    .card-menu-list [aria-pressed="true"] svg.i { color: var(--star); fill: var(--star); }
+    .card-menu-list [data-action="trash"], .card-menu-list [data-action="trash"] svg.i { color: var(--danger); }
 
     .topbar-filter {
         position: fixed;

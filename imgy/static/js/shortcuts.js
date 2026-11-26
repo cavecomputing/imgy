@@ -33,9 +33,11 @@ export function initShortcuts() {
         const trashOpen = Elements.trashModal.open;
         const galleryTagOpen = isGalleryTagFlyupOpen();
         const lightboxTagOpen = isLightboxTagFlyupOpen();
-        const anyModalOpen = shortcutsOpen || trashOpen || galleryTagOpen || lightboxTagOpen;
+        const cardMenuOpen = Elements.cardMenu.matches(':popover-open');
+        const anyModalOpen = shortcutsOpen || trashOpen || galleryTagOpen || lightboxTagOpen || cardMenuOpen;
 
         if (e.key === 'Escape') {
+            if (cardMenuOpen) { Elements.cardMenu.hidePopover(); return; }
             if (shortcutsOpen) { closeShortcutsModal(); return; }
             if (trashOpen) { Elements.trashModal.close(); return; }
             if (galleryTagOpen) { closeGalleryTagFlyup(); return; }

@@ -27,7 +27,8 @@ Your files stay ordinary files in a folder on your own machine, and Imgy only re
 - Lightbox with zoom, pan, pinch, and swipe, and a strip of the files on either side; plays common video formats
 - Replace a file with a new version (an upscaled copy, say) from the lightbox; it keeps its name, tags, favorite, group, and place
 - Bulk selection: tag, favorite, group, download as ZIP, or move to trash
-- Drag files or groups into your own order (press and hold on a phone); **Settings › Appearance** switches back to newest first
+- Drag files or groups into your own order (on a phone, press and hold, then drag); **Settings › Appearance** switches back to newest first
+- On a phone, press and hold a picture for its menu: favorite, tags, select, save, replace, trash, and a shortcut to Settings
 - Trash with restore, inline rename, drag-and-drop upload
 - Paste a link to an image, or to a video on YouTube, Vimeo, Reddit, or any other site [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports, into the filter bar and Imgy [downloads it](#downloading-from-a-link) into the library
 - Big libraries open fast: the gallery draws its files in batches and keeps drawing ahead of your scroll

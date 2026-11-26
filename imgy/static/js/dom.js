@@ -13,6 +13,7 @@ export const Elements = {
     filterPopChips: byId('filterPopChips'),
     uploadBtn: byId('uploadBtn'),
     actionMenu: byId('actionMenu'),
+    cardMenu: byId('cardMenu'),
     imageInput: byId('imageInput'),
     untaggedFilterBtn: byId('untaggedFilterBtn'),
     favoriteFilterBtn: byId('favoriteFilterBtn'),

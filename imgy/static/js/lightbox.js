@@ -715,6 +715,14 @@ export function navigateImage(dir) {
     updateLightboxContent();
 }
 
+let replacedFilename; // the file the open file picker's choice will replace
+
+/** Ask for the file that takes `filename`'s place. */
+export function pickReplacement(filename) {
+    replacedFilename = filename;
+    Elements.replaceInput.click();
+}
+
 export function initLightbox() {
     setLightboxFavoriteState(false);
 
@@ -752,14 +760,13 @@ export function initLightbox() {
     Elements.lightboxTagTab.addEventListener('click', toggleLightboxTagFlyup);
     Elements.lightboxFavoriteBtn.addEventListener('click', favorite);
     Elements.lightboxFavoriteTab.addEventListener('click', favorite);
-    const pickReplacement = () => Elements.replaceInput.click();
-    Elements.lightboxReplaceBtn.addEventListener('click', pickReplacement);
-    Elements.lightboxReplaceTab.addEventListener('click', pickReplacement);
+    const replaceShown = () => pickReplacement(getCurrentLightboxImage()?.filename);
+    Elements.lightboxReplaceBtn.addEventListener('click', replaceShown);
+    Elements.lightboxReplaceTab.addEventListener('click', replaceShown);
     Elements.replaceInput.addEventListener('change', () => {
         const file = Elements.replaceInput.files[0];
         Elements.replaceInput.value = ''; // so picking the same file again still fires a change
-        const img = getCurrentLightboxImage();
-        if (file && img) replaceImage(img.filename, file);
+        if (file && State.imagesByFilename.has(replacedFilename)) replaceImage(replacedFilename, file);
     });
 
     Elements.lightboxContent.addEventListener('wheel', (e) => {
